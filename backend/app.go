@@ -25,8 +25,9 @@ const (
 // App 应用结构体
 type App struct {
 	*appState
-	ctx       context.Context
-	admission func() error
+	ctx            context.Context
+	admission      func() error
+	authGeneration uint64
 }
 
 // Scoped receivers share original native state; managers and mutexes are never copied.

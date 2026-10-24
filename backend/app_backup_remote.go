@@ -151,6 +151,11 @@ func (a *App) BackupOpenListUpload(input map[string]string) (map[string]interfac
 		return nil, err
 	}
 	defer a.maintenanceMu.Unlock()
+	if authErr := a.checkScopedAdmission(); authErr != nil {
+		var authZero0 map[string]interface{}
+		return authZero0, authErr
+	}
+
 	return a.backupOpenListUploadLocked(input)
 }
 
@@ -197,6 +202,10 @@ func (a *App) BackupOpenListRestore(input map[string]string, fileName string) (m
 		return nil, err
 	}
 	defer a.maintenanceMu.Unlock()
+	if authErr := a.checkScopedAdmission(); authErr != nil {
+		var authZero0 map[string]interface{}
+		return authZero0, authErr
+	}
 
 	client, err := a.backupOpenListClient(input)
 	if err != nil {
@@ -239,6 +248,11 @@ func (a *App) backupDownloadRemoteFile(client channels.Client, label string, tim
 		return nil, err
 	}
 	defer a.maintenanceMu.Unlock()
+	if authErr := a.checkScopedAdmission(); authErr != nil {
+		var authZero0 map[string]interface{}
+		return authZero0, authErr
+	}
+
 	var savePath string
 	var err error
 	if configuredDirectory != `` {

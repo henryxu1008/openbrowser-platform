@@ -152,6 +152,10 @@ type profilePackageDirectorySwap struct {
 func (a *App) BrowserProfilePackageExport(profileIds []string) (ProfilePackageExportResult, error) {
 	a.maintenanceMu.Lock()
 	defer a.maintenanceMu.Unlock()
+	if authErr := a.checkScopedAdmission(); authErr != nil {
+		var authZero0 ProfilePackageExportResult
+		return authZero0, authErr
+	}
 
 	ids := normalizeProfilePackageIDs(profileIds)
 	if len(ids) == 0 {
@@ -194,6 +198,10 @@ func (a *App) BrowserProfilePackageImport() (ProfilePackageImportResult, error) 
 
 	a.maintenanceMu.Lock()
 	defer a.maintenanceMu.Unlock()
+	if authErr := a.checkScopedAdmission(); authErr != nil {
+		var authZero0 ProfilePackageImportResult
+		return authZero0, authErr
+	}
 
 	if a.ctx == nil {
 		return ProfilePackageImportResult{}, fmt.Errorf("应用上下文未初始化")
@@ -224,6 +232,10 @@ func (a *App) BrowserProfilePackagePrepareImport() (ProfilePackageImportPreview,
 
 	a.maintenanceMu.Lock()
 	defer a.maintenanceMu.Unlock()
+	if authErr := a.checkScopedAdmission(); authErr != nil {
+		var authZero0 ProfilePackageImportPreview
+		return authZero0, authErr
+	}
 
 	if a.ctx == nil {
 		return ProfilePackageImportPreview{}, fmt.Errorf("应用上下文未初始化")
@@ -252,6 +264,11 @@ func (a *App) BrowserProfilePackagePrepareImport() (ProfilePackageImportPreview,
 func (a *App) BrowserProfilePackagePrepareImportFromPath(zipPath string) (ProfilePackageImportPreview, error) {
 	a.maintenanceMu.Lock()
 	defer a.maintenanceMu.Unlock()
+	if authErr := a.checkScopedAdmission(); authErr != nil {
+		var authZero0 ProfilePackageImportPreview
+		return authZero0, authErr
+	}
+
 	return a.prepareProfilePackageImportFromPath(zipPath)
 }
 
@@ -259,6 +276,11 @@ func (a *App) BrowserProfilePackagePrepareImportFromPath(zipPath string) (Profil
 func (a *App) BrowserProfilePackageImportWithOptions(zipPath string, options ProfilePackageImportOptions) (ProfilePackageImportResult, error) {
 	a.maintenanceMu.Lock()
 	defer a.maintenanceMu.Unlock()
+	if authErr := a.checkScopedAdmission(); authErr != nil {
+		var authZero0 ProfilePackageImportResult
+		return authZero0, authErr
+	}
+
 	return a.importProfilePackageFromPathWithModeAndActions(zipPath, options.ConflictMode, options.ConfirmConflict, options.Actions)
 }
 
@@ -441,6 +463,13 @@ func (a *App) prepareProfilePackageImportFromPath(zipPath string) (ProfilePackag
 	profiles, conflicts, canOverwrite, err := a.profilePackageImportPreviewProfiles(contents.Profiles)
 	if err != nil {
 		return ProfilePackageImportPreview{}, err
+	}
+	// All upstream preview producers (instance list and backup import/history)
+	// share this point. Register the initiating scope, not the current account.
+	if a.admission != nil {
+		if err := a.rememberImportPreview(zipPath, a.authGeneration); err != nil {
+			return ProfilePackageImportPreview{}, err
+		}
 	}
 	return ProfilePackageImportPreview{
 		Cancelled:     false,

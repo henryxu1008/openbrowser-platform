@@ -1159,9 +1159,6 @@ func (a *AuthBoundApp) BrowserProfilePackagePrepareImport(generation uint64) (r0
 		return
 	}
 	r0, r1 = core.BrowserProfilePackagePrepareImport()
-	if r1 == nil && !r0.Cancelled {
-		r1 = core.rememberImportPreview(r0.ZipPath, generation)
-	}
 	return
 }
 
@@ -1172,9 +1169,6 @@ func (a *AuthBoundApp) BrowserProfilePackagePrepareImportFromPath(zipPath string
 		return
 	}
 	r0, r1 = core.BrowserProfilePackagePrepareImportFromPath(zipPath)
-	if r1 == nil && !r0.Cancelled {
-		r1 = core.rememberImportPreview(r0.ZipPath, generation)
-	}
 	return
 }
 

@@ -22,6 +22,7 @@ type mockSession struct {
 	status      desktopauth.Status
 	grant       bool
 	beforeCheck func()
+	afterCheck  func()
 }
 
 func newMockSession() *mockSession {
@@ -38,6 +39,12 @@ func (m *mockSession) Check(g uint64) error {
 	s := m.Status()
 	if s.State != "signed_in" || s.Generation != g || !s.ExpiresAt.After(time.Now()) {
 		return desktopauth.ErrUnauthenticated
+	}
+	m.mu.Lock()
+	after := m.afterCheck
+	m.mu.Unlock()
+	if after != nil {
+		after()
 	}
 	return nil
 }

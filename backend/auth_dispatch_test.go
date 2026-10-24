@@ -174,3 +174,107 @@ func TestAuthBoundUnconfiguredDoesNotActivateBusinessAndFailedInitIsRetained(t *
 		t.Fatal("failed initialization was retried")
 	}
 }
+
+func TestAuthBoundBackupPreviewCanConfirmWithinItsSession(t *testing.T) {
+	for _, flow := range []string{"local-history", "file-picker"} {
+		t.Run(flow, func(t *testing.T) {
+			a, path := newProfilePackageImportTestApp(t, []browser.Profile{{ProfileId: "source", ProfileName: "B"}}, nil)
+			m := newMockSession()
+			a.identity = m
+			a.businessReady = true
+			a.runtimeStopped = true // no native event bridge in this offline fixture
+			b := NewAuthBoundApp(a)
+			old := openNativeFileDialog
+			t.Cleanup(func() { openNativeFileDialog = old })
+			openNativeFileDialog = func(context.Context, wailsruntime.OpenDialogOptions) (string, error) { return path, nil }
+			prepare := func(generation uint64) (map[string]interface{}, error) {
+				if flow == "file-picker" {
+					return b.BackupImportPackage(generation)
+				}
+				return b.BackupRestoreLocalPackage(path, generation)
+			}
+			result, err := prepare(7)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result["requiresProfileImportConfirmation"] != true {
+				t.Fatal("original backup confirmation flow missing")
+			}
+			_, _ = b.AuthLogout(7)
+			m.replace()
+			generation := m.Status().Generation
+			if _, err := b.BrowserProfilePackageImportWithOptions(path, ProfilePackageImportOptions{ConfirmConflict: true}, generation); !errors.Is(err, desktopauth.ErrUnauthenticated) {
+				t.Fatal("old backup preview crossed sessions")
+			}
+			result, err = prepare(generation)
+			if err != nil {
+				t.Fatal(err)
+			}
+			preview, ok := result["profileImportPreview"].(ProfilePackageImportPreview)
+			if !ok {
+				t.Fatal("backup did not return the original preview DTO")
+			}
+			imported, err := b.BrowserProfilePackageImportWithOptions(preview.ZipPath, ProfilePackageImportOptions{ConfirmConflict: true}, generation)
+			if err != nil || imported.CreatedCount != 1 {
+				t.Fatalf("fresh same-session backup preview rejected: created=%d error=%v", imported.CreatedCount, err)
+			}
+		})
+	}
+}
+
+func TestAuthBoundMaintenanceWaitCannotCommitAfterRevocation(t *testing.T) {
+	a, path := newProfilePackageImportTestApp(t, []browser.Profile{{ProfileId: "source", ProfileName: "B"}}, nil)
+	m := newMockSession()
+	a.identity = m
+	a.businessReady = true
+	a.runtimeStopped = true
+	b := NewAuthBoundApp(a)
+	if _, err := b.BrowserProfilePackagePrepareImportFromPath(path, 7); err != nil {
+		t.Fatal(err)
+	}
+	before := len(a.browserMgr.List())
+	a.maintenanceMu.Lock()
+	admitted, resume := make(chan struct{}), make(chan struct{})
+	var checks atomic.Int32
+	m.mu.Lock()
+	m.afterCheck = func() {
+		if checks.Add(1) == 4 {
+			close(admitted)
+			<-resume
+		}
+	}
+	m.mu.Unlock()
+	type outcome struct {
+		created int
+		err     error
+	}
+	done := make(chan outcome, 1)
+	go func() {
+		result, err := b.BrowserProfilePackageImportWithOptions(path, ProfilePackageImportOptions{ConfirmConflict: true}, 7)
+		done <- outcome{result.CreatedCount, err}
+	}()
+	waitAuthTest(t, admitted)
+	_, _ = b.AuthLogout(7)
+	m.replace()
+	close(resume)
+	a.maintenanceMu.Unlock()
+	select {
+	case result := <-done:
+		if !errors.Is(result.err, desktopauth.ErrUnauthenticated) || result.created != 0 {
+			t.Fatalf("revoked waiter committed: created=%d error=%v", result.created, result.err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("revoked waiter did not settle")
+	}
+	if len(a.browserMgr.List()) != before {
+		t.Fatal("revoked waiter changed the native catalog")
+	}
+	generation := m.Status().Generation
+	if _, err := b.BrowserProfilePackagePrepareImportFromPath(path, generation); err != nil {
+		t.Fatal(err)
+	}
+	imported, err := b.BrowserProfilePackageImportWithOptions(path, ProfilePackageImportOptions{ConfirmConflict: true}, generation)
+	if err != nil || imported.CreatedCount != 1 {
+		t.Fatalf("fresh caller could not reuse released maintenance lock: %+v %v", imported, err)
+	}
+}

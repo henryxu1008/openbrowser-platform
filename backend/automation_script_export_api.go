@@ -17,6 +17,10 @@ func (a *App) AutomationScriptExport(scriptID string) (map[string]any, error) {
 
 	a.maintenanceMu.Lock()
 	defer a.maintenanceMu.Unlock()
+	if authErr := a.checkScopedAdmission(); authErr != nil {
+		var authZero0 map[string]any
+		return authZero0, authErr
+	}
 
 	if a.ctx == nil {
 		return nil, fmt.Errorf("应用上下文未初始化")
@@ -73,6 +77,10 @@ func (a *App) AutomationScriptExportZip(scriptID string) (map[string]any, error)
 
 	a.maintenanceMu.Lock()
 	defer a.maintenanceMu.Unlock()
+	if authErr := a.checkScopedAdmission(); authErr != nil {
+		var authZero0 map[string]any
+		return authZero0, authErr
+	}
 
 	if a.ctx == nil {
 		return nil, fmt.Errorf("应用上下文未初始化")
@@ -124,6 +132,10 @@ func (a *App) AutomationScriptExportBatchZip(scriptIDs []string) (map[string]any
 
 	a.maintenanceMu.Lock()
 	defer a.maintenanceMu.Unlock()
+	if authErr := a.checkScopedAdmission(); authErr != nil {
+		var authZero0 map[string]any
+		return authZero0, authErr
+	}
 
 	if a.ctx == nil {
 		return nil, fmt.Errorf("应用上下文未初始化")
@@ -197,6 +209,10 @@ func (a *App) AutomationScriptExportDirectory(scriptID string) (map[string]any, 
 
 	a.maintenanceMu.Lock()
 	defer a.maintenanceMu.Unlock()
+	if authErr := a.checkScopedAdmission(); authErr != nil {
+		var authZero0 map[string]any
+		return authZero0, authErr
+	}
 
 	if a.ctx == nil {
 		return nil, fmt.Errorf("应用上下文未初始化")

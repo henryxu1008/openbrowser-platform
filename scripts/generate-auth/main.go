@@ -133,9 +133,6 @@ func main() {
 			fmt.Fprintf(&body, "%s = ", strings.Join(assigned, ", "))
 		}
 		fmt.Fprintf(&body, "core.%s(%s)\n", name, strings.Join(args, ", "))
-		if name == "BrowserProfilePackagePrepareImport" || name == "BrowserProfilePackagePrepareImportFromPath" {
-			body.WriteString("if r1 == nil && !r0.Cancelled { r1 = core.rememberImportPreview(r0.ZipPath,generation) }\n")
-		}
 		body.WriteString("return\n}\n\n")
 	}
 	var source strings.Builder

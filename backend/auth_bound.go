@@ -59,7 +59,7 @@ func (a *App) scoped(generation uint64) (*App, error) {
 	if err := check(); err != nil {
 		return nil, err
 	}
-	return &App{appState: a.appState, ctx: automation.WithAdmission(a.ctx, check), admission: check}, nil
+	return &App{appState: a.appState, ctx: automation.WithAdmission(a.ctx, check), admission: check, authGeneration: generation}, nil
 }
 
 func (a *App) scopedHTTP(generation uint64) (launchcode.BrowserStarter, error) {
@@ -146,6 +146,16 @@ func (a *App) currentAdmission() (func() error, error) {
 }
 
 func (a *App) captureAdmission() func() error { check, _ := a.currentAdmission(); return check }
+
+// Native startup and legacy core unit fixtures are trusted Go callers. Every
+// Wails/HTTP action has an immutable scoped check; never adopt a new generation
+// after waiting for the original maintenance mutex.
+func (a *App) checkScopedAdmission() error {
+	if a.admission != nil {
+		return a.admission()
+	}
+	return nil
+}
 
 func (a *App) rememberImportPreview(path string, generation uint64) error {
 	if err := a.identity.Check(generation); err != nil {

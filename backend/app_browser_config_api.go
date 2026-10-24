@@ -324,6 +324,10 @@ func (a *App) relativeCorePathIfPossible(absDir string) string {
 func (a *App) BrowserCoreDownload(coreName, url, proxyConfig string) error {
 	a.maintenanceMu.Lock()
 	defer a.maintenanceMu.Unlock()
+	if authErr := a.checkScopedAdmission(); authErr != nil {
+		return authErr
+	}
+
 	if a.browserMgr == nil {
 		return fmt.Errorf("浏览器管理器未初始化")
 	}
@@ -336,6 +340,10 @@ func (a *App) BrowserCoreDownload(coreName, url, proxyConfig string) error {
 func (a *App) BrowserCoreRedownload(coreId, url, proxyConfig string) error {
 	a.maintenanceMu.Lock()
 	defer a.maintenanceMu.Unlock()
+	if authErr := a.checkScopedAdmission(); authErr != nil {
+		return authErr
+	}
+
 	if a.browserMgr == nil {
 		return fmt.Errorf("浏览器管理器未初始化")
 	}

@@ -21,6 +21,10 @@ func (a *App) BackupExportPackage() (map[string]interface{}, error) {
 		return nil, err
 	}
 	defer a.maintenanceMu.Unlock()
+	if authErr := a.checkScopedAdmission(); authErr != nil {
+		var authZero0 map[string]interface{}
+		return authZero0, authErr
+	}
 
 	if a.ctx == nil {
 		return nil, fmt.Errorf("应用上下文未初始化")
@@ -81,6 +85,10 @@ func (a *App) BackupImportPackage() (map[string]interface{}, error) {
 		return nil, err
 	}
 	defer a.maintenanceMu.Unlock()
+	if authErr := a.checkScopedAdmission(); authErr != nil {
+		var authZero0 map[string]interface{}
+		return authZero0, authErr
+	}
 
 	if a.ctx == nil {
 		return nil, fmt.Errorf("应用上下文未初始化")
@@ -126,6 +134,10 @@ func (a *App) BackupRestoreLocalPackage(zipPath string) (map[string]interface{},
 		return nil, err
 	}
 	defer a.maintenanceMu.Unlock()
+	if authErr := a.checkScopedAdmission(); authErr != nil {
+		var authZero0 map[string]interface{}
+		return authZero0, authErr
+	}
 
 	zipPath = strings.TrimSpace(zipPath)
 	if zipPath == "" {

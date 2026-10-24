@@ -111,6 +111,11 @@ func (a *App) BackupSaveLocalDirectory(directory string) (BackupLocalSettings, e
 		return BackupLocalSettings{}, err
 	}
 	defer a.maintenanceMu.Unlock()
+	if authErr := a.checkScopedAdmission(); authErr != nil {
+		var authZero0 BackupLocalSettings
+		return authZero0, authErr
+	}
+
 	if err := a.backupSetLocalDirectoryLocked(absDirectory); err != nil {
 		return BackupLocalSettings{}, err
 	}

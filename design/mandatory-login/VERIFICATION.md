@@ -65,3 +65,32 @@ the verified busy head. Do not treat these local results as remote CI.
 Raw logs, exit receipts and the compiled EXE are retained locally under ignored
 `build/dist/` paths. Existing trial data, frozen busy EXE/ZIP and source backups
 remain separate and are not uploaded with this source change.
+
+## Bounded follow-up review
+
+The follow-up stayed within the original PR's 95 files and found two concrete
+regressions against `83e55fb`:
+
+- `BackupImportPackage` and `BackupRestoreLocalPackage` return a profile preview
+  through the shared producer, but only the instance-list facade had registered
+  its ownership. A fresh logged-in confirmation therefore failed with
+  `authentication_required`. Ownership now belongs to the shared preview
+  producer and the immutable initiating generation. Both backup routes can
+  confirm; an old backup preview still cannot cross login generations.
+- An import admitted before waiting for `maintenanceMu` could commit after its
+  session was revoked; the failing counterexample created one profile. The
+  existing maintenance-lock sites in the reviewed App files now recheck their
+  original scoped admission immediately after acquiring the lock. Existing
+  mutexes and business code remain in place. A revoked waiter creates nothing
+  and a fresh caller can acquire the released lock and use the original import.
+
+No live identity/provider, GUI/kernel or product-service run is part of this
+review. It does not certify unrelated domain locks or complete product behavior.
+
+The follow-up's applicable four-package race run passes 37 top-level tests and
+820 tests/subtests; vet and Windows production compilation pass. Frontend source
+and SDK bytes did not change, so the prior 34 frontend tests/clean build remain
+applicable. The new EXE SHA256 is
+`6910b46fc9c46c5ff7ab414d700d77e0ea698c691a8cc2819e5a4cc5dae5fc90`;
+it was not executed. The first `83e55fb` binary and previous frozen busy artifacts
+remain retained separately.

@@ -1,8 +1,10 @@
 # Mandatory login: bounded offline implementation
 
-Local Issue only; no GitHub Issue has been published and no remote is configured.
-`ISSUE-draft.md` preserves the preparation snapshot. This file tracks the now
-authorized implementation, based on accepted upstream/busy-fix commit
+Tracking: [formal Issue #3](https://github.com/qq550723504/openbrowser-platform/issues/3).
+`ISSUE-draft.md` preserves the earlier preparation snapshot; implementation began
+before the formal Issue and was paused until the remote/Issue workflow existed.
+This offline batch uses the existing `codex/mandatory-login` branch, based on
+accepted upstream/busy-fix commit
 `2e75ad2e5c3b8146ad8e97e9d6136fd50dec2442`.
 
 - Reuse the original pages, profile database/path, managers, launch and shutdown
@@ -20,6 +22,10 @@ authorized implementation, based on accepted upstream/busy-fix commit
   real IdP, generate/save real credentials, start product GUI/kernel/page service,
   change security settings, or write a remote. Real public issuer/client metadata
   is pending; this does not block independent offline code.
+
+The authentication PR depends on the unmerged busy-fix Draft PR #2. Its base is
+`codex/fix-profile-import-preview-busy` to isolate the auth diff; retarget to
+`main` only after that dependency is merged through its own review workflow.
 
 Verification must exercise the actual bound facade, router/middleware and
 background admission points, not a detached copy. Keep real OIDC/native and full

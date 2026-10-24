@@ -1,5 +1,7 @@
 # 本地 Issue：复用原生上游能力，最小接入强制登录
 
+> 历史准备快照。现行正式需求为 [GitHub Issue #3](https://github.com/qq550723504/openbrowser-platform/issues/3)。下文“尚未发布/本批不实施”描述草拟时的状态，不能替代正式 Issue 或当前授权；本地实现先于正式 Issue 开始的事实保留。
+
 **LOCAL DRAFT，尚未发布 GitHub Issue；无 remote，不建仓库、不写远端。**
 
 基础为干净上游 `61feab721f71d65301dfa45397cb9e15e28e8fd8` 加 busy 补丁

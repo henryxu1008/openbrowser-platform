@@ -190,18 +190,25 @@ func (a *App) BrowserProfilePackageExport(profileIds []string) (ProfilePackageEx
 
 // BrowserProfilePackageImport 导入实例包。保留该接口用于兼容旧调用方，默认选择新建。
 func (a *App) BrowserProfilePackageImport() (ProfilePackageImportResult, error) {
+	dialogAuthCheck := a.captureAdmission()
+
 	a.maintenanceMu.Lock()
 	defer a.maintenanceMu.Unlock()
 
 	if a.ctx == nil {
 		return ProfilePackageImportResult{}, fmt.Errorf("应用上下文未初始化")
 	}
-	zipPath, err := wailsruntime.OpenFileDialog(a.ctx, wailsruntime.OpenDialogOptions{
+	zipPath, err := openNativeFileDialog(a.ctx, wailsruntime.OpenDialogOptions{
 		Title: "导入实例",
 		Filters: []wailsruntime.FileFilter{
 			{DisplayName: "ZIP 文件 (*.zip)", Pattern: "*.zip"},
 		},
 	})
+	if authErr := dialogAuthCheck(); authErr != nil {
+		var authZero0 ProfilePackageImportResult
+		return authZero0, authErr
+	}
+
 	if err != nil {
 		return ProfilePackageImportResult{}, fmt.Errorf("打开文件对话框失败: %w", err)
 	}
@@ -213,18 +220,25 @@ func (a *App) BrowserProfilePackageImport() (ProfilePackageImportResult, error) 
 
 // BrowserProfilePackagePrepareImport 选择实例包并返回冲突预览，不执行导入。
 func (a *App) BrowserProfilePackagePrepareImport() (ProfilePackageImportPreview, error) {
+	dialogAuthCheck := a.captureAdmission()
+
 	a.maintenanceMu.Lock()
 	defer a.maintenanceMu.Unlock()
 
 	if a.ctx == nil {
 		return ProfilePackageImportPreview{}, fmt.Errorf("应用上下文未初始化")
 	}
-	zipPath, err := wailsruntime.OpenFileDialog(a.ctx, wailsruntime.OpenDialogOptions{
+	zipPath, err := openNativeFileDialog(a.ctx, wailsruntime.OpenDialogOptions{
 		Title: "导入实例",
 		Filters: []wailsruntime.FileFilter{
 			{DisplayName: "ZIP 文件 (*.zip)", Pattern: "*.zip"},
 		},
 	})
+	if authErr := dialogAuthCheck(); authErr != nil {
+		var authZero0 ProfilePackageImportPreview
+		return authZero0, authErr
+	}
+
 	if err != nil {
 		return ProfilePackageImportPreview{}, fmt.Errorf("打开文件对话框失败: %w", err)
 	}

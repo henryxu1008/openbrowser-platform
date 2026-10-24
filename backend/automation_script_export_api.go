@@ -13,6 +13,8 @@ import (
 )
 
 func (a *App) AutomationScriptExport(scriptID string) (map[string]any, error) {
+	dialogAuthCheck := a.captureAdmission()
+
 	a.maintenanceMu.Lock()
 	defer a.maintenanceMu.Unlock()
 
@@ -30,13 +32,18 @@ func (a *App) AutomationScriptExport(scriptID string) (map[string]any, error) {
 		return nil, err
 	}
 
-	savePath, err := wailsruntime.SaveFileDialog(a.ctx, wailsruntime.SaveDialogOptions{
+	savePath, err := saveNativeFileDialog(a.ctx, wailsruntime.SaveDialogOptions{
 		Title:           "导出脚本模板",
 		DefaultFilename: buildAutomationScriptTemplateFilename(bundle.Record.Name),
 		Filters: []wailsruntime.FileFilter{
 			{DisplayName: "JSON 模板 (*.json)", Pattern: "*.json"},
 		},
 	})
+	if authErr := dialogAuthCheck(); authErr != nil {
+		var authZero0 map[string]any
+		return authZero0, authErr
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("打开保存对话框失败: %w", err)
 	}
@@ -62,6 +69,8 @@ func (a *App) AutomationScriptExport(scriptID string) (map[string]any, error) {
 }
 
 func (a *App) AutomationScriptExportZip(scriptID string) (map[string]any, error) {
+	dialogAuthCheck := a.captureAdmission()
+
 	a.maintenanceMu.Lock()
 	defer a.maintenanceMu.Unlock()
 
@@ -74,13 +83,18 @@ func (a *App) AutomationScriptExportZip(scriptID string) (map[string]any, error)
 		return nil, err
 	}
 
-	savePath, err := wailsruntime.SaveFileDialog(a.ctx, wailsruntime.SaveDialogOptions{
+	savePath, err := saveNativeFileDialog(a.ctx, wailsruntime.SaveDialogOptions{
 		Title:           "导出脚本 ZIP",
 		DefaultFilename: buildAutomationScriptPackageZipFilename(bundle.Record.Name),
 		Filters: []wailsruntime.FileFilter{
 			{DisplayName: "ZIP 脚本包 (*.zip)", Pattern: "*.zip"},
 		},
 	})
+	if authErr := dialogAuthCheck(); authErr != nil {
+		var authZero0 map[string]any
+		return authZero0, authErr
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("打开保存对话框失败: %w", err)
 	}
@@ -106,6 +120,8 @@ func (a *App) AutomationScriptExportZip(scriptID string) (map[string]any, error)
 }
 
 func (a *App) AutomationScriptExportBatchZip(scriptIDs []string) (map[string]any, error) {
+	dialogAuthCheck := a.captureAdmission()
+
 	a.maintenanceMu.Lock()
 	defer a.maintenanceMu.Unlock()
 
@@ -139,13 +155,18 @@ func (a *App) AutomationScriptExportBatchZip(scriptIDs []string) (map[string]any
 		bundles = append(bundles, bundle)
 	}
 
-	savePath, err := wailsruntime.SaveFileDialog(a.ctx, wailsruntime.SaveDialogOptions{
+	savePath, err := saveNativeFileDialog(a.ctx, wailsruntime.SaveDialogOptions{
 		Title:           "导出脚本 ZIP",
 		DefaultFilename: buildAutomationScriptBatchZipFilename(len(bundles)),
 		Filters: []wailsruntime.FileFilter{
 			{DisplayName: "ZIP 脚本包 (*.zip)", Pattern: "*.zip"},
 		},
 	})
+	if authErr := dialogAuthCheck(); authErr != nil {
+		var authZero0 map[string]any
+		return authZero0, authErr
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("打开保存对话框失败: %w", err)
 	}
@@ -172,6 +193,8 @@ func (a *App) AutomationScriptExportBatchZip(scriptIDs []string) (map[string]any
 }
 
 func (a *App) AutomationScriptExportDirectory(scriptID string) (map[string]any, error) {
+	dialogAuthCheck := a.captureAdmission()
+
 	a.maintenanceMu.Lock()
 	defer a.maintenanceMu.Unlock()
 
@@ -184,9 +207,14 @@ func (a *App) AutomationScriptExportDirectory(scriptID string) (map[string]any, 
 		return nil, err
 	}
 
-	baseDir, err := wailsruntime.OpenDirectoryDialog(a.ctx, wailsruntime.OpenDialogOptions{
+	baseDir, err := openNativeDirectoryDialog(a.ctx, wailsruntime.OpenDialogOptions{
 		Title: "选择导出目录",
 	})
+	if authErr := dialogAuthCheck(); authErr != nil {
+		var authZero0 map[string]any
+		return authZero0, authErr
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("打开目录对话框失败: %w", err)
 	}

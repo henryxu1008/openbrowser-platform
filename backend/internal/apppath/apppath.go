@@ -2,6 +2,7 @@ package apppath
 
 import (
 	"ant-chrome/backend/internal/fsutil"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -20,6 +21,9 @@ type roots struct {
 
 var rootsCache sync.Map
 
+var windowsInstalledRoot = registeredWindowsInstallRoot
+var windowsLegacyStateOwned = ownsWindowsLegacyState
+
 // InstallRoot 返回应用安装根目录的绝对路径。
 func InstallRoot(appRoot string) string {
 	return detect(appRoot).installRoot
@@ -36,7 +40,7 @@ func IsDetached(appRoot string) bool {
 }
 
 // Resolve 将相对路径解析到安装目录或用户状态目录。
-// 已安装的 Linux / macOS 应用在启用 detached 模式后，除 bin/ 外的相对路径都会落到用户可写目录。
+// 已安装应用启用 detached 模式后，除 bin/ 外的相对路径落到用户可写目录。
 func Resolve(appRoot, p string) string {
 	return resolveForOS(appRoot, p, goruntime.GOOS)
 }
@@ -69,25 +73,42 @@ func ensureWritableLayoutForOS(appRoot, goos string) error {
 	if !root.detached {
 		return nil
 	}
+	if root.stateRoot == "" {
+		return fmt.Errorf("user data directory is unavailable")
+	}
 
 	if err := os.MkdirAll(root.stateRoot, 0755); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Join(root.stateRoot, "data"), 0755); err != nil {
-		return err
+	copyLegacyState := normalizeGOOS(goos) != "windows" || windowsLegacyStateOwned(root.installRoot)
+	if normalizeGOOS(goos) == "windows" && copyLegacyState {
+		// An upgrade may have legacy SQLite/profile files beside the executable.
+		// Copy only into a missing destination; leave the original and any existing
+		// per-user data untouched. The caller holds the existing single-instance lock.
+		if err := copyDirIfMissing(filepath.Join(root.installRoot, "data"), filepath.Join(root.stateRoot, "data")); err != nil {
+			return err
+		}
 	}
 
-	if err := copyFileIfMissing(
-		filepath.Join(root.installRoot, "config.yaml"),
-		filepath.Join(root.stateRoot, "config.yaml"),
-	); err != nil {
-		return err
-	}
-	if err := copyFileIfMissing(
-		filepath.Join(root.installRoot, "proxies.yaml"),
-		filepath.Join(root.stateRoot, "proxies.yaml"),
-	); err != nil {
-		return err
+	if copyLegacyState {
+		if err := copyFileIfMissing(
+			filepath.Join(root.installRoot, "config.yaml"),
+			filepath.Join(root.stateRoot, "config.yaml"),
+		); err != nil {
+			return err
+		}
+		if err := copyFileIfMissing(
+			filepath.Join(root.installRoot, "proxies.yaml"),
+			filepath.Join(root.stateRoot, "proxies.yaml"),
+		); err != nil {
+			return err
+		}
+	} else if normalizeGOOS(goos) == "windows" {
+		// A new Windows user gets publisher defaults, never another user's
+		// mutable configuration left in a shared legacy installation.
+		if err := copyFileIfMissing(filepath.Join(root.installRoot, "config.defaults.yaml"), filepath.Join(root.stateRoot, "config.yaml")); err != nil {
+			return err
+		}
 	}
 	if err := copyDirIfMissing(
 		filepath.Join(root.installRoot, "chrome"),
@@ -95,8 +116,7 @@ func ensureWritableLayoutForOS(appRoot, goos string) error {
 	); err != nil {
 		return err
 	}
-
-	return nil
+	return os.MkdirAll(filepath.Join(root.stateRoot, "data"), 0755)
 }
 
 func detect(appRoot string) roots {
@@ -133,6 +153,19 @@ func normalizeGOOS(goos string) string {
 
 func shouldDetachStateRoot(goos, installRoot string) bool {
 	switch normalizeGOOS(goos) {
+	case "windows":
+		// Detect installed roots independently of elevation/write permissions.
+		if windowsInstalledRoot(installRoot) {
+			return true
+		}
+		for _, key := range []string{"ProgramW6432", "ProgramFiles", "ProgramFiles(x86)"} {
+			base := strings.TrimSpace(os.Getenv(key))
+			if base != "" && (strings.EqualFold(installRoot, filepath.Clean(base)) ||
+				strings.HasPrefix(strings.ToLower(installRoot), strings.ToLower(filepath.Clean(base))+string(filepath.Separator))) {
+				return true
+			}
+		}
+		return !dirWritable(installRoot)
 	case "linux":
 		return !dirWritable(installRoot)
 	case "darwin":
@@ -160,6 +193,14 @@ func normalizeRoot(appRoot string) string {
 
 func userStateRootForOS(goos, fallback string) string {
 	switch normalizeGOOS(goos) {
+	case "windows":
+		if base := strings.TrimSpace(os.Getenv("LOCALAPPDATA")); filepath.IsAbs(base) {
+			return filepath.Join(base, appStateDirName)
+		}
+		if home := configuredHomeDir(); filepath.IsAbs(home) {
+			return filepath.Join(home, "AppData", "Local", appStateDirName)
+		}
+		return "" // User state must never silently move to a temporary directory.
 	case "linux":
 		if base := strings.TrimSpace(os.Getenv("XDG_DATA_HOME")); base != "" {
 			return filepath.Join(base, appStateDirName)
@@ -231,7 +272,24 @@ func copyFileIfMissing(src, dst string) error {
 	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
 		return err
 	}
-	return os.WriteFile(dst, data, 0644)
+	file, err := os.CreateTemp(filepath.Dir(dst), ".ant-browser-config-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(file.Name())
+	_, writeErr := file.Write(data)
+	closeErr := file.Close()
+	if writeErr != nil {
+		return writeErr
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	// Link publishes a complete file without replacing a concurrently created one.
+	if err := os.Link(file.Name(), dst); err != nil && !os.IsExist(err) {
+		return err
+	}
+	return nil
 }
 
 func copyDirIfMissing(src, dst string) error {
@@ -252,17 +310,28 @@ func copyDirIfMissing(src, dst string) error {
 		return nil
 	}
 
-	return filepath.Walk(src, func(path string, info os.FileInfo, walkErr error) error {
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		return err
+	}
+	staging, err := os.MkdirTemp(filepath.Dir(dst), ".ant-browser-copy-*")
+	if err != nil {
+		return err
+	}
+	// On error retain the partial copy for diagnosis, never at the final path.
+	err = filepath.Walk(src, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
+		}
+		if !info.IsDir() && !info.Mode().IsRegular() {
+			return fmt.Errorf("cannot copy non-regular runtime data: %s", path)
 		}
 		rel, err := filepath.Rel(src, path)
 		if err != nil {
 			return err
 		}
-		target := dst
+		target := staging
 		if rel != "." {
-			target = filepath.Join(dst, rel)
+			target = filepath.Join(staging, rel)
 		}
 		if info.IsDir() {
 			dirMode := info.Mode().Perm() | 0700
@@ -270,6 +339,10 @@ func copyDirIfMissing(src, dst string) error {
 		}
 		return copyFile(path, target, info.Mode().Perm())
 	})
+	if err != nil {
+		return err
+	}
+	return os.Rename(staging, dst)
 }
 
 func copyFile(src, dst string, mode os.FileMode) error {

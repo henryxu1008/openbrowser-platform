@@ -10,7 +10,6 @@ import (
 	"ant-chrome/backend/internal/proxy"
 	"ant-chrome/internal/desktopauth"
 	"context"
-	"os"
 	"strings"
 	"sync"
 )
@@ -82,12 +81,18 @@ type appState struct {
 
 // NewApp 创建新的应用实例
 func NewApp(appRoot string, appVersion ...string) *App {
+	appRoot = strings.TrimSpace(appRoot)
 	version := ""
 	if len(appVersion) > 0 {
 		version = strings.TrimSpace(appVersion[0])
 	}
+	identityConfig, err := desktopauth.LoadConfig(appRoot)
+	if err != nil {
+		// Keep the existing unconfigured login shell; never admit business work.
+		identityConfig = desktopauth.Config{}
+	}
 	return &App{appState: &appState{
-		identity:               desktopauth.NewManager(desktopauth.Config{Issuer: os.Getenv("ABFREE_OIDC_ISSUER"), ClientID: os.Getenv("ABFREE_OIDC_CLIENT_ID")}),
+		identity:               desktopauth.NewManager(identityConfig),
 		appRoot:                strings.TrimSpace(appRoot),
 		version:                version,
 		profileBridgeRefs:      make(map[string]profileProxyBridgeRef),

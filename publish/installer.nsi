@@ -174,55 +174,11 @@ preserve_failed:
 done:
 FunctionEnd
 
-Function WarnInstallDir
-  StrCpy $0 "$INSTDIR"
-
-  StrCpy $1 "$0" 2
-  ${If} "$1" == "C:"
-    Goto warn_dir
-  ${EndIf}
-  ${If} "$1" == "c:"
-    Goto warn_dir
-  ${EndIf}
-
-  StrLen $1 "$PROGRAMFILES64"
-  ${If} $1 > 0
-    StrCpy $2 "$0" $1
-    ${If} "$2" == "$PROGRAMFILES64"
-      Goto warn_dir
-    ${EndIf}
-  ${EndIf}
-
-  StrLen $1 "$PROGRAMFILES"
-  ${If} $1 > 0
-    StrCpy $2 "$0" $1
-    ${If} "$2" == "$PROGRAMFILES"
-      Goto warn_dir
-    ${EndIf}
-  ${EndIf}
-
-  StrLen $1 "$PROGRAMFILES32"
-  ${If} $1 > 0
-    StrCpy $2 "$0" $1
-    ${If} "$2" == "$PROGRAMFILES32"
-      Goto warn_dir
-    ${EndIf}
-  ${EndIf}
-
-  Return
-
-warn_dir:
-  MessageBox MB_ICONEXCLAMATION|MB_OKCANCEL|MB_DEFBUTTON2 "不建议安装到 C 盘、Program Files 或其他受权限保护的目录。$\r$\n$\r$\nAnt Browser 会在安装目录写入 data、浏览器实例和运行时文件；普通权限运行时可能写入失败，导致再次启动闪退或浏览器实例启动失败。$\r$\n$\r$\n建议改为非 C 盘可写目录，例如 D:\software\Ant Browser 或 E:\software\Ant Browser。$\r$\n$\r$\n点击“确定”继续安装到当前目录，点击“取消”返回修改安装路径。" IDOK continue_install IDCANCEL cancel_install
-
-continue_install:
-  Return
-
-cancel_install:
-  Abort
-FunctionEnd
-
 Name "${PRODUCT_NAME} ${VERSION}"
-OutFile "..\publish\output\AntBrowser-Setup-${VERSION}.exe"
+!ifndef OUTPUTFILE
+  !define OUTPUTFILE "..\publish\output\AntBrowser-Setup-${VERSION}.exe"
+!endif
+OutFile "${OUTPUTFILE}"
 InstallDir "${INSTALL_DIR}"
 InstallDirRegKey HKLM "${UNINSTALL_KEY}" "InstallLocation"
 RequestExecutionLevel admin
@@ -236,15 +192,13 @@ RequestExecutionLevel admin
 !define MUI_UNICON "..\build\windows\icon.ico"
 
 !insertmacro MUI_PAGE_WELCOME
-!define MUI_DIRECTORYPAGE_TEXT_TOP "请选择 Ant Browser 的安装目录。建议安装到非 C 盘的可写目录，例如 D:\software\Ant Browser 或 E:\software\Ant Browser；不要安装到 C 盘、Program Files 或其他受权限保护的目录。"
-!define MUI_DIRECTORYPAGE_TEXT_DESTINATION "安装目录（建议非 C 盘）"
-!define MUI_PAGE_CUSTOMFUNCTION_LEAVE WarnInstallDir
+!define MUI_DIRECTORYPAGE_TEXT_TOP "请选择 Ant Browser 的安装目录。配置、数据库和浏览器档案保存在当前 Windows 用户的本地应用数据目录，升级不会重置已有用户数据。"
+!define MUI_DIRECTORYPAGE_TEXT_DESTINATION "程序安装目录"
 !insertmacro MUI_PAGE_DIRECTORY
 !define MUI_COMPONENTSPAGE_SMALLDESC
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_INSTFILES
-!define MUI_FINISHPAGE_RUN "$INSTDIR\${PRODUCT_EXE}"
-!define MUI_FINISHPAGE_RUN_TEXT "Launch Ant Browser"
+; Launch from the normal desktop/start-menu shortcut, never as the elevated installer user.
 !insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_CONFIRM
@@ -258,6 +212,8 @@ Section "Ant Browser (required)" SecMain
   Call PreserveLegacyBackupLocalConfig
   SetOutPath "$INSTDIR"
   File "${STAGINGDIR}\${PRODUCT_EXE}"
+  File "${STAGINGDIR}\oidc-public.json"
+  File /oname=config.defaults.yaml "${STAGINGDIR}\config.yaml"
   File /oname=${PRODUCT_ICON} "..\build\windows\icon.ico"
 !if /FileExists "${STAGINGDIR}\config.yaml"
   IfFileExists "$INSTDIR\config.yaml" +2 0
@@ -284,9 +240,11 @@ Section "Ant Browser (required)" SecMain
   WriteRegStr HKLM "${UNINSTALL_KEY}" "NoRepair"        "1"
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   Call RegisterDiagnosticsWatcher
+  SetShellVarContext all
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortcut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\${PRODUCT_EXE}" "" "$INSTDIR\${PRODUCT_ICON}"
   CreateShortcut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\${PRODUCT_ICON}"
+  SetShellVarContext current
 SectionEnd
 
 Section "Proxy Runtime (xray / sing-box)" SecRuntime
@@ -297,7 +255,9 @@ Section "Proxy Runtime (xray / sing-box)" SecRuntime
 SectionEnd
 
 Section /o "Desktop Shortcut" SecDesktop
+  SetShellVarContext all
   CreateShortcut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\${PRODUCT_EXE}" "" "$INSTDIR\${PRODUCT_ICON}"
+  SetShellVarContext current
 SectionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
@@ -312,17 +272,20 @@ Section "Uninstall"
   Call un.PreserveLegacyBackupLocalConfig
 
   Delete /REBOOTOK "$INSTDIR\${PRODUCT_EXE}"
+  Delete /REBOOTOK "$INSTDIR\oidc-public.json"
+  Delete /REBOOTOK "$INSTDIR\config.defaults.yaml"
   Delete /REBOOTOK "$INSTDIR\${PRODUCT_ICON}"
-  Delete /REBOOTOK "$INSTDIR\proxies.yaml"
   Delete /REBOOTOK "$INSTDIR\Uninstall.exe"
   RMDir /r /REBOOTOK "$INSTDIR\bin"
   RMDir /r /REBOOTOK "$INSTDIR\chrome"
+  SetShellVarContext all
   Delete /REBOOTOK "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk"
   Delete /REBOOTOK "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk"
   RMDir /REBOOTOK "$SMPROGRAMS\${PRODUCT_NAME}"
   Delete /REBOOTOK "$DESKTOP\${PRODUCT_NAME}.lnk"
+  SetShellVarContext current
   DeleteRegKey HKLM "${UNINSTALL_KEY}"
-  MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 "是否彻底清理所有用户数据？$\r$\n$\r$\n选择“是”将删除 data 目录（含数据库/实例数据）以及安装目录残留文件。$\r$\n此操作不可恢复。" IDYES un_remove_all_data IDNO un_keep_user_data
+  MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 "是否清理旧版安装目录中的遗留数据？$\r$\n$\r$\n选择“是”将删除安装目录残留的旧版 data、日志和配置，操作不可恢复。选择“否”保留它们。$\r$\n$\r$\n各 Windows 用户本地应用数据目录中的数据均会保留，重新安装后可继续使用。" IDYES un_remove_all_data IDNO un_keep_user_data
 
 un_remove_all_data:
   RMDir /r /REBOOTOK "$INSTDIR\data"

@@ -2,13 +2,15 @@
     [string]$Target,
     [string]$Version,
     [ValidateSet("INSTALLER", "PORTABLE", "BOTH")]
-    [string]$WindowsFormat
+    [string]$WindowsFormat,
+    [string]$PublicIdentityConfig
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+. (Join-Path $repoRoot 'publish/identity-config.ps1')
 Set-Location $repoRoot
 
 $script:ResolvedVersion = ""
@@ -35,7 +37,8 @@ function Get-TrimmedText {
 }
 
 function Assert-VersionValue {
-    param(
+#requires -Version 7.0
+param(
         [Parameter(Mandatory = $true)]
         [string]$Value,
         [string]$Source = "版本号"
@@ -532,6 +535,7 @@ function Assert-WindowsStagingPrivacy {
     }
 
     Assert-ReleaseConfigPrivacy -ConfigPath (Join-Path $StagingDir 'config.yaml')
+    [void](Read-PublicIdentityConfig -Path (Join-Path $StagingDir 'oidc-public.json'))
 }
 
 function New-WindowsStaging {
@@ -560,6 +564,8 @@ function New-WindowsStaging {
     Assert-ReleaseConfigPrivacy -ConfigPath $releaseConfig
     Copy-Item -LiteralPath $releaseConfig -Destination (Join-Path $stagingDir "config.yaml") -Force
     Write-Host "✓ 复制发布配置模板 publish\config.init.yaml -> config.yaml"
+    Copy-PublicIdentityConfig -Path $PublicIdentityConfig -StagingDir $stagingDir
+    Write-Host "✓ 随包提供公开登录配置（不含 secret）"
 
     $stagingBinDir = Join-Path $stagingDir "bin"
     New-Item -ItemType Directory -Path $stagingBinDir -Force | Out-Null
@@ -742,6 +748,11 @@ function Publish-Windows {
     Write-Host "[3/3] 开始 Windows 打包..."
     Write-Host "  输出格式: $Format"
     Write-Host ""
+
+    if ([string]::IsNullOrWhiteSpace($PublicIdentityConfig)) {
+        throw 'Windows distribution requires -PublicIdentityConfig from the existing Shuomi identity instance. Never ship the local trial configuration.'
+    }
+    [void](Read-PublicIdentityConfig -Path $PublicIdentityConfig)
 
     $makensisPath = $null
     if ($Format -in @("INSTALLER", "BOTH")) {

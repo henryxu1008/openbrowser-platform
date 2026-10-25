@@ -149,25 +149,29 @@ func main() {
 	if startupDebugEnabled {
 		log.Printf("应用根目录: %s (dev=%v)", appRoot, isDevMode)
 	}
-	if err := backend.EnsureRuntimeLayout(appRoot); err != nil {
-		log.Printf("准备用户数据目录失败: %v", err)
-		lifecycle.Log(appRoot, "runtime_layout.error", map[string]interface{}{"error": err.Error()})
+	stateRoot := backend.RuntimeStateRoot(appRoot)
+	if stateRoot == "" {
+		log.Printf("用户数据目录不可用，停止启动")
+		return
 	}
-	lifecycle.Log(appRoot, "process.start", map[string]interface{}{"dev": isDevMode})
-	singleInstance, primaryInstance, err := singleinstance.Acquire(appRoot)
+	singleInstance, primaryInstance, err := singleinstance.Acquire(stateRoot)
 	if err != nil {
 		log.Printf("单实例检查失败: %v", err)
-		lifecycle.Log(appRoot, "single_instance.error", map[string]interface{}{"error": err.Error()})
+		return
 	}
-	lifecycle.Log(appRoot, "single_instance.checked", map[string]interface{}{"primary": primaryInstance})
 	if !primaryInstance {
-		lifecycle.Log(appRoot, "process.exit.non_primary", nil)
 		if startupDebugEnabled {
 			log.Printf("检测到已有应用实例，已请求唤醒并退出当前进程")
 		}
 		return
 	}
 	defer singleInstance.Close()
+	if err := backend.EnsureRuntimeLayout(appRoot); err != nil {
+		log.Printf("准备用户数据目录失败，停止启动: %v", err)
+		return
+	}
+	lifecycle.Log(appRoot, "process.start", map[string]interface{}{"dev": isDevMode})
+	lifecycle.Log(appRoot, "single_instance.checked", map[string]interface{}{"primary": true})
 	defer lifecycle.Log(appRoot, "process.defer_exit", nil)
 	if startupDebugEnabled && backend.RuntimeUsesDetachedState(appRoot) {
 		log.Printf("检测到安装目录需要只读运行，状态目录切换到: %s", backend.RuntimeStateRoot(appRoot))

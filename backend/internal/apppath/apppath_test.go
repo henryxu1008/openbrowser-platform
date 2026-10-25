@@ -102,6 +102,17 @@ func TestWindowsRegisteredCustomInstallAndPortableRoots(t *testing.T) {
 	}
 }
 
+func TestWindowsUnregisteredRootKeepsPathsBeforeCreation(t *testing.T) {
+	windowsFixture(t)
+	root := filepath.Join(t.TempDir(), "not-created-yet")
+	if got := resolveForOS(root, "z-core/marker.txt", "windows"); got != filepath.Join(root, "z-core", "marker.txt") {
+		t.Fatalf("missing portable root adopted installed state: %s", got)
+	}
+	if _, err := os.Stat(root); !os.IsNotExist(err) {
+		t.Fatal("path resolution created the portable root")
+	}
+}
+
 func TestWindowsFreshInstallAndCopyRefusalKeepExistingData(t *testing.T) {
 	root, state := windowsFixture(t)
 	writeFixture(t, root, "config.yaml", "defaults")

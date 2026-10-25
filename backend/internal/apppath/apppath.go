@@ -165,7 +165,10 @@ func shouldDetachStateRoot(goos, installRoot string) bool {
 				return true
 			}
 		}
-		return !dirWritable(installRoot)
+		// An unregistered portable root may not exist yet (for example before a
+		// native backup import creates it). Do not adopt an installed user's state
+		// merely because a write probe cannot create a file in that absent root.
+		return false
 	case "linux":
 		return !dirWritable(installRoot)
 	case "darwin":

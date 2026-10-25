@@ -301,7 +301,19 @@ func (a *App) StoreEnvironmentOptions(storeID string, revision uint64) (string, 
 	}(), "direct_or_local_only"})
 }
 func (a *App) StoreOperationGet(storeID, key string, revision uint64) (string, error) {
-	client, dao, scope, err := a.storeScope(storeID, revision)
+	// Like the server's None receipt route, an original receipt must survive
+	// loss of the current organization selection/grant. The renderer uses its
+	// view ticket to discard late display; the native boundary pins identity.
+	_ = revision
+	client, dao, err := a.storeClient()
+	if err != nil {
+		return "", err
+	}
+	identity, err := client.Identity(a.authGeneration)
+	if err != nil {
+		return "", err
+	}
+	scope, err := dao.OriginalOperationScope(a.ctx, browser.StoreScope{APIOrigin: client.Origin(), Issuer: identity.Issuer, Subject: identity.Subject, StoreID: storeID}, key)
 	if err != nil {
 		return "", err
 	}
@@ -313,7 +325,7 @@ func (a *App) StoreOperationGet(storeID, key string, revision uint64) (string, e
 	if err != nil {
 		return "", err
 	}
-	if err = a.storeCheck(revision); err != nil {
+	if err = a.identity.Check(a.authGeneration); err != nil {
 		return "", err
 	}
 	return storeJSON(struct {

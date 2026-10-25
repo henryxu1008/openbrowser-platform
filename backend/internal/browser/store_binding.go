@@ -152,6 +152,26 @@ func (d *StoreDAO) Operation(ctx context.Context, s StoreScope, key string) (Sto
 	}
 	return o, nil
 }
+
+// OriginalOperationScope derives the original organization from immutable local
+// evidence, after matching the verified principal. It is receipt-only and never
+// authorizes a new action or selects an organization on behalf of the caller.
+func (d *StoreDAO) OriginalOperationScope(ctx context.Context, s StoreScope, key string) (StoreScope, error) {
+	for _, id := range []string{s.StoreID, key} {
+		parsed, err := uuid.Parse(id)
+		if err != nil || parsed == uuid.Nil || parsed.String() != id {
+			return StoreScope{}, ErrStoreUnavailable
+		}
+	}
+	if s.APIOrigin == "" || s.Issuer == "" || s.Subject == "" {
+		return StoreScope{}, ErrStoreUnavailable
+	}
+	err := d.db.QueryRowContext(ctx, "SELECT organization_id FROM browser_store_operations WHERE api_origin=? AND issuer=? AND subject=? AND store_id=? AND operation_id=?", s.APIOrigin, s.Issuer, s.Subject, s.StoreID, key).Scan(&s.OrganizationID)
+	if err != nil {
+		return StoreScope{}, ErrStoreUnavailable
+	}
+	return s, nil
+}
 func (d *StoreDAO) Pending(ctx context.Context, s StoreScope) (*StoreOperation, error) {
 	var key string
 	err := d.db.QueryRowContext(ctx, "SELECT operation_id FROM browser_store_operations WHERE "+storeWhere+" AND phase IN ('prepared','admitted','attempted','unknown') LIMIT 1", s.args()...).Scan(&key)

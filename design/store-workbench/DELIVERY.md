@@ -26,6 +26,7 @@
 
 - 可信明确的 400/401/403/404/409 拒绝记 `failed / admission_rejected`，保留原证据；权限恢复后允许用户发起新动作，不自动重试。
 - 超时、断连、无执行能力的重复回执、迟到准入及无法确定结果记 UNKNOWN，保留原 operationId；未决唯一槽位阻断换键继续。只读回执不会执行。
+- 原操作回执按 verified issuer/subject、固定 apiOrigin、storeId/operationId 找本机原操作并派生原企业；即使当前企业选择或授权已丢失，也不改用当前企业冒充原归属。原会话 generation 必须仍有效，换主体拒绝；不产生新准入。
 - 冷启动不把磁盘加载的 `Running=false` 当退出证明。有历史 attempted open 时，只有原目录进程枚举明确完整成功且没有匹配进程，才在原 journal 追加 `runtimeObservation / runtimeObservedAt` 并允许未来独立用户动作；原成功/UNKNOWN 结果不被覆盖。有残留、未就绪或查询失败保持未知，不清理、不杀、不重试。该跨进程核对目前只实现 Windows，其他平台保持未知。
 - C4 响应增加只读 `canFilterActor`，来自服务端原 Store 管理员判定，用于决定是否显示操作人筛选；它不授予查询权限，服务器仍验证 scope/actor/cursor。
 

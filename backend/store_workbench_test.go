@@ -41,6 +41,9 @@ func (s *storeAPIFixture) Store(context.Context, uint64, string, string) (shuomi
 	return shuomiapi.Store{}, s.denied
 }
 func (s *storeAPIFixture) CanUse(context.Context, uint64, string) error { return s.denied }
+func (s *storeAPIFixture) Receipt(_ context.Context, _ uint64, org, store, key string) (shuomiapi.Receipt, error) {
+	return shuomiapi.Receipt{OrganizationID: org, StoreID: store, OperationID: key}, nil
+}
 func (s *storeAPIFixture) Report(_ context.Context, _ uint64, _, _, _ string, r shuomiapi.Report) (shuomiapi.Receipt, error) {
 	s.reports++
 	return shuomiapi.Receipt{}, nil
@@ -250,5 +253,28 @@ func TestStoreColdRuntimeRequiresCompleteDirectoryObservation(t *testing.T) {
 	operation, err := d.Operation(a.ctx, s, key)
 	if err != nil || operation.Outcome != "succeeded" || operation.RuntimeObservation != "no_directory_process_observed" {
 		t.Fatal("observation overwrote original fact or was not retained")
+	}
+}
+
+func TestStoreOriginalReceiptSurvivesLostOrganizationWithoutNewAuthority(t *testing.T) {
+	a, api, s := storeAppFixture(t)
+	installStoreFixture(t, a, s)
+	original, err := a.store.dao.Latest(a.ctx, s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.store.organization = ""
+	a.store.revision++
+	if _, err = a.StoreOperationGet(s.StoreID, original.OperationID, 1); err != nil {
+		t.Fatal("original receipt depended on current organization", err)
+	}
+	if api.admitted != 0 {
+		t.Fatal("receipt admitted a new action")
+	}
+	api.auth.mu.Lock()
+	api.auth.status.Subject = "replacement"
+	api.auth.mu.Unlock()
+	if _, err = a.StoreOperationGet(s.StoreID, original.OperationID, 1); err == nil {
+		t.Fatal("receipt crossed verified subject")
 	}
 }

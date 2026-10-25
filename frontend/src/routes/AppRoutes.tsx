@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { lazyNamed } from "./lazyNamed";
+import { StoreWorkspace, StoreListPage, StoreDetailPage, StoreEnvironmentEditPage } from '../modules/stores/StorePages';
 
 const SettingsPage = lazyNamed(
   () => import("../modules/settings/SettingsPage"),
@@ -81,6 +82,11 @@ const AutomationScriptDetailPage = lazyNamed(
 export function AppRoutes() {
   return (
     <Routes>
+      <Route path="/stores" element={<StoreWorkspace />}>
+        <Route index element={<StoreListPage />} />
+        <Route path=":storeId" element={<StoreDetailPage />} />
+        <Route path=":storeId/environment/edit" element={<StoreEnvironmentEditPage />} />
+      </Route>
       <Route path="/" element={<Navigate to="/browser/list" replace />} />
       <Route path="/charts" element={<ChartsPage />} />
       <Route path="/settings" element={<SettingsPage />} />

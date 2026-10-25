@@ -407,3 +407,14 @@ export function AuthLogout(generation:number):Promise<{generation:number;state:s
 export function AuthGrantAPI(generation:number,enabled:boolean):Promise<void>;
 
 export function CloseOwnedBrowser(profileID:string):Promise<void>;
+export function StoreWorkbenchContext(generation:number):Promise<string>;
+export function StoreWorkbenchSelectOrganization(org:string,revision:number,generation:number):Promise<string>;
+export function StoreWorkbenchList(search:string,platform:string,page:number,revision:number,generation:number):Promise<string>;
+export function StoreWorkbenchGet(storeID:string,revision:number,generation:number):Promise<string>;
+export function StoreEnvironmentGet(storeID:string,revision:number,generation:number):Promise<string>;
+export function StoreEnvironmentOptions(storeID:string,revision:number,generation:number):Promise<string>;
+export function StoreOperationGet(storeID:string,key:string,revision:number,generation:number):Promise<string>;
+export function StoreEnvironmentSave(storeID:string,expectedVersion:string,raw:string,revision:number,generation:number):Promise<string>;
+export function StoreEnvironmentOpen(storeID:string,expectedVersion:string,revision:number,generation:number):Promise<string>;
+export function StoreEnvironmentClose(storeID:string,revision:number,generation:number):Promise<string>;
+export function StoreAuditList(storeID:string,raw:string,revision:number,generation:number):Promise<string>;

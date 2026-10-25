@@ -10,6 +10,7 @@ export interface NavSection {
 }
 
 export const navigationConfig: NavSection[] = [
+  {title:'店铺',items:[{name:'店铺工作台',path:'/stores',icon:'Layers'}]},
   {
     title: '指纹浏览器',
     items: [

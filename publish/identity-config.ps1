@@ -42,3 +42,31 @@ function Copy-PublicIdentityConfig {
     if ([Text.Encoding]::UTF8.GetByteCount($json) -gt 4096) { throw 'Canonical public configuration exceeds the native size limit.' }
     [IO.File]::WriteAllText((Join-Path $StagingDir 'oidc-public.json'), $json, [Text.UTF8Encoding]::new($false))
 }
+
+function Read-PublicStoreConfig {
+    param([Parameter(Mandatory)][string]$Path)
+    $ErrorActionPreference = 'Stop'
+    $file = Get-Item -LiteralPath $Path -ErrorAction Stop
+    if ($file.PSIsContainer -or $file.Length -gt 4096) { throw 'Provide public Store JSON of at most 4096 bytes.' }
+    $document = $null
+    try {
+        $document = [System.Text.Json.JsonDocument]::Parse([IO.File]::ReadAllText($file.FullName))
+        if ($document.RootElement.ValueKind -ne [System.Text.Json.JsonValueKind]::Object) { throw 'shape' }
+        $properties = @($document.RootElement.EnumerateObject())
+        if ($properties.Count -ne 1 -or $properties[0].Name -cne 'apiOrigin' -or $properties[0].Value.ValueKind -ne [System.Text.Json.JsonValueKind]::String) { throw 'shape' }
+        $origin = $properties[0].Value.GetString()
+    } catch { throw 'Store JSON must contain only one public apiOrigin string.' }
+    finally { if ($null -ne $document) { $document.Dispose() } }
+    $uri = $null
+    if (-not [Uri]::TryCreate($origin,[UriKind]::Absolute,[ref]$uri) -or $uri.Scheme -cne 'https' -or
+        $uri.UserInfo -or $uri.Query -or $uri.Fragment -or $uri.AbsolutePath -cne '/' -or
+        $origin.TrimEnd('/') -cne $origin -or $origin -match '[\x00-\x20\x7f-\x9f]' -or
+        $uri.IsLoopback -or $uri.Host -in @('0.0.0.0','[::]') -or $uri.Host.EndsWith('.localhost')) { throw 'Use a verified distribution HTTPS Store origin without path or credentials.' }
+    return [pscustomobject]@{apiOrigin=$origin}
+}
+function Copy-PublicStoreConfig {
+    param([Parameter(Mandatory)][string]$Path,[Parameter(Mandatory)][string]$StagingDir)
+    $public = Read-PublicStoreConfig -Path $Path
+    $json = [ordered]@{apiOrigin=$public.apiOrigin} | ConvertTo-Json
+    [IO.File]::WriteAllText((Join-Path $StagingDir 'shuomi-public.json'),$json,[Text.UTF8Encoding]::new($false))
+}

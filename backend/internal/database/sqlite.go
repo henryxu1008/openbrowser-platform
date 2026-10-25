@@ -259,6 +259,28 @@ var migrations = []migration{
 			`UPDATE browser_extensions SET default_install = 0`,
 		},
 	},
+	{
+		version: 18,
+		desc:    "店铺受管实例绑定与原操作证据",
+		stmts: []string{
+			`CREATE TABLE browser_store_bindings (
+			 binding_id TEXT PRIMARY KEY,profile_id TEXT NOT NULL UNIQUE REFERENCES browser_profiles(profile_id),
+			 api_origin TEXT NOT NULL,issuer TEXT NOT NULL,subject TEXT NOT NULL,organization_id TEXT NOT NULL,store_id TEXT NOT NULL,
+			 binding_version INTEGER NOT NULL CHECK(binding_version>0),create_operation_id TEXT NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,
+			 UNIQUE(api_origin,issuer,subject,organization_id,store_id))`,
+			`CREATE TABLE browser_store_operations (
+			 operation_id TEXT PRIMARY KEY,api_origin TEXT NOT NULL,issuer TEXT NOT NULL,subject TEXT NOT NULL,organization_id TEXT NOT NULL,store_id TEXT NOT NULL,
+			 binding_id TEXT NOT NULL,profile_id TEXT NOT NULL,binding_version INTEGER NOT NULL,action TEXT NOT NULL,
+			 phase TEXT NOT NULL,attempted INTEGER NOT NULL DEFAULT 0,outcome TEXT NOT NULL DEFAULT '',reason_code TEXT NOT NULL DEFAULT '',
+			 observed_at TEXT NOT NULL DEFAULT '',report_state TEXT NOT NULL DEFAULT 'pending',created_at TEXT NOT NULL,
+			 runtime_observation TEXT NOT NULL DEFAULT '',runtime_observed_at TEXT NOT NULL DEFAULT '')`,
+			`CREATE UNIQUE INDEX idx_store_operation_pending ON browser_store_operations(api_origin,issuer,subject,organization_id,store_id) WHERE phase IN ('prepared','admitted','attempted','unknown')`,
+			`CREATE TABLE browser_store_reports (
+			 operation_id TEXT NOT NULL REFERENCES browser_store_operations(operation_id),kind TEXT NOT NULL,
+			 outcome TEXT NOT NULL,reason_code TEXT NOT NULL,observed_at TEXT NOT NULL,confirmed INTEGER NOT NULL DEFAULT 0,
+			 PRIMARY KEY(operation_id,kind))`,
+		},
+	},
 	// ── 新版本在此追加，格式：
 	// {
 	//     version: 4,

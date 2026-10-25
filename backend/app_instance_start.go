@@ -20,6 +20,9 @@ func (a *App) BrowserInstanceStartWithParams(profileId string, extraLaunchArgs [
 }
 
 func (a *App) browserInstanceStartInternal(profileId string, extraLaunchArgs []string, startURLs []string, skipDefaultStartURLs bool, preferVisibleWindow bool, forceDirectProxy bool, proxyId string, proxyConfig string) (*BrowserProfile, error) {
+	if a.storeProfileID != "" && (profileId != a.storeProfileID || len(extraLaunchArgs) > 0 || len(startURLs) > 0 || forceDirectProxy || proxyId != "" || proxyConfig != "") {
+		return nil, errStoreBoundary
+	}
 	check := a.captureAdmission()
 	if err := check(); err != nil {
 		return nil, err

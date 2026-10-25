@@ -121,7 +121,13 @@ func main() {
 			}
 		}
 		fmt.Fprintf(&body, "func (a *AuthBoundApp) %s(%s) (%s) {\n", name, strings.Join(params, ", "), strings.Join(outs, ", "))
-		fmt.Fprintf(&body, "core, authErr := a.scoped(generation); if authErr != nil { r%d = authErr; return }\n", len(rets)-1)
+		switch name {
+		case "StoreWorkbenchContext", "StoreWorkbenchSelectOrganization", "StoreWorkbenchList", "StoreWorkbenchGet", "StoreEnvironmentGet", "StoreEnvironmentOptions", "StoreOperationGet", "StoreEnvironmentSave", "StoreEnvironmentOpen", "StoreEnvironmentClose", "StoreAuditList":
+			fmt.Fprintf(&body, "core, authErr := a.scopedStore(generation); if authErr != nil { r%d = authErr; return }\n", len(rets)-1)
+		default:
+			body.WriteString("a.core.storeGeneralMu.RLock(); defer a.core.storeGeneralMu.RUnlock()\n")
+			fmt.Fprintf(&body, "core, authErr := a.scopedMethod(generation,%q); if authErr != nil { r%d = authErr; return }\n", name, len(rets)-1)
+		}
 		if name == "BrowserProfilePackageImportWithOptions" {
 			body.WriteString("if r1 = core.requireImportPreview(zipPath,generation); r1 != nil { return }\n")
 		}

@@ -99,6 +99,9 @@ func (a *App) resolveBrowserStartProxy(input browserStartInput, profile *Browser
 			profile.LastError = startErr.Error()
 			return "", profileProxyBridgeRef{}, false, startErr
 		}
+		if err := a.captureAdmission()(); err != nil {
+			return "", profileProxyBridgeRef{}, false, err
+		}
 		proxyURL, bridgeKey, bridgeErr := a.clashMgr.AcquireNodeBridge(resolvedProxyConfig, proxies, resolvedProxyID)
 		if bridgeErr != nil {
 			startErr := fmt.Errorf("实例启动失败：mihomo 代理桥接失败：%v", bridgeErr)
@@ -113,6 +116,9 @@ func (a *App) resolveBrowserStartProxy(input browserStartInput, profile *Browser
 			profile.LastError = startErr.Error()
 			return "", profileProxyBridgeRef{}, false, startErr
 		}
+		if err := a.captureAdmission()(); err != nil {
+			return "", profileProxyBridgeRef{}, false, err
+		}
 		socksURL, bridgeKey, bridgeErr := a.singboxMgr.AcquireBridge(resolvedProxyConfig, proxies, resolvedProxyID)
 		if bridgeErr != nil {
 			startErr := fmt.Errorf("实例启动失败：sing-box 代理桥接失败：%v", bridgeErr)
@@ -126,6 +132,9 @@ func (a *App) resolveBrowserStartProxy(input browserStartInput, profile *Browser
 			startErr := fmt.Errorf("实例启动失败：xray 管理器未初始化，无法启动该协议代理。")
 			profile.LastError = startErr.Error()
 			return "", profileProxyBridgeRef{}, false, startErr
+		}
+		if err := a.captureAdmission()(); err != nil {
+			return "", profileProxyBridgeRef{}, false, err
 		}
 		socksURL, bridgeKey, bridgeErr := a.xrayMgr.AcquireBridge(resolvedProxyConfig, proxies, resolvedProxyID)
 		if bridgeErr != nil {

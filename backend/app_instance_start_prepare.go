@@ -125,7 +125,10 @@ func (a *App) resolveBrowserStartProfile(input browserStartInput) (*BrowserProfi
 }
 
 func (a *App) prepareBrowserStartPlan(input browserStartInput, profile *BrowserProfile) (*browserStartPlan, error) {
-	bookmarks := a.BookmarkList()
+	var bookmarks []BrowserBookmark
+	if a.storeProfileID == "" {
+		bookmarks = a.BookmarkList()
+	}
 	sanitizedProfileLaunchArgs, sanitizedExtraLaunchArgs, fingerprintLaunchArgs, chromeBinaryPath, userDataDir, err := a.prepareBrowserLaunchContext(input, profile, bookmarks)
 	if err != nil {
 		return nil, err
@@ -142,6 +145,9 @@ func (a *App) prepareBrowserStartPlan(input browserStartInput, profile *BrowserP
 	restoreLastSession := profileRestoreLastSession(profile, a.config)
 	fingerprintExpectedArgs := combineFingerprintExpectedArgs(fingerprintLaunchArgs, sanitizedProfileLaunchArgs, sanitizedExtraLaunchArgs)
 	defaultStartURLs := a.resolveFingerprintCheckStartURLsForExpectedArgsAndProfile(profile.ProfileId, fingerprintExpectedArgs, profile, mergeStartURLs(browserDefaultStartURLs(a.config), bookmarkStartURLs(bookmarks)))
+	if a.storeProfileID != "" {
+		defaultStartURLs = nil
+	}
 	startURLs := a.resolveFingerprintCheckStartURLsForExpectedArgsAndProfile(profile.ProfileId, fingerprintExpectedArgs, profile, input.StartURLs)
 	launchTargets, deferredStartTargets, deferredStartNewTabs := buildBrowserLaunchTargets(
 		startURLs,
@@ -171,7 +177,10 @@ func (a *App) prepareBrowserStartPlan(input browserStartInput, profile *BrowserP
 	// 若此时实例浏览器尚未运行，安装助手进程就是实例浏览器本身，
 	// 缺少调试端口会导致后续正式启动被 Chrome 单实例交接、误报“就绪前退出”。
 	extensionInstallArgs := buildBrowserLaunchArgs(userDataDir, assignedDebugPort, effectiveProxy, fingerprintLaunchArgs, sanitizedProfileLaunchArgs, sanitizedExtraLaunchArgs, nil, restoreLastSession)
-	_, extensionWarnings := a.browserMgr.PrepareProfileExtensions(profile, chromeBinaryPath, userDataDir, extensionInstallArgs)
+	var extensionWarnings []error
+	if a.storeProfileID == "" {
+		_, extensionWarnings = a.browserMgr.PrepareProfileExtensions(profile, chromeBinaryPath, userDataDir, extensionInstallArgs)
+	}
 	extensionWarning := joinBrowserStartExtensionWarnings(extensionWarnings)
 
 	return &browserStartPlan{
@@ -217,13 +226,21 @@ func (a *App) fingerprintCheckExpectedArgsForRunningProfile(profile *BrowserProf
 
 func (a *App) prepareBrowserLaunchContext(input browserStartInput, profile *BrowserProfile, bookmarks []BrowserBookmark) ([]string, []string, []string, string, string, error) {
 	log := logger.New("Browser")
+	if a.storeProfileID != "" {
+		if err := a.validateStoreLaunchProfile(profile); err != nil {
+			return nil, nil, nil, "", "", err
+		}
+	}
 
 	sanitizedProfileLaunchArgs, managedProfileArgs := sanitizeManagedLaunchArgs(profile.LaunchArgs)
 	sanitizedExtraLaunchArgs, managedExtraArgs := sanitizeManagedLaunchArgs(input.ExtraLaunchArgs)
 	logManagedLaunchArgOverrides(log, input.ProfileID, "profile.launchArgs", managedProfileArgs)
 	logManagedLaunchArgOverrides(log, input.ProfileID, "start.extraLaunchArgs", managedExtraArgs)
 
-	proxyChanged := a.browserMgr.ApplyDefaults(profile)
+	proxyChanged := false
+	if a.storeProfileID == "" {
+		proxyChanged = a.browserMgr.ApplyDefaults(profile)
+	}
 	if proxyChanged {
 		_ = a.browserMgr.SaveProfiles()
 	}
@@ -241,6 +258,9 @@ func (a *App) prepareBrowserLaunchContext(input browserStartInput, profile *Brow
 	}
 
 	userDataDir := a.browserMgr.ResolveUserDataDir(profile)
+	if err := a.captureAdmission()(); err != nil {
+		return nil, nil, nil, "", "", err
+	}
 	if err := os.MkdirAll(userDataDir, 0o755); err != nil {
 		startErr := fmt.Errorf("实例启动失败：无法创建用户数据目录 %s。原因：%w。请检查目录权限或路径配置。", userDataDir, err)
 		log.Error("用户数据目录创建失败",
@@ -255,7 +275,10 @@ func (a *App) prepareBrowserLaunchContext(input browserStartInput, profile *Brow
 
 	fingerprintLaunchArgs := a.buildBrowserFingerprintCapabilityReport(input.ProfileID, profile.CoreId, profile.FingerprintArgs).LaunchArgs
 	fingerprintExpectedArgs := combineFingerprintExpectedArgs(fingerprintLaunchArgs, sanitizedProfileLaunchArgs, sanitizedExtraLaunchArgs)
-	runtimeBookmarks, fingerprintBookmarkURL, bookmarkErr := a.runtimeBookmarksForProfileExpectedArgsAndProfile(profile.ProfileId, fingerprintExpectedArgs, profile, bookmarks)
+	runtimeBookmarks, fingerprintBookmarkURL, bookmarkErr := bookmarks, "", error(nil)
+	if a.storeProfileID == "" {
+		runtimeBookmarks, fingerprintBookmarkURL, bookmarkErr = a.runtimeBookmarksForProfileExpectedArgsAndProfile(profile.ProfileId, fingerprintExpectedArgs, profile, bookmarks)
+	}
 	if bookmarkErr != nil {
 		log.Error("指纹检测书签生成失败", logger.F("profile_id", input.ProfileID), logger.F("error", bookmarkErr.Error()))
 		runtimeBookmarks = bookmarks
@@ -265,14 +288,23 @@ func (a *App) prepareBrowserLaunchContext(input browserStartInput, profile *Brow
 			log.Warn("旧指纹检测书签更新失败", logger.F("profile_id", input.ProfileID), logger.F("error", err.Error()))
 		}
 	}
+	if err := a.captureAdmission()(); err != nil {
+		return nil, nil, nil, "", "", err
+	}
 	if err := browser.EnsureDefaultBookmarks(userDataDir, runtimeBookmarks); err != nil {
 		log.Error("默认书签写入失败", logger.F("error", err.Error()))
+	}
+	if err := a.captureAdmission()(); err != nil {
+		return nil, nil, nil, "", "", err
 	}
 	if err := writeBrowserLanguagePreferences(userDataDir, fingerprintLaunchArgs); err != nil {
 		log.Error("浏览器语言偏好写入失败", logger.F("profile_id", input.ProfileID), logger.F("error", err.Error()))
 	}
 
 	if detection, ok := detectBrowserRuntimeByActivePort(userDataDir); ok && detection.DebugReady {
+		if a.storeProfileID != "" {
+			return nil, nil, nil, "", "", browser.ErrStoreUnknown
+		}
 		a.markProfileLastLaunchArgsLocked(profile, nil)
 		a.markProfileRunningLocked(input.ProfileID, profile, nil, detection.PID, detection.DebugPort, true, "")
 		log.Warn("检测到同一用户数据目录已有浏览器运行，已接管为当前实例状态",
@@ -297,6 +329,19 @@ func (a *App) prepareBrowserLaunchContext(input browserStartInput, profile *Brow
 	// 同一用户数据目录存在无法通过调试端口接管的残留浏览器进程时
 	// （例如旧版本插件安装助手抢占成为实例进程，或状态丢失后的残留），
 	// 后续启动会被 Chrome 单实例机制交接而误报“就绪前退出”，启动前清理。
+	if a.storeProfileID != "" {
+		// No broad orphan termination or retry for managed data. Session clearing
+		// remains the original operation, once, behind the same admission check.
+		if err := a.captureAdmission()(); err != nil {
+			return nil, nil, nil, "", "", err
+		}
+		if !profileRestoreLastSession(profile, a.config) {
+			if err := clearBrowserSessionRestoreData(userDataDir); err != nil {
+				return nil, nil, nil, "", "", browser.ErrStoreUnknown
+			}
+		}
+		return sanitizedProfileLaunchArgs, sanitizedExtraLaunchArgs, fingerprintLaunchArgs, chromeBinaryPath, userDataDir, nil
+	}
 	if terminated, terminateErr := terminateBrowserUserDataOrphans(userDataDir, 5*time.Second); terminateErr != nil {
 		log.Warn("清理无调试端口的残留浏览器进程失败",
 			logger.F("profile_id", input.ProfileID),

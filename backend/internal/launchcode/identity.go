@@ -28,6 +28,10 @@ func (s *LaunchServer) identityMiddleware(next http.Handler) http.Handler {
 			writeJSON(w, 401, map[string]any{"error": "authentication_required"})
 			return
 		}
+		if gate, ok := s.identity.(interface{ BeginOperation() func() }); ok {
+			done := gate.BeginOperation()
+			defer done()
+		}
 		generation, err := s.identity.CheckAPI()
 		if err != nil {
 			writeJSON(w, 401, map[string]any{"error": "authentication_required"})

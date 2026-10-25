@@ -67,6 +67,9 @@ func resolveUserDataRootForOS(appRoot, p, goos string) string {
 	if strings.TrimSpace(p) == "" {
 		p = "data"
 	}
+	if normalizeGOOS(goos) != "windows" {
+		return resolveForOS(appRoot, p, goos)
+	}
 	p = fsutil.NormalizePathInput(p)
 	if p == "" {
 		return detectForOS(appRoot, goos).installRoot

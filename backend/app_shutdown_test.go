@@ -12,8 +12,12 @@ func TestQuitStateTransitions(t *testing.T) {
 	if app.isQuitRequested() {
 		t.Fatal("new app unexpectedly has a quit request")
 	}
-	if !app.shouldStopRuntimeServicesOnShutdown() {
-		t.Fatal("new app should stop runtime services on shutdown")
+	if app.shouldStopRuntimeServicesOnShutdown() {
+		t.Fatal("new authenticated host should preserve runtime services without a quit request")
+	}
+	legacy := &App{appState: &appState{}}
+	if !legacy.shouldStopRuntimeServicesOnShutdown() {
+		t.Fatal("legacy core fixture should retain full-shutdown behavior")
 	}
 
 	app.setQuitMode(quitModeAppOnly)

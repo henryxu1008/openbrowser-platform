@@ -75,6 +75,7 @@ func TestBackupStopRuntimeForMaintenanceStopsSpeedScheduler(t *testing.T) {
 
 func TestBackupStopRuntimeForMaintenanceCancelsBackgroundTasks(t *testing.T) {
 	app := NewApp(t.TempDir())
+	app.identity = newMockSession()
 	app.setRuntimeContext(context.Background())
 	taskStopped := make(chan struct{})
 	if err := app.startBackgroundTask(func(ctx context.Context) {

@@ -1,0 +1,125 @@
+name: PR and main CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'codex/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-validation:
+    name: Windows unit tests and production compile
+    runs-on: windows-2022
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: local
+      ABFREE_OIDC_ISSUER: ''
+      ABFREE_OIDC_CLIENT_ID: ''
+
+    steps:
+      - name: Checkout source without persisted credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.18.1'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.5'
+          cache-dependency-path: go.sum
+
+      - name: Verify source and existing compiler
+        env:
+          CI_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          Write-Host "Event head: $env:CI_HEAD_SHA"
+          git rev-parse HEAD
+          Get-Command gcc -ErrorAction Stop
+          go version
+          node --version
+
+      - name: Install locked frontend dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Run all frontend behavior tests
+        working-directory: frontend
+        run: npm test -- --reporter=dot
+
+      - name: Check TypeScript and build clean frontend assets
+        working-directory: frontend
+        run: npm run build:clean
+
+      - name: Download and verify locked Go modules
+        run: |
+          go mod download
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go mod verify
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run full offline Go race suite and require critical behavior
+        env:
+          GOPROXY: 'off'
+          GOSUMDB: 'off'
+        run: |
+          New-Item -ItemType Directory -Force build/dist/ci | Out-Null
+          go test -race -mod=readonly ./... -count=1 -timeout=5m -json |
+            Tee-Object -FilePath build/dist/ci/go-tests.jsonl
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $events = @(Get-Content build/dist/ci/go-tests.jsonl | ForEach-Object { $_ | ConvertFrom-Json })
+          $passed = @($events | Where-Object { $_.Action -eq 'pass' -and $_.Test })
+          $passedIDs = @($passed | ForEach-Object { '{0}::{1}' -f $_.Package, $_.Test })
+          $required = @(
+            'ant-chrome::TestProductionDesktopBindingsHaveCompleteAdmissionPolicy',
+            'ant-chrome/backend::TestAuthBoundRejectsEveryBusinessMethodBeforeDelegation',
+            'ant-chrome/backend::TestAuthBoundBackupPreviewCanConfirmWithinItsSession',
+            'ant-chrome/backend::TestAuthBoundMaintenanceWaitCannotCommitAfterRevocation',
+            'ant-chrome/backend/internal/automation::TestAdmissionInstallAsyncReleasesFlagOnRevokedDispatch/callee_check_gap',
+            'ant-chrome/backend/internal/automation::TestAdmissionSyncInstallReleasesFlagOnValidationFailure',
+            'ant-chrome/internal/desktopauth::TestPKCELoginExpiryAndNoRendererTokens',
+            'ant-chrome/backend/internal/launchcode::TestIdentityAllIngressPathsFailClosed',
+            'ant-chrome/backend/internal/launchcode::TestIdentityRevokesActualCDPUpgradeWithoutBrowserClose'
+          )
+          foreach ($test in $required) {
+            if ($test -notin $passedIDs) { throw "Required package/test did not pass: $test" }
+          }
+          $top = @($passed | Where-Object { -not $_.Test.Contains('/') }).Count
+          Write-Host "Go tests passed: $top top-level / $($passed.Count) including subtests"
+
+      - name: Vet all Go packages
+        env:
+          GOPROXY: 'off'
+          GOSUMDB: 'off'
+        run: go vet -mod=readonly ./...
+
+      - name: Compile Windows production executable without running it
+        env:
+          GOPROXY: 'off'
+          GOSUMDB: 'off'
+        run: |
+          go build -trimpath -buildvcs=false -mod=readonly '-tags=desktop,production' '-ldflags=-H=windowsgui' -o build/dist/ci/ant-chrome.exe .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-FileHash build/dist/ci/ant-chrome.exe -Algorithm SHA256
+
+      - name: Require a clean tracked source tree
+        run: git diff --exit-code

@@ -303,7 +303,9 @@ func (a *App) BrowserCoreImportLocalDirectory() (*BrowserCore, error) {
 }
 
 func (a *App) relativeCorePathIfPossible(absDir string) string {
-	for _, root := range []string{a.appRootAbs(), a.appStateRootAbs()} {
+	// Relative core paths are interpreted from writable state. Keep imported
+	// directories outside it (including installation-local directories) absolute.
+	for _, root := range []string{a.appStateRootAbs()} {
 		root = strings.TrimSpace(root)
 		if root == "" {
 			continue

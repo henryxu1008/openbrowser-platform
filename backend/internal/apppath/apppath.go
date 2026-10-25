@@ -23,6 +23,7 @@ var rootsCache sync.Map
 
 var windowsInstalledRoot = registeredWindowsInstallRoot
 var windowsLegacyStateOwned = ownsWindowsLegacyState
+var windowsLegacyFileOwned = ownsWindowsFile
 
 // InstallRoot 返回应用安装根目录的绝对路径。
 func InstallRoot(appRoot string) string {
@@ -79,6 +80,18 @@ func ensureWritableLayoutForOS(appRoot, goos string) error {
 
 	if err := os.MkdirAll(root.stateRoot, 0755); err != nil {
 		return err
+	}
+	// Transfer credentials before the first user config is published. After the
+	// existing backup owner moves this copy to its stable directory, subsequent
+	// starts must not resurrect credentials that the user has explicitly cleared.
+	if normalizeGOOS(goos) == "windows" {
+		_, configErr := os.Stat(filepath.Join(root.stateRoot, "config.yaml"))
+		legacyBackup := filepath.Join(root.installRoot, "backup.local.yaml")
+		if os.IsNotExist(configErr) && windowsLegacyFileOwned(legacyBackup) {
+			if err := copyFileIfMissing(legacyBackup, filepath.Join(root.stateRoot, "backup.local.yaml")); err != nil {
+				return err
+			}
+		}
 	}
 	copyLegacyState := normalizeGOOS(goos) != "windows" || windowsLegacyStateOwned(root.installRoot)
 	if normalizeGOOS(goos) == "windows" && copyLegacyState {

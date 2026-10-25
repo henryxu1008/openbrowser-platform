@@ -20,7 +20,11 @@ func ownsWindowsLegacyState(root string) bool {
 	} else if err != nil {
 		return false
 	}
-	descriptor, err := windows.GetNamedSecurityInfo(legacyFile, windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION)
+	return ownsWindowsFile(legacyFile)
+}
+
+func ownsWindowsFile(path string) bool {
+	descriptor, err := windows.GetNamedSecurityInfo(path, windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION)
 	if err != nil {
 		return false
 	}

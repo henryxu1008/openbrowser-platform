@@ -158,3 +158,30 @@ func TestWindowsDoesNotAdoptAnotherUsersLegacyProfiles(t *testing.T) {
 	assertFixture(t, root, "data/app.db", "other user database")
 	assertFixture(t, root, "config.yaml", "other user configuration")
 }
+
+func TestWindowsLegacyBackupOwnershipAndExistingCopyArePreserved(t *testing.T) {
+	root, state := windowsFixture(t)
+	writeFixture(t, root, "config.yaml", "legacy config")
+	writeFixture(t, root, "backup.local.yaml", "private offline fixture")
+	previous := windowsLegacyFileOwned
+	windowsLegacyFileOwned = func(string) bool { return false }
+	t.Cleanup(func() { windowsLegacyFileOwned = previous })
+	if err := ensureWritableLayoutForOS(root, "windows"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(state, "backup.local.yaml")); !os.IsNotExist(err) {
+		t.Fatal("foreign credentials were adopted")
+	}
+	assertFixture(t, root, "backup.local.yaml", "private offline fixture")
+	// Existing user copies are authoritative even on the first layout.
+	secondRoot, secondState := windowsFixture(t)
+	writeFixture(t, secondRoot, "config.yaml", "legacy config")
+	writeFixture(t, secondRoot, "backup.local.yaml", "older offline fixture")
+	writeFixture(t, secondState, "backup.local.yaml", "current offline fixture")
+	windowsLegacyFileOwned = func(string) bool { return true }
+	if err := ensureWritableLayoutForOS(secondRoot, "windows"); err != nil {
+		t.Fatal(err)
+	}
+	assertFixture(t, secondState, "backup.local.yaml", "current offline fixture")
+	assertFixture(t, secondRoot, "backup.local.yaml", "older offline fixture")
+}

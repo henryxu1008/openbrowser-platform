@@ -231,6 +231,42 @@ func TestWindowsImportedCoreBackupUsesLaunchLocationWithoutConfigMutation(t *tes
 	}
 }
 
+func TestWindowsCoreFolderActionUsesResolvedLocationWithoutExplorer(t *testing.T) {
+	root, state := installedCompatibilityFixture(t)
+	writeCompatibilityCore(t, filepath.Join(root, "chrome", "148"))
+	writeCompatibilityCore(t, filepath.Join(root, "custom-core"))
+	writeCompatibilityCore(t, filepath.Join(root, "preferred-core"))
+	writeCompatibilityCore(t, filepath.Join(state, "preferred-core"))
+	external := t.TempDir()
+	file := filepath.Join(external, "notes.txt")
+	if err := os.WriteFile(file, []byte("offline file fixture"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	a := &App{appState: &appState{appRoot: root, config: config.DefaultConfig()}}
+	cases := []struct{ name, input, want string }{
+		{"bundled", "chrome/148", filepath.Join(root, "chrome", "148")},
+		{"legacy", "custom-core", filepath.Join(root, "custom-core")},
+		{"user-precedence", "preferred-core", filepath.Join(state, "preferred-core")},
+		{"absolute-directory", external, external},
+		{"absolute-file", file, file},
+		{"empty", "", ""},
+		{"missing", "missing-core", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			opened := ""
+			err := a.openCorePathWith(tc.input, func(path string) error { opened = path; return nil })
+			if tc.want == "" {
+				if err == nil || opened != "" {
+					t.Fatal("invalid path reached file-manager dispatch")
+				}
+			} else if err != nil || opened != tc.want {
+				t.Fatal("file-manager action disagrees with core resolution")
+			}
+		})
+	}
+}
+
 func setFixtureOwnerToCurrentUser(t *testing.T, path string) {
 	t.Helper()
 	user, err := windows.GetCurrentProcessToken().GetTokenUser()

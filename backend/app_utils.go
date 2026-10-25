@@ -4,11 +4,13 @@ import (
 	"ant-chrome/backend/internal/apppath"
 	"ant-chrome/backend/internal/browser"
 	"ant-chrome/backend/internal/config"
+	"ant-chrome/backend/internal/fsutil"
 	"ant-chrome/backend/internal/logger"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"time"
 
@@ -78,16 +80,20 @@ func (a *App) ensureDefaultCores() {
 
 	// 配置已有内核：将扫描到的新目录追加进去（不覆盖已有的）
 	changed := false
+	manager := browser.NewManager(a.config, a.appRoot)
+	knownPaths := make(map[string]struct{}, len(a.config.Browser.Cores))
+	hasDefault := false
+	for _, core := range a.config.Browser.Cores {
+		knownPaths[coreDiscoveryPathKey(manager, core.CorePath)] = struct{}{}
+		hasDefault = hasDefault || core.IsDefault
+	}
 	for _, newCore := range detected {
-		exists := false
-		for _, existing := range a.config.Browser.Cores {
-			if existing.CorePath == newCore.CorePath {
-				exists = true
-				break
-			}
-		}
-		if !exists {
+		key := coreDiscoveryPathKey(manager, newCore.CorePath)
+		if _, exists := knownPaths[key]; !exists {
+			newCore.IsDefault = !hasDefault
+			hasDefault = hasDefault || newCore.IsDefault
 			a.config.Browser.Cores = append(a.config.Browser.Cores, newCore)
+			knownPaths[key] = struct{}{}
 			log.Info("发现新内核，已注册", logger.F("path", newCore.CorePath))
 			changed = true
 		}
@@ -139,14 +145,14 @@ func (a *App) scanAndRegisterCores() []browser.Core {
 	knownPaths := make(map[string]struct{}, len(existing))
 	hasDefault := false
 	for _, core := range existing {
-		knownPaths[normalizeCorePathForCompare(core.CorePath)] = struct{}{}
+		knownPaths[coreDiscoveryPathKey(a.browserMgr, core.CorePath)] = struct{}{}
 		if core.IsDefault {
 			hasDefault = true
 		}
 	}
 
 	for _, core := range detected {
-		if _, ok := knownPaths[normalizeCorePathForCompare(core.CorePath)]; ok {
+		if _, ok := knownPaths[coreDiscoveryPathKey(a.browserMgr, core.CorePath)]; ok {
 			continue
 		}
 		core.IsDefault = !hasDefault
@@ -160,7 +166,7 @@ func (a *App) scanAndRegisterCores() []browser.Core {
 			continue
 		}
 		log.Info("发现新内核，已注册", logger.F("core_id", core.CoreId), logger.F("path", core.CorePath))
-		knownPaths[normalizeCorePathForCompare(core.CorePath)] = struct{}{}
+		knownPaths[coreDiscoveryPathKey(a.browserMgr, core.CorePath)] = struct{}{}
 		hasDefault = hasDefault || core.IsDefault
 	}
 	return a.browserMgr.ListCores()
@@ -174,12 +180,44 @@ func normalizeCorePathForCompare(path string) string {
 	return filepath.ToSlash(filepath.Clean(path))
 }
 
+func coreDiscoveryPathKey(manager *browser.Manager, path string) string {
+	key := normalizeCorePathForCompare(path)
+	if key != "" && goruntime.GOOS == "windows" {
+		key = strings.ToLower(normalizeCorePathForCompare(manager.ResolveCoreDirectory(path)))
+	}
+	return key
+}
+
 // scanChromeDir 扫描指定目录，将包含浏览器可执行文件的子文件夹识别为内核。
 // 如果目录本身包含可执行文件（旧版单内核结构），则直接返回该目录作为内核。
 func (a *App) scanChromeDir(chromeRoot string) []browser.Core {
-	log := logger.New("Browser")
+	cores := a.scanChromeDirAt(chromeRoot, a.resolveAppPath(chromeRoot))
+	p := fsutil.NormalizePathInput(chromeRoot)
+	if goruntime.GOOS != "windows" || !apppath.IsDetached(a.appRoot) || p == "" || filepath.IsAbs(p) {
+		return cores
+	}
+	// Discovery must include newly bundled versions even after a user has
+	// downloaded a state-side core. Execution still resolves each logical path
+	// through the existing lookup, where a matching user core takes precedence.
+	legacy := filepath.Join(apppath.InstallRoot(a.appRoot), p)
+	seen := make(map[string]struct{}, len(cores))
+	for _, core := range cores {
+		seen[strings.ToLower(normalizeCorePathForCompare(core.CorePath))] = struct{}{}
+	}
+	for _, core := range a.scanChromeDirAt(chromeRoot, legacy) {
+		key := strings.ToLower(normalizeCorePathForCompare(core.CorePath))
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		core.IsDefault = len(cores) == 0
+		cores = append(cores, core)
+		seen[key] = struct{}{}
+	}
+	return cores
+}
 
-	baseDir := browser.NewManager(a.config, a.appRoot).ResolveCoreDirectory(chromeRoot)
+func (a *App) scanChromeDirAt(chromeRoot, baseDir string) []browser.Core {
+	log := logger.New("Browser")
 
 	if _, err := os.Stat(baseDir); os.IsNotExist(err) {
 		return nil

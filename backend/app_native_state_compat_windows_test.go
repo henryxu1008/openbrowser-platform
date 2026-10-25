@@ -141,6 +141,63 @@ func TestWindowsFreshUserFindsBundledCoresWithoutAdoptingLegacyChrome(t *testing
 	}
 }
 
+func TestWindowsCoreDiscoveryMergesRootsWithoutChangingSavedDefault(t *testing.T) {
+	for _, mode := range []string{"relative", "absolute"} {
+		t.Run(mode, func(t *testing.T) {
+			root, state := installedCompatibilityFixture(t)
+			writeCompatibilityCore(t, filepath.Join(root, "chrome", "148"))
+			writeCompatibilityCore(t, filepath.Join(root, "chrome", "149"))
+			preferred := writeCompatibilityCore(t, filepath.Join(state, "chrome", "149"))
+			writeCompatibilityCore(t, filepath.Join(state, "chrome", "150"))
+			original := "chrome/148"
+			if mode == "absolute" {
+				original = filepath.Join(root, "chrome", "148")
+			}
+			cfg := config.DefaultConfig()
+			cfg.Browser.Cores = []config.BrowserCore{{CoreId: "core-148", CorePath: original, IsDefault: true}}
+			a := &App{appState: &appState{appRoot: root, config: cfg}}
+			cores := a.scanChromeDir("chrome")
+			if len(cores) != 3 {
+				t.Fatal("discovery omitted a bundled/user version or duplicated a matching path")
+			}
+			manager := browser.NewManager(cfg, root)
+			a.browserMgr = manager
+			seen := make(map[string]bool)
+			for _, core := range cores {
+				key := filepath.ToSlash(core.CorePath)
+				if seen[key] {
+					t.Fatal("duplicate logical core path")
+				}
+				seen[key] = true
+				if key == "chrome/149" {
+					if got, err := manager.ResolveCoreExecutable(core); err != nil || got != preferred {
+						t.Fatal("installation copy shadowed a matching user core")
+					}
+				}
+			}
+			if !seen["chrome/148"] || !seen["chrome/149"] || !seen["chrome/150"] {
+				t.Fatal("core discovery did not merge both roots")
+			}
+			a.ensureDefaultCores()
+			if cores := a.scanAndRegisterCores(); len(cores) != 3 {
+				t.Fatal("rescan registered a duplicate path alias")
+			}
+			defaults := 0
+			for _, core := range cfg.Browser.Cores {
+				if core.IsDefault {
+					defaults++
+					if core.CorePath != original {
+						t.Fatal("rescan changed the user's saved default/path")
+					}
+				}
+			}
+			if len(cfg.Browser.Cores) != 3 || defaults != 1 {
+				t.Fatal("startup registration duplicated cores or default selection")
+			}
+		})
+	}
+}
+
 func TestWindowsDetachedImportedCoreLocationsRemainUsable(t *testing.T) {
 	root, state := installedCompatibilityFixture(t)
 	legacyDir := filepath.Join(root, "custom-core")

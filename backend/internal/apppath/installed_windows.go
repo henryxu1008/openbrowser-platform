@@ -3,6 +3,8 @@
 package apppath
 
 import (
+	"ant-chrome/backend/internal/config"
+	"ant-chrome/backend/internal/fsutil"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 	"os"
@@ -15,12 +17,21 @@ import (
 // explicit import using the existing native profile/backup flows.
 func ownsWindowsLegacyState(root string) bool {
 	legacyFile := filepath.Join(root, "data", "app.db")
+	if cfg, err := config.Load(filepath.Join(root, "config.yaml")); err == nil {
+		p := fsutil.NormalizePathInput(cfg.Database.SQLite.Path)
+		if filepath.IsAbs(p) || p == ".." || strings.HasPrefix(p, ".."+string(filepath.Separator)) {
+			// External databases stay at their configured origin. The installed
+			// config, rather than an unrelated data/app.db, owns legacy adoption.
+			return windowsLegacyFileOwned(filepath.Join(root, "config.yaml"))
+		}
+		legacyFile = filepath.Join(root, p)
+	}
 	if _, err := os.Stat(legacyFile); os.IsNotExist(err) {
 		legacyFile = filepath.Join(root, "config.yaml")
 	} else if err != nil {
 		return false
 	}
-	return ownsWindowsFile(legacyFile)
+	return windowsLegacyFileOwned(legacyFile)
 }
 
 func ownsWindowsFile(path string) bool {

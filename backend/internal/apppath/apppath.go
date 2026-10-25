@@ -52,6 +52,17 @@ func ResolveUserDataRoot(appRoot, p string) string {
 	return resolveUserDataRootForOS(appRoot, p, goruntime.GOOS)
 }
 
+func ResolveDatabasePath(appRoot, p string) string {
+	return resolveDatabasePathForOS(appRoot, p, goruntime.GOOS)
+}
+
+func resolveDatabasePathForOS(appRoot, p, goos string) string {
+	if strings.TrimSpace(p) == "" {
+		p = "data/app.db"
+	}
+	return resolveUserDataRootForOS(appRoot, p, goos)
+}
+
 func resolveUserDataRootForOS(appRoot, p, goos string) string {
 	if strings.TrimSpace(p) == "" {
 		p = "data"
@@ -60,11 +71,17 @@ func resolveUserDataRootForOS(appRoot, p, goos string) string {
 	if p == "" {
 		return detectForOS(appRoot, goos).installRoot
 	}
-	if !filepath.IsAbs(p) && detectForOS(appRoot, goos).detached &&
-		(p == ".." || strings.HasPrefix(p, ".."+string(filepath.Separator))) {
-		return filepath.Join(detectForOS(appRoot, goos).installRoot, p)
+	if filepath.IsAbs(p) {
+		return p
 	}
-	return resolveForOS(appRoot, p, goos)
+	root := detectForOS(appRoot, goos)
+	base := root.installRoot
+	if root.detached && p != ".." && !strings.HasPrefix(p, ".."+string(filepath.Separator)) {
+		// These are configured data paths, including e.g. bin/profiles. The
+		// generic resolver's read-only bundled bin/ exception does not apply.
+		base = root.stateRoot
+	}
+	return filepath.Join(base, p)
 }
 
 func resolveForOS(appRoot, p, goos string) string {
@@ -124,10 +141,7 @@ func ensureWritableLayoutForOS(appRoot, goos string) error {
 		// An upgrade may have legacy SQLite/profile files beside the executable.
 		// Copy only into a missing destination; leave the original and any existing
 		// per-user data untouched. The caller holds the existing single-instance lock.
-		if err := copyDirIfMissing(filepath.Join(root.installRoot, "data"), filepath.Join(root.stateRoot, "data")); err != nil {
-			return err
-		}
-		if err := copyLegacyUserDataRoot(root, goos); err != nil {
+		if err := copyLegacyConfiguredPaths(root, goos); err != nil {
 			return err
 		}
 	}

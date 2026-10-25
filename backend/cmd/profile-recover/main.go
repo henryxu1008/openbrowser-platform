@@ -150,7 +150,7 @@ func run(opts options) (*recoveryReport, error) {
 		return nil, fmt.Errorf("load config: %w", err)
 	}
 
-	dbPath := apppath.Resolve(appRoot, cfg.Database.SQLite.Path)
+	dbPath := apppath.ResolveDatabasePath(appRoot, cfg.Database.SQLite.Path)
 	userDataRoot := apppath.ResolveUserDataRoot(appRoot, cfg.Browser.UserDataRoot)
 	now := time.Now()
 

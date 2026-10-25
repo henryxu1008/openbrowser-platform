@@ -17,7 +17,7 @@ func (a *App) backupResolveDBPath(cfg *config.Config) string {
 	if path == "" {
 		path = "data/app.db"
 	}
-	return a.resolveAppPath(path)
+	return apppath.ResolveDatabasePath(a.appRoot, path)
 }
 
 func (a *App) backupResolveUserDataRoot(cfg *config.Config) string {

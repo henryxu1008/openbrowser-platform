@@ -13,7 +13,7 @@ import (
 // Publish the config only after its relative profile tree is available; an
 // existing user config marks completed initialization and must not reimport
 // profiles that the user has subsequently removed.
-func copyLegacyUserDataRoot(root roots, goos string) error {
+func copyLegacyConfiguredPaths(root roots, goos string) error {
 	if _, err := os.Stat(filepath.Join(root.stateRoot, "config.yaml")); !os.IsNotExist(err) {
 		return err
 	}
@@ -21,18 +21,49 @@ func copyLegacyUserDataRoot(root roots, goos string) error {
 	if err != nil {
 		return fmt.Errorf("read legacy profile root: %w", err)
 	}
-	p := fsutil.NormalizePathInput(cfg.Browser.UserDataRoot)
+	dbPath := fsutil.NormalizePathInput(cfg.Database.SQLite.Path)
+	dbSource := filepath.Join(root.installRoot, dbPath)
+	dbTarget := resolveDatabasePathForOS(root.installRoot, dbPath, goos)
+	if filepath.IsAbs(dbPath) {
+		dbSource = dbPath
+	}
+	release, copyDatabase, err := prepareLegacyDatabaseCopy(root.installRoot, dbSource, dbTarget)
+	if err != nil {
+		return err
+	}
+	defer release()
+	if err := copyDirIfMissing(filepath.Join(root.installRoot, "data"), filepath.Join(root.stateRoot, "data")); err != nil {
+		return err
+	}
+	if err := copyLegacyUserDataRoot(root, cfg.Browser.UserDataRoot, goos); err != nil {
+		return err
+	}
+	if copyDatabase {
+		return copyLegacyDatabaseFiles(dbSource, dbTarget)
+	}
+	return nil
+}
+
+func copyLegacyUserDataRoot(root roots, setting, goos string) error {
+	p := fsutil.NormalizePathInput(setting)
 	if p == "" || filepath.IsAbs(p) {
 		return nil
 	}
 	source := filepath.Join(root.installRoot, p)
 	target := resolveUserDataRootForOS(root.installRoot, p, goos)
 	if source == target {
-		return nil // Absolute/external, bin/ and installation-root settings stay put.
+		return nil // External and installation-root settings stay put.
 	}
+	if err := checkLegacyDirectoryPath(root.installRoot, p); err != nil {
+		return err
+	}
+	return copyDirIfMissing(source, target)
+}
+
+func checkLegacyDirectoryPath(installRoot, p string) error {
 	// Walk also checks the copied root, but a configured nested root must not
 	// traverse a junction/symlink in one of its parent components either.
-	parent := root.installRoot
+	parent := installRoot
 	for _, part := range strings.Split(p, string(filepath.Separator)) {
 		parent = filepath.Join(parent, part)
 		info, err := os.Lstat(parent)
@@ -46,5 +77,5 @@ func copyLegacyUserDataRoot(root roots, goos string) error {
 			return fmt.Errorf("cannot migrate non-directory profile root: %s", parent)
 		}
 	}
-	return copyDirIfMissing(source, target)
+	return nil
 }

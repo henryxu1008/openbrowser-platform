@@ -166,7 +166,7 @@ func (a *App) startupInitInterceptor(log *logger.Logger, cfg *config.Config) {
 }
 
 func (a *App) startupInitDatabase(cfg *config.Config) (*database.DB, error) {
-	return database.NewDB(a.resolveAppPath(cfg.Database.SQLite.Path))
+	return database.NewDB(apppath.ResolveDatabasePath(a.appRoot, cfg.Database.SQLite.Path))
 }
 
 func (a *App) startupInitManagers(cfg *config.Config, db *database.DB, check func() error) error {

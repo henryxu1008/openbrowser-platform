@@ -109,7 +109,10 @@ func BuildScope(opts BuildOptions) (Scope, error) {
 		if dbPath == "" {
 			dbPath = "data/app.db"
 		}
-		dbAbs := resolvePath(appRootAbs, dbPath)
+		dbAbs := strings.TrimSpace(opts.DatabasePath)
+		if dbAbs == "" {
+			dbAbs = apppath.ResolveDatabasePath(appRootAbs, dbPath)
+		}
 		builder.add(ScopeEntry{
 			ID:          "database_sqlite_main",
 			Category:    CategoryAppData,

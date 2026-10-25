@@ -17,8 +17,13 @@ func windowsFixture(t *testing.T) (string, string) {
 	}
 	t.Setenv("LOCALAPPDATA", user)
 	previous := windowsLegacyStateOwned
+	previousFileOwner := windowsLegacyFileOwned
 	windowsLegacyStateOwned = func(string) bool { return true }
-	t.Cleanup(func() { windowsLegacyStateOwned = previous })
+	windowsLegacyFileOwned = func(string) bool { return true }
+	t.Cleanup(func() {
+		windowsLegacyStateOwned = previous
+		windowsLegacyFileOwned = previousFileOwner
+	})
 	if err := os.MkdirAll(root, 0755); err != nil {
 		t.Fatal(err)
 	}

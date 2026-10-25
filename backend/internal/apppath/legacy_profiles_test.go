@@ -20,7 +20,7 @@ func TestWindowsCustomRelativeProfileRootMigration(t *testing.T) {
 				original = setting
 			}
 			want := filepath.Join(state, cleanSetting)
-			if filepath.IsAbs(setting) || setting == "." || strings.HasPrefix(setting, "../") || strings.HasPrefix(setting, "bin/") {
+			if filepath.IsAbs(setting) || setting == "." || strings.HasPrefix(setting, "../") {
 				want = original
 			}
 			if got := resolveUserDataRootForOS(root, setting, "windows"); got != want {

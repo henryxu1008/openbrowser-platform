@@ -13,6 +13,7 @@ func (a *App) backupBuildScope() (backup.Scope, error) {
 		AppRoot:      a.appStateRootAbs(),
 		Config:       a.config,
 		UserDataRoot: a.backupResolveUserDataRoot(a.config),
+		DatabasePath: a.backupResolveDBPath(a.config),
 	})
 }
 

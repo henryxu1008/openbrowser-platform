@@ -75,3 +75,42 @@ func TestWindowsCustomProfileRootRejectsParentJunction(t *testing.T) {
 	}
 	assertFixture(t, other, "profiles/A/Preferences", "do not adopt")
 }
+
+func TestWindowsConfiguredDatabaseRefusesActiveWriter(t *testing.T) {
+	root, state := windowsFixture(t)
+	writeFixture(t, root, "config.yaml", "database:\n  sqlite:\n    path: app.db\n")
+	writeFixture(t, root, "app.db", "owned database fixture")
+	name, err := windows.UTF16PtrFromString(filepath.Join(root, "app.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle, err := windows.CreateFile(name, windows.GENERIC_READ|windows.GENERIC_WRITE, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING, windows.FILE_ATTRIBUTE_NORMAL, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer windows.CloseHandle(handle)
+	if err := ensureWritableLayoutForOS(root, "windows"); err == nil {
+		t.Fatal("database copy accepted an active writer")
+	}
+	for _, path := range []string{"app.db", "config.yaml"} {
+		if _, err := os.Stat(filepath.Join(state, path)); !os.IsNotExist(err) {
+			t.Fatal("busy database was published")
+		}
+	}
+	assertFixture(t, root, "app.db", "owned database fixture")
+}
+
+func TestWindowsLegacyOwnershipFollowsConfiguredDatabase(t *testing.T) {
+	root, _ := windowsFixture(t)
+	writeFixture(t, root, "config.yaml", "database:\n  sqlite:\n    path: app.db\n")
+	writeFixture(t, root, "app.db", "configured database")
+	writeFixture(t, root, "data/app.db", "unrelated stale default")
+	windowsLegacyFileOwned = func(path string) bool { return path == filepath.Join(root, "app.db") }
+	if !ownsWindowsLegacyState(root) {
+		t.Fatal("configured owned database was ignored")
+	}
+	windowsLegacyFileOwned = func(path string) bool { return path == filepath.Join(root, "data", "app.db") }
+	if ownsWindowsLegacyState(root) {
+		t.Fatal("an unrelated default database conferred legacy ownership")
+	}
+}

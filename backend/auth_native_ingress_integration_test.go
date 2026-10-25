@@ -260,6 +260,7 @@ func TestAuthBoundCDPExpiryLogoutAndReplacementCloseOnlyProxy(t *testing.T) {
 		t.Run(mode, func(t *testing.T) {
 			f := newNativeIngressFixture(t)
 			closed := make(chan struct{})
+			upgraded := make(chan int32, 2)
 			var connections, messages atomic.Int32
 			target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.URL.Path == "/alive" {
@@ -272,6 +273,7 @@ func TestAuthBoundCDPExpiryLogoutAndReplacementCloseOnlyProxy(t *testing.T) {
 				}
 				defer conn.Close()
 				connection := connections.Add(1)
+				upgraded <- connection
 				if connection != 1 && mode != "replacement-granted" {
 					t.Error("revoked upgrade reached protocol fixture")
 					return
@@ -287,6 +289,17 @@ func TestAuthBoundCDPExpiryLogoutAndReplacementCloseOnlyProxy(t *testing.T) {
 				}
 			}))
 			defer target.Close()
+			awaitUpgrade := func(want int32) {
+				t.Helper()
+				select {
+				case got := <-upgraded:
+					if got != want {
+						t.Fatalf("protocol fixture upgrade=%d want=%d", got, want)
+					}
+				case <-time.After(2 * time.Second):
+					t.Fatal("protocol fixture did not finish its upgrade")
+				}
+			}
 			u, _ := url.Parse(target.URL)
 			port, _ := strconv.Atoi(u.Port())
 			f.server.SetActiveProfile(&browser.Profile{ProfileId: "protocol-fixture", Running: true, DebugReady: true, DebugPort: port})
@@ -302,6 +315,7 @@ func TestAuthBoundCDPExpiryLogoutAndReplacementCloseOnlyProxy(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer conn.Close()
+			awaitUpgrade(1)
 			if mode == "logout" || mode == "replacement-granted" {
 				if _, err := f.bound.AuthLogout(7); err != nil {
 					t.Fatal(err)
@@ -337,9 +351,10 @@ func TestAuthBoundCDPExpiryLogoutAndReplacementCloseOnlyProxy(t *testing.T) {
 				defer rejected.Body.Close()
 			}
 			if mode == "replacement-granted" {
-				if dialErr != nil || newConn == nil || connections.Load() != 2 {
+				if dialErr != nil || newConn == nil {
 					t.Fatal("fresh explicitly granted identity could not use a new proxy")
 				}
+				awaitUpgrade(2)
 			} else {
 				if status, _ := f.request(t, http.MethodGet, "/json/version", ""); status != http.StatusUnauthorized {
 					t.Fatalf("revoked new CDP request=%d", status)

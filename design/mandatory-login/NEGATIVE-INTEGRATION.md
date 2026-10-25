@@ -13,6 +13,8 @@ This batch starts from main 8eb05f6a9d1070e20ae44e32061efed14cef7b15 and supplem
 
 The sole application-interface substitute is the existing private mockSession. App, typed facade, scopedHTTP factory, profile manager, SQLite DAO, production Start/router/middleware and reverse proxy are real. CDP's external peer is a local protocol fixture; no Chromium/kernel is run. All storage is under t.TempDir; all listeners are test-owned ephemeral loopback and close in cleanup. There is no exported principal setter, fake production login or new product bypass.
 
+The CDP fixture signals each completed upstream upgrade through a channel before connection assertions or revocation. The checks do not assume the server goroutine has updated its counter merely because the client received its handshake.
+
 ## Regression and minimal fix
 
 The first new integration run exposed HTTP 500 for a profile write whose captured identity was revoked during body decoding. The complete red case verifies the real catalog and SQLite stay at zero, but receives 500. mapProfileWriteErrorStatus treated the typed errRequestRevoked as an unknown server failure. The fix maps errors.Is(err, errRequestRevoked) to 401 before ordinary write-error mapping. It changes neither admission timing, committed-write receipts nor unrelated error classes.

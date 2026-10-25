@@ -1,6 +1,7 @@
 package backup
 
 import (
+	"ant-chrome/backend/internal/apppath"
 	"ant-chrome/backend/internal/config"
 	"fmt"
 	"path/filepath"
@@ -62,7 +63,7 @@ func BuildScope(opts BuildOptions) (Scope, error) {
 	if userDataRootSetting == "" {
 		userDataRootSetting = "data"
 	}
-	userDataRoot := resolvePath(appRootAbs, userDataRootSetting)
+	userDataRoot := apppath.ResolveUserDataRoot(appRootAbs, userDataRootSetting)
 	builder.add(ScopeEntry{
 		ID:          "browser_user_data_root",
 		Category:    CategoryBrowserData,

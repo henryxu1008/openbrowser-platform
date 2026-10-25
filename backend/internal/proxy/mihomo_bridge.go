@@ -503,7 +503,7 @@ func (m *ClashManager) resolveMihomoWorkdir(key string) string {
 		}
 	}
 	if !filepath.IsAbs(root) && m != nil {
-		root = apppath.Resolve(m.AppRoot, root)
+		root = apppath.ResolveUserDataRoot(m.AppRoot, root)
 	}
 	return filepath.Join(root, "_mihomo", key)
 }

@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"ant-chrome/backend/internal/apppath"
 	"ant-chrome/backend/internal/fsutil"
 	"ant-chrome/backend/internal/logger"
 	"fmt"
@@ -19,7 +20,7 @@ func (a *App) OpenUserDataDir(userDataDir string) error {
 	if a.config != nil {
 		userDataRoot = a.config.Browser.UserDataRoot
 	}
-	fullPath, err := fsutil.ResolveUserDataDir(a.resolveAppPath, userDataRoot, userDataDir)
+	fullPath, err := fsutil.ResolveUserDataDir(a.resolveAppPath, apppath.ResolveUserDataRoot(a.appRoot, userDataRoot), userDataDir)
 	if err != nil {
 		return err
 	}
@@ -54,7 +55,7 @@ func (a *App) OpenUserDataRoot() error {
 	if a.config != nil && strings.TrimSpace(a.config.Browser.UserDataRoot) != "" {
 		userDataRoot = strings.TrimSpace(a.config.Browser.UserDataRoot)
 	}
-	rootPath := a.resolveAppPath(userDataRoot)
+	rootPath := apppath.ResolveUserDataRoot(a.appRoot, userDataRoot)
 	if _, err := os.Stat(rootPath); os.IsNotExist(err) {
 		if err := os.MkdirAll(rootPath, 0755); err != nil {
 			log.Error("创建用户数据根目录失败", logger.F("path", rootPath), logger.F("error", err))

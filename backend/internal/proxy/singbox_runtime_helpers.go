@@ -159,7 +159,7 @@ func (m *SingBoxManager) resolveWorkdir(key string) string {
 		root = "data"
 	}
 	if !filepath.IsAbs(root) {
-		root = apppath.Resolve(m.AppRoot, root)
+		root = apppath.ResolveUserDataRoot(m.AppRoot, root)
 	}
 	return filepath.Join(root, "_singbox", key)
 }

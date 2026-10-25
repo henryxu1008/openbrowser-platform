@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"ant-chrome/backend/internal/apppath"
 	"ant-chrome/backend/internal/browser"
 
 	"github.com/google/uuid"
@@ -1278,11 +1279,7 @@ func (a *App) profilePackageImportStagingRoot(batchID string) string {
 	if root == "" {
 		root = "data"
 	}
-	if a.browserMgr != nil {
-		root = a.browserMgr.ResolveRelativePath(root)
-	} else {
-		root = a.resolveAppPath(root)
-	}
+	root = apppath.ResolveUserDataRoot(a.appRoot, root)
 	return filepath.Join(root, ".imports", strings.TrimSpace(batchID))
 }
 

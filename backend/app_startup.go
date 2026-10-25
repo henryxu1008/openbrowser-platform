@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"runtime"
 	"time"
 )
 
@@ -70,6 +71,9 @@ func (a *App) startupBusiness(ctx context.Context, check func() error) error {
 		log.Error("数据库迁移失败", logger.F("error", err))
 		return err
 	}
+	if err := a.startupRepairInstalledExtensionPaths(check); err != nil {
+		return fmt.Errorf("迁移已安装插件路径失败: %w", err)
+	}
 
 	if err := a.startupInitManagers(cfg, db, check); err != nil {
 		return err
@@ -89,6 +93,20 @@ func (a *App) startupBusiness(ctx context.Context, check func() error) error {
 
 	log.Info("应用启动成功")
 	return check()
+}
+
+func (a *App) startupRepairInstalledExtensionPaths(check func() error) error {
+	if runtime.GOOS != "windows" || !apppath.IsDetached(a.appRoot) {
+		return nil
+	}
+	issues, err := a.repairExtensionPaths(apppath.InstallRoot(a.appRoot), check)
+	if err != nil {
+		return err
+	}
+	for _, issue := range issues {
+		logger.New("App").Warn("已安装插件路径迁移警告", logger.F("error", issue))
+	}
+	return nil
 }
 
 func (a *App) startupLoadConfig() *config.Config {

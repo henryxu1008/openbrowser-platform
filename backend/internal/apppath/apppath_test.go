@@ -46,7 +46,7 @@ func assertFixture(t *testing.T, root, path, want string) {
 
 func TestWindowsInstalledStatePreservesDataAcrossOpenAndUpgrade(t *testing.T) {
 	root, state := windowsFixture(t)
-	fixtures := map[string]string{"config.yaml": "legacy config", "proxies.yaml": "legacy proxies", "data/app.db": "SQLite fixture", "data/profiles/A/Preferences": "profile fixture", "chrome/148.0.7778.215/chrome.exe": "kernel fixture"}
+	fixtures := map[string]string{"config.yaml": "browser: {}", "proxies.yaml": "legacy proxies", "data/app.db": "SQLite fixture", "data/profiles/A/Preferences": "profile fixture", "chrome/148.0.7778.215/chrome.exe": "kernel fixture"}
 	for path, value := range fixtures {
 		writeFixture(t, root, path, value)
 	}
@@ -115,7 +115,7 @@ func TestWindowsUnregisteredRootKeepsPathsBeforeCreation(t *testing.T) {
 
 func TestWindowsFreshInstallAndCopyRefusalKeepExistingData(t *testing.T) {
 	root, state := windowsFixture(t)
-	writeFixture(t, root, "config.yaml", "defaults")
+	writeFixture(t, root, "config.yaml", "browser: {}")
 	if err := ensureWritableLayoutForOS(root, "windows"); err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +161,7 @@ func TestWindowsDoesNotAdoptAnotherUsersLegacyProfiles(t *testing.T) {
 
 func TestWindowsLegacyBackupOwnershipAndExistingCopyArePreserved(t *testing.T) {
 	root, state := windowsFixture(t)
-	writeFixture(t, root, "config.yaml", "legacy config")
+	writeFixture(t, root, "config.yaml", "browser: {}")
 	writeFixture(t, root, "backup.local.yaml", "private offline fixture")
 	previous := windowsLegacyFileOwned
 	windowsLegacyFileOwned = func(string) bool { return false }
@@ -175,7 +175,7 @@ func TestWindowsLegacyBackupOwnershipAndExistingCopyArePreserved(t *testing.T) {
 	assertFixture(t, root, "backup.local.yaml", "private offline fixture")
 	// Existing user copies are authoritative even on the first layout.
 	secondRoot, secondState := windowsFixture(t)
-	writeFixture(t, secondRoot, "config.yaml", "legacy config")
+	writeFixture(t, secondRoot, "config.yaml", "browser: {}")
 	writeFixture(t, secondRoot, "backup.local.yaml", "older offline fixture")
 	writeFixture(t, secondState, "backup.local.yaml", "current offline fixture")
 	windowsLegacyFileOwned = func(string) bool { return true }

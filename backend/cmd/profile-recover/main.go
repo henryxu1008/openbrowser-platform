@@ -151,7 +151,7 @@ func run(opts options) (*recoveryReport, error) {
 	}
 
 	dbPath := apppath.Resolve(appRoot, cfg.Database.SQLite.Path)
-	userDataRoot := apppath.Resolve(appRoot, cfg.Browser.UserDataRoot)
+	userDataRoot := apppath.ResolveUserDataRoot(appRoot, cfg.Browser.UserDataRoot)
 	now := time.Now()
 
 	report := &recoveryReport{

@@ -54,3 +54,24 @@ func TestWindowsLegacyCopyRejectsJunctions(t *testing.T) {
 	}
 	assertFixture(t, other, "private", "do not adopt")
 }
+
+func TestWindowsCustomProfileRootRejectsParentJunction(t *testing.T) {
+	root, state := windowsFixture(t)
+	other := t.TempDir()
+	writeFixture(t, root, "config.yaml", "browser:\n  user_data_root: linked/profiles\n")
+	writeFixture(t, other, "profiles/A/Preferences", "do not adopt")
+	command := exec.Command("cmd.exe", "/c", "mklink", "/J", filepath.Join(root, "linked"), other)
+	command.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("create owned fixture junction: %v %s", err, output)
+	}
+	if err := ensureWritableLayoutForOS(root, "windows"); err == nil {
+		t.Fatal("custom root traversed a parent junction")
+	}
+	for _, path := range []string{"config.yaml", "linked/profiles"} {
+		if _, err := os.Stat(filepath.Join(state, path)); !os.IsNotExist(err) {
+			t.Fatal("failed custom root migration was published")
+		}
+	}
+	assertFixture(t, other, "profiles/A/Preferences", "do not adopt")
+}

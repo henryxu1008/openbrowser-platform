@@ -42,6 +42,39 @@ func writeCompatibilityCore(t *testing.T, directory string) string {
 	return exe
 }
 
+func TestWindowsInstalledCustomProfileConsumersAgree(t *testing.T) {
+	root, state := installedCompatibilityFixture(t)
+	cfg := config.DefaultConfig()
+	cfg.Browser.UserDataRoot = "profiles"
+	if err := cfg.Save(filepath.Join(root, "config.yaml")); err != nil {
+		t.Fatal(err)
+	}
+	setFixtureOwnerToCurrentUser(t, filepath.Join(root, "config.yaml"))
+	legacyProfile := filepath.Join(root, "profiles", "A")
+	if err := os.MkdirAll(legacyProfile, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(legacyProfile, "Preferences"), []byte("offline profile"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := EnsureRuntimeLayout(root); err != nil {
+		t.Fatal(err)
+	}
+	a := &App{appState: &appState{appRoot: root}}
+	a.config = a.startupLoadConfig()
+	a.browserMgr = browser.NewManager(a.config, root)
+	userRoot := filepath.Join(state, "profiles")
+	profile := &browser.Profile{ProfileId: "A", UserDataDir: "A"}
+	if got := a.browserMgr.ResolveUserDataDir(profile); got != filepath.Join(userRoot, "A") {
+		t.Fatal("browser did not use the migrated custom profile root")
+	} else if data, err := os.ReadFile(filepath.Join(got, "Preferences")); err != nil || string(data) != "offline profile" {
+		t.Fatal("browser sees an empty custom profile")
+	}
+	if a.backupResolveUserDataRoot(a.config) != userRoot || a.profilePackageImportStagingRoot("fixture") != filepath.Join(userRoot, ".imports", "fixture") {
+		t.Fatal("profile package and backup consumers disagree with browser")
+	}
+}
+
 func TestWindowsDetachedImportedCoreLocationsRemainUsable(t *testing.T) {
 	root, state := installedCompatibilityFixture(t)
 	legacyDir := filepath.Join(root, "custom-core")

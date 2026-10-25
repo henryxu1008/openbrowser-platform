@@ -46,6 +46,27 @@ func Resolve(appRoot, p string) string {
 	return resolveForOS(appRoot, p, goruntime.GOOS)
 }
 
+// ResolveUserDataRoot keeps relative roots outside the installation at their
+// original location. Only installation-owned subdirectories are relocated.
+func ResolveUserDataRoot(appRoot, p string) string {
+	return resolveUserDataRootForOS(appRoot, p, goruntime.GOOS)
+}
+
+func resolveUserDataRootForOS(appRoot, p, goos string) string {
+	if strings.TrimSpace(p) == "" {
+		p = "data"
+	}
+	p = fsutil.NormalizePathInput(p)
+	if p == "" {
+		return detectForOS(appRoot, goos).installRoot
+	}
+	if !filepath.IsAbs(p) && detectForOS(appRoot, goos).detached &&
+		(p == ".." || strings.HasPrefix(p, ".."+string(filepath.Separator))) {
+		return filepath.Join(detectForOS(appRoot, goos).installRoot, p)
+	}
+	return resolveForOS(appRoot, p, goos)
+}
+
 func resolveForOS(appRoot, p, goos string) string {
 	p = fsutil.NormalizePathInput(p)
 	if p == "" {
@@ -94,11 +115,19 @@ func ensureWritableLayoutForOS(appRoot, goos string) error {
 		}
 	}
 	copyLegacyState := normalizeGOOS(goos) != "windows" || windowsLegacyStateOwned(root.installRoot)
+	// Copy bundled cores before a custom profile directory can create a parent
+	// inside chrome/ and make the non-overwriting directory copy skip the bundle.
+	if err := copyDirIfMissing(filepath.Join(root.installRoot, "chrome"), filepath.Join(root.stateRoot, "chrome")); err != nil {
+		return err
+	}
 	if normalizeGOOS(goos) == "windows" && copyLegacyState {
 		// An upgrade may have legacy SQLite/profile files beside the executable.
 		// Copy only into a missing destination; leave the original and any existing
 		// per-user data untouched. The caller holds the existing single-instance lock.
 		if err := copyDirIfMissing(filepath.Join(root.installRoot, "data"), filepath.Join(root.stateRoot, "data")); err != nil {
+			return err
+		}
+		if err := copyLegacyUserDataRoot(root, goos); err != nil {
 			return err
 		}
 	}
@@ -122,12 +151,6 @@ func ensureWritableLayoutForOS(appRoot, goos string) error {
 		if err := copyFileIfMissing(filepath.Join(root.installRoot, "config.defaults.yaml"), filepath.Join(root.stateRoot, "config.yaml")); err != nil {
 			return err
 		}
-	}
-	if err := copyDirIfMissing(
-		filepath.Join(root.installRoot, "chrome"),
-		filepath.Join(root.stateRoot, "chrome"),
-	); err != nil {
-		return err
 	}
 	return os.MkdirAll(filepath.Join(root.stateRoot, "data"), 0755)
 }

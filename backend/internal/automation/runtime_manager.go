@@ -3,6 +3,10 @@ package automation
 import "context"
 
 func (m *Manager) InstallAsync(ctx context.Context) {
+	check := m.captureAdmission(ctx)
+	if check() != nil {
+		return
+	}
 	m.mu.Lock()
 	if m.installing {
 		m.mu.Unlock()
@@ -13,7 +17,12 @@ func (m *Manager) InstallAsync(ctx context.Context) {
 	m.mu.Unlock()
 
 	go func() {
-		_ = m.ensureInstalled(ctx, true)
+		// This worker owns the flag set before dispatch, including admission failures.
+		defer m.finishRuntimeInstall()
+		if check() != nil {
+			return
+		}
+		_ = m.ensureInstalledAdmitted(ctx, true, check)
 	}()
 }
 
@@ -22,11 +31,21 @@ func (m *Manager) EnsureInstalled(ctx context.Context) error {
 }
 
 func (m *Manager) ensureInstalled(ctx context.Context, flagAlreadySet bool) error {
+	return m.ensureInstalledAdmitted(ctx, flagAlreadySet, m.captureAdmission(ctx))
+}
+
+func (m *Manager) ensureInstalledAdmitted(ctx context.Context, flagAlreadySet bool, check func() error) error {
+	if err := check(); err != nil {
+		return err
+	}
 	ctx = ensureRuntimeInstallContext(ctx)
 	if !m.beginRuntimeInstall(flagAlreadySet) {
 		return nil
 	}
-	defer m.finishRuntimeInstall()
+	// Async callers release their flag after this call; synchronous callers own it here.
+	if !flagAlreadySet {
+		defer m.finishRuntimeInstall()
+	}
 
 	auto := m.currentAutomationConfig()
 	nodeMode := runtimeInstallNodeMode(auto)
@@ -43,6 +62,9 @@ func (m *Manager) ensureInstalled(ctx context.Context, flagAlreadySet bool) erro
 		return m.installFailed(err)
 	}
 
+	if err := check(); err != nil {
+		return err
+	}
 	workspace, err := m.prepareRuntimeInstallWorkspace(auto.RuntimeVersion)
 	if err != nil {
 		return m.installFailed(err)
@@ -56,11 +78,17 @@ func (m *Manager) ensureInstalled(ctx context.Context, flagAlreadySet bool) erro
 		return m.installFailed(err)
 	}
 	if nodePlan.UseBundledNode {
+		if err := check(); err != nil {
+			return err
+		}
 		if err := m.installBundledNodeRuntime(ctx, workspace.TempRoot, workspace.StagingDir, auto.NodeVersion, 10, 45, 50, "正在下载内建 Node 运行时"); err != nil {
 			return m.installFailed(err)
 		}
 	}
 
+	if err := check(); err != nil {
+		return err
+	}
 	if err := m.installPlaywrightRuntime(ctx, workspace.TempRoot, workspace.StagingDir, auto.PlaywrightCoreVersion); err != nil {
 		return m.installFailed(err)
 	}
@@ -70,6 +98,9 @@ func (m *Manager) ensureInstalled(ctx context.Context, flagAlreadySet bool) erro
 		return m.installFailed(err)
 	}
 
+	if err := check(); err != nil {
+		return err
+	}
 	if err := m.activateRuntimeInstall(workspace.StagingDir, auto, nodeSource, nodeVersion, nodePath); err != nil {
 		return m.installFailed(err)
 	}

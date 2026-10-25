@@ -5,7 +5,9 @@ package apppath
 import (
 	"golang.org/x/sys/windows"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"syscall"
 	"testing"
 )
 
@@ -32,4 +34,23 @@ func TestWindowsFailedDataCopyIsNeverPublished(t *testing.T) {
 	}
 	assertFixture(t, src, "a-first", "first fixture")
 	assertFixture(t, src, "z-locked", "locked fixture")
+}
+
+func TestWindowsLegacyCopyRejectsJunctions(t *testing.T) {
+	base := t.TempDir()
+	src, dst, other := filepath.Join(base, "source"), filepath.Join(base, "destination"), filepath.Join(base, "other")
+	writeFixture(t, src, "a-first", "source fixture")
+	writeFixture(t, other, "private", "do not adopt")
+	command := exec.Command("cmd.exe", "/c", "mklink", "/J", filepath.Join(src, "z-link"), other)
+	command.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("create owned fixture junction: %v %s", err, output)
+	}
+	if err := copyDirIfMissing(src, dst); err == nil {
+		t.Fatal("junction adopted outside data")
+	}
+	if _, err := os.Stat(dst); !os.IsNotExist(err) {
+		t.Fatal("partial data published after junction")
+	}
+	assertFixture(t, other, "private", "do not adopt")
 }

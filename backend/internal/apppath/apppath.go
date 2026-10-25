@@ -261,6 +261,16 @@ func copyFileIfMissing(src, dst string) error {
 		return err
 	}
 
+	info, err := os.Lstat(src)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("cannot copy non-regular runtime configuration: %s", src)
+	}
 	data, err := os.ReadFile(src)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -322,7 +332,7 @@ func copyDirIfMissing(src, dst string) error {
 		if walkErr != nil {
 			return walkErr
 		}
-		if !info.IsDir() && !info.Mode().IsRegular() {
+		if info.Mode()&os.ModeSymlink != 0 || (!info.IsDir() && !info.Mode().IsRegular()) {
 			return fmt.Errorf("cannot copy non-regular runtime data: %s", path)
 		}
 		rel, err := filepath.Rel(src, path)

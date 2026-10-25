@@ -1,11 +1,15 @@
 #requires -Version 7.0
 $ErrorActionPreference = 'Stop'
 $launcher = Join-Path $PSScriptRoot '..\new-local-trial.ps1'
-$parseErrors = $null
-$tokens = $null
-[void][Management.Automation.Language.Parser]::ParseFile($launcher, [ref]$tokens, [ref]$parseErrors)
-if ($parseErrors.Count) { throw 'Launcher syntax errors.' }
-. $launcher
+$opener = Join-Path $PSScriptRoot '..\open-local-trial.ps1'
+foreach ($entry in @($launcher, $opener)) {
+    $parseErrors = $null
+    $tokens = $null
+    [void][Management.Automation.Language.Parser]::ParseFile($entry, [ref]$tokens, [ref]$parseErrors)
+    if ($parseErrors.Count) { throw 'Launcher syntax errors.' }
+}
+# Dot sourcing either public entry loads contracts without opening a process.
+. $opener
 
 # The only process-start boundary is replaced before any launcher invocation.
 $script:StartCalls = 0
@@ -71,6 +75,40 @@ try {
     Assert-True ($result.PSObject.Properties.Name -notcontains 'clientId') 'Launcher output disclosed public configuration.'
     $script:PassedCases++
 
+    New-Item -ItemType Directory -Path (Join-Path $newRoot 'data') | Out-Null
+    $keptFiles = @('config.yaml', 'data\app.db', 'user\Local\kept-cache')
+    $keptHashes = @{}
+    foreach ($relative in $keptFiles) {
+        $file = Join-Path $newRoot $relative
+        [IO.File]::WriteAllText($file, 'existing trial fixture: ' + $relative)
+        $keptHashes[$relative] = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
+    }
+    $resumeArguments = @{ ExpectedExeSha256 = $fixtureHash; PublicConfigPath = $publicFile; TrialRoot = $newRoot }
+    $lockedExe = [IO.File]::Open((Join-Path $newRoot 'ant-chrome.exe'), [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+    try { $reopened = Open-AntLocalTrial @resumeArguments } finally { $lockedExe.Dispose() }
+    Assert-True ($script:StartCalls -eq 2 -and $reopened.TrialRoot -eq $newRoot) 'Existing trial was not opened once in the same root.'
+    $reopenedInfo = $script:CapturedStartInfo
+    Assert-True ($reopenedInfo.FileName -eq $info.FileName -and $reopenedInfo.WorkingDirectory -eq $info.WorkingDirectory) 'Reopen drifted to a different EXE/data root.'
+    foreach ($name in $info.Environment.Keys) {
+        Assert-True ($reopenedInfo.Environment[$name] -eq $info.Environment[$name]) "Reopen child environment differs: $name"
+    }
+    Assert-True ($reopenedInfo.Environment.Count -eq $info.Environment.Count) 'Reopen inherited extra environment.'
+    foreach ($relative in $keptFiles) {
+        Assert-True ((Get-FileHash -LiteralPath (Join-Path $newRoot $relative) -Algorithm SHA256).Hash -eq $keptHashes[$relative]) 'Reopen changed existing configuration/database/cache.'
+    }
+    $script:PassedCases++
+    $missingExisting = Join-Path $testRoot 'missing-existing'
+    Assert-Rejected { Open-AntLocalTrial -ExpectedExeSha256 $fixtureHash -PublicConfigPath $publicFile -TrialRoot $missingExisting } $missingExisting
+    Assert-Rejected { Open-AntLocalTrial -ExpectedExeSha256 ('0' * 64) -PublicConfigPath $publicFile -TrialRoot $newRoot }
+    $invalidOpenFile = Join-Path $sourceDirectory 'invalid-open.json'
+    [IO.File]::WriteAllText($invalidOpenFile, '{"issuer":"http://identity.example.test","clientId":"public"}')
+    Assert-Rejected { Open-AntLocalTrial -ExpectedExeSha256 $fixtureHash -PublicConfigPath $invalidOpenFile -TrialRoot $newRoot }
+    $incomplete = Join-Path $testRoot 'incomplete-existing'
+    New-Item -ItemType Directory -Path $incomplete | Out-Null
+    [IO.File]::Copy($fixtureExe, (Join-Path $incomplete 'ant-chrome.exe'), $false)
+    Assert-Rejected { Open-AntLocalTrial -ExpectedExeSha256 $fixtureHash -PublicConfigPath $publicFile -TrialRoot $incomplete }
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $incomplete 'user'))) 'Reopen silently repaired missing layout.'
+
     $marker = Join-Path $newRoot 'keep.txt'
     [IO.File]::WriteAllText($marker, 'keep')
     Assert-Rejected { New-AntLocalTrial @arguments -TrialRoot $newRoot }
@@ -101,6 +139,9 @@ try {
     New-Item -ItemType Junction -Path $junction -Target $sourceDirectory | Out-Null
     $junctionRoot = Join-Path $testRoot 'junction-trial'
     Assert-Rejected { New-AntLocalTrial -ExePath (Join-Path $junction 'ant-chrome.exe') -ExpectedExeSha256 $fixtureHash -PublicConfigPath $publicFile -TrialRoot $junctionRoot } $junctionRoot
+    Remove-Item -LiteralPath $junction -Force
+    New-Item -ItemType Junction -Path $junction -Target $newRoot | Out-Null
+    Assert-Rejected { Open-AntLocalTrial -ExpectedExeSha256 $fixtureHash -PublicConfigPath $publicFile -TrialRoot $junction }
     Remove-Item -LiteralPath $junction -Force
     # Make the source uncopyable only after its real hash was read.
     # This exercises an actual IO exception with a caller using Continue.
@@ -143,6 +184,14 @@ try {
     try { New-AntLocalTrial @arguments -TrialRoot $startFailureRoot | Out-Null } catch { $startRejected = $true }
     Assert-True ($startRejected -and $script:StartCalls -eq $beforeStartCalls + 1) 'Process-start failure was retried or hidden.'
     Assert-True (Test-Path -LiteralPath (Join-Path $startFailureRoot 'ant-chrome.exe')) 'Failed start deleted the partial trial.'
+    $script:PassedCases++
+    $beforeReopenFailure = $script:StartCalls
+    $reopenRejected = $false
+    try { Open-AntLocalTrial @resumeArguments | Out-Null } catch { $reopenRejected = $true }
+    Assert-True ($reopenRejected -and $script:StartCalls -eq $beforeReopenFailure + 1) 'Existing-root process failure was hidden or retried.'
+    foreach ($relative in $keptFiles) {
+        Assert-True ((Get-FileHash -LiteralPath (Join-Path $newRoot $relative) -Algorithm SHA256).Hash -eq $keptHashes[$relative]) 'Failed reopen changed existing state.'
+    }
     $script:PassedCases++
     Write-Output "Local trial launcher: syntax and $script:PassedCases behavior cases PASS; process boundary mocked; product executions 0."
 } finally {

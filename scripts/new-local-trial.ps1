@@ -36,6 +36,87 @@ function Invoke-AntTrialProcess {
     return [Diagnostics.Process]::Start($StartInfo)
 }
 
+function Read-AntTrialPublicConfig {
+    param([string]$Path)
+    $file = Get-AntTrialLocalPath $Path
+    if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw 'Public configuration file is missing.' }
+    $document = $null
+    try {
+        $document = [System.Text.Json.JsonDocument]::Parse([IO.File]::ReadAllText($file))
+        if ($document.RootElement.ValueKind -ne [System.Text.Json.JsonValueKind]::Object) { throw 'shape' }
+        $properties = @($document.RootElement.EnumerateObject())
+        if ($properties.Count -ne 2 -or
+            @($properties | Where-Object Name -CEQ 'issuer').Count -ne 1 -or
+            @($properties | Where-Object Name -CEQ 'clientId').Count -ne 1 -or
+            @($properties | Where-Object { $_.Value.ValueKind -ne [System.Text.Json.JsonValueKind]::String }).Count -ne 0) {
+            throw 'shape'
+        }
+        $issuer = $document.RootElement.GetProperty('issuer').GetString().Trim()
+        $clientId = $document.RootElement.GetProperty('clientId').GetString().Trim()
+    } catch {
+        throw 'Public JSON must contain only one string issuer and one string clientId.'
+    } finally {
+        if ($null -ne $document) { $document.Dispose() }
+    }
+    $issuerUri = $null
+    if (-not [Uri]::TryCreate($issuer, [UriKind]::Absolute, [ref]$issuerUri) -or
+        $issuerUri.Scheme -cne 'https' -or $issuerUri.UserInfo -or $issuerUri.Query -or $issuerUri.Fragment -or
+        [string]::IsNullOrWhiteSpace($clientId) -or $clientId -match '[\x00-\x1f]') {
+        throw 'Use a normal HTTPS issuer without credentials/query/fragment and a nonempty public clientId.'
+    }
+    return [pscustomobject]@{ Issuer = $issuer; ClientId = $clientId }
+}
+
+function Start-AntTrialAtRoot {
+    param([string]$Root, [string]$ExpectedHash, [object]$PublicConfig)
+    $copiedExe = Join-Path $Root 'ant-chrome.exe'
+    [void](Get-AntTrialLocalPath $copiedExe)
+    if (-not (Test-Path -LiteralPath $copiedExe -PathType Leaf) -or
+        (Get-FileHash -LiteralPath $copiedExe -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant() -ne $ExpectedHash) {
+        throw 'Trial EXE SHA256 mismatch or file missing; no process was started.'
+    }
+    foreach ($relative in @('user', 'user\Roaming', 'user\Local', 'temp')) {
+        $directory = Join-Path $Root $relative
+        [void](Get-AntTrialLocalPath $directory)
+        if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
+            throw 'Required trial user/temp directory is missing; existing data will not be repaired or reset.'
+        }
+    }
+    $startInfo = [Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = $copiedExe
+    $startInfo.WorkingDirectory = $Root
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.Environment.Clear()
+    foreach ($systemName in @('SystemRoot', 'WINDIR', 'SystemDrive', 'ComSpec', 'PATH', 'PATHEXT')) {
+        $systemValue = [Environment]::GetEnvironmentVariable($systemName, 'Process')
+        if (-not [string]::IsNullOrEmpty($systemValue)) { $startInfo.Environment[$systemName] = $systemValue }
+    }
+    $paths = @{ USERPROFILE = 'user'; HOME = 'user'; APPDATA = 'user\Roaming'; LOCALAPPDATA = 'user\Local'; TEMP = 'temp'; TMP = 'temp' }
+    foreach ($name in $paths.Keys) { $startInfo.Environment[$name] = Join-Path $Root $paths[$name] }
+    $startInfo.Environment['ABFREE_OIDC_ISSUER'] = $PublicConfig.Issuer
+    $startInfo.Environment['ABFREE_OIDC_CLIENT_ID'] = $PublicConfig.ClientId
+    $process = Invoke-AntTrialProcess $startInfo
+    if ($null -eq $process) { throw 'Process start returned no handle; no retry was attempted.' }
+    return [pscustomobject]@{ ProcessId = $process.Id; TrialRoot = $Root; ExePath = $copiedExe; ExeSha256 = $ExpectedHash }
+}
+
+function Open-AntLocalTrial {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][ValidatePattern('^[A-Fa-f0-9]{64}$')][string]$ExpectedExeSha256,
+        [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string]$PublicConfigPath,
+        [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string]$TrialRoot
+    )
+    $ErrorActionPreference = 'Stop'
+    if (-not $IsWindows) { throw 'This local trial entry requires Windows PowerShell 7.' }
+    $root = Get-AntTrialLocalPath $TrialRoot
+    if (-not (Test-Path -LiteralPath $root -PathType Container)) { throw 'Select an existing trial root explicitly.' }
+    $public = Read-AntTrialPublicConfig $PublicConfigPath
+    Start-AntTrialAtRoot -Root $root -ExpectedHash $ExpectedExeSha256.ToLowerInvariant() -PublicConfig $public
+}
+
+
 function New-AntLocalTrial {
     [CmdletBinding()]
     param(
@@ -68,59 +149,15 @@ function New-AntLocalTrial {
     if ((Get-FileHash -LiteralPath $source -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant() -ne $expected) {
         throw 'EXE SHA256 mismatch; no trial directory or process was created.'
     }
-    $document = $null
-    try {
-        $document = [System.Text.Json.JsonDocument]::Parse([IO.File]::ReadAllText($publicFile))
-        if ($document.RootElement.ValueKind -ne [System.Text.Json.JsonValueKind]::Object) { throw 'shape' }
-        $properties = @($document.RootElement.EnumerateObject())
-        if ($properties.Count -ne 2 -or
-            @($properties | Where-Object Name -CEQ 'issuer').Count -ne 1 -or
-            @($properties | Where-Object Name -CEQ 'clientId').Count -ne 1 -or
-            @($properties | Where-Object { $_.Value.ValueKind -ne [System.Text.Json.JsonValueKind]::String }).Count -ne 0) {
-            throw 'shape'
-        }
-        $issuer = $document.RootElement.GetProperty('issuer').GetString().Trim()
-        $clientId = $document.RootElement.GetProperty('clientId').GetString().Trim()
-    } catch {
-        throw 'Public JSON must contain only one string issuer and one string clientId.'
-    } finally {
-        if ($null -ne $document) { $document.Dispose() }
-    }
-    $issuerUri = $null
-    if (-not [Uri]::TryCreate($issuer, [UriKind]::Absolute, [ref]$issuerUri) -or
-        $issuerUri.Scheme -cne 'https' -or $issuerUri.UserInfo -or $issuerUri.Query -or $issuerUri.Fragment -or
-        [string]::IsNullOrWhiteSpace($clientId) -or $clientId -match '[\x00-\x1f]') {
-        throw 'Use a normal HTTPS issuer without credentials/query/fragment and a nonempty public clientId.'
-    }
-
+    $public = Read-AntTrialPublicConfig $publicFile
     # Production main.go uses the EXE directory as appRoot, regardless of CWD.
     New-Item -ItemType Directory -Path $root -ErrorAction Stop | Out-Null
     [void](Get-AntTrialLocalPath $root)
-    $copiedExe = Join-Path $root 'ant-chrome.exe'
-    [IO.File]::Copy($source, $copiedExe, $false)
-    if ((Get-FileHash -LiteralPath $copiedExe -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant() -ne $expected) {
-        throw 'Copied EXE SHA256 mismatch; partial trial directory is retained, with no process started.'
-    }
+    [IO.File]::Copy($source, (Join-Path $root 'ant-chrome.exe'), $false)
     foreach ($relative in @('user', 'user\Roaming', 'user\Local', 'temp')) {
         New-Item -ItemType Directory -Path (Join-Path $root $relative) -ErrorAction Stop | Out-Null
     }
-    $startInfo = [Diagnostics.ProcessStartInfo]::new()
-    $startInfo.FileName = $copiedExe
-    $startInfo.WorkingDirectory = $root
-    $startInfo.UseShellExecute = $false
-    $startInfo.CreateNoWindow = $true
-    $startInfo.Environment.Clear()
-    foreach ($systemName in @('SystemRoot', 'WINDIR', 'SystemDrive', 'ComSpec', 'PATH', 'PATHEXT')) {
-        $systemValue = [Environment]::GetEnvironmentVariable($systemName, 'Process')
-        if (-not [string]::IsNullOrEmpty($systemValue)) { $startInfo.Environment[$systemName] = $systemValue }
-    }
-    $paths = @{ USERPROFILE = 'user'; HOME = 'user'; APPDATA = 'user\Roaming'; LOCALAPPDATA = 'user\Local'; TEMP = 'temp'; TMP = 'temp' }
-    foreach ($name in $paths.Keys) { $startInfo.Environment[$name] = Join-Path $root $paths[$name] }
-    $startInfo.Environment['ABFREE_OIDC_ISSUER'] = $issuer
-    $startInfo.Environment['ABFREE_OIDC_CLIENT_ID'] = $clientId
-    $process = Invoke-AntTrialProcess $startInfo
-    if ($null -eq $process) { throw 'Process start returned no handle; no retry was attempted.' }
-    return [pscustomobject]@{ ProcessId = $process.Id; TrialRoot = $root; ExePath = $copiedExe; ExeSha256 = $expected }
+    Start-AntTrialAtRoot -Root $root -ExpectedHash $expected -PublicConfig $public
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

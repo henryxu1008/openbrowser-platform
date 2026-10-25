@@ -1,6 +1,6 @@
-# Windows 首次试用准备及启动入口
+# Windows 本地试用：首次创建与再次打开
 
-从仓库根使用 PowerShell 7，显式提供 EXE、完整预期 SHA256、公开 OIDC JSON 和一个**尚不存在**的绝对本地试用目录。脚本只创建新场景，不自动重用、恢复或删除旧目录。
+从仓库根使用 PowerShell 7。首次创建使用 `new-local-trial.ps1`，显式提供 EXE、完整预期 SHA256、公开 OIDC JSON 和一个**尚不存在**的绝对本地试用目录；以后使用 `open-local-trial.ps1` 指定第一次返回的同一 `TrialRoot`。
 
 ```powershell
 .\scripts\new-local-trial.ps1 `
@@ -32,15 +32,24 @@
 
 程序获用户明确运行后可在新根生成配置、SQLite/default 元数据、日志、WebView 和本地备份设置。这是独立试用数据，不是用户正式档案。默认系统浏览器仍可能复用或维护 SSO/Cookie；新 appRoot 不代表系统浏览器完全隔离。结束时用应用内“仅退出应用”。
 
-## 已有根与后续使用
+## 再次打开同一份数据
 
-此入口只接受新根。再次指定已有根会拒绝，原配置、SQLite、档案和用户状态保持，不表示数据丢失，也不要求删除目录。要建立另一独立场景请显式选择另一个不存在的路径。
+先正常退出该根的应用，再执行：
 
-本脚本不支持日常重开已有根。产品可按同一EXE目录及同一子环境契约手动复用状态，但本项没有新增或实机验证该恢复入口；不能用双击替代隔离绑定。本项不包含恢复、迁移或覆盖功能。
+```powershell
+.\scripts\open-local-trial.ps1 `
+  -ExpectedExeSha256 'e754a19c45b5be13365594b0ce50ce3c5c4cb8b0e4b9e5f38827fb1fb58c735b' `
+  -PublicConfigPath 'C:\Users\Henry\code\ant-browser\build\dist\auth-trial-main92bff35-20261025\oidc-public.json' `
+  -TrialRoot 'C:\Users\Henry\code\ant-browser\build\dist\local-user-trial-01'
+```
+
+重开入口只使用显式选定根中的 `ant-chrome.exe`，校验完整 SHA256、公开配置和已有 user/temp 目录，复用与首次启动相同的子进程环境。它不复制 EXE、不重建配置或 SQLite、不清空档案，不补建缺失目录。`config.yaml`、`data\app.db` 及 `user` 中状态留在同一根；异常直接停止，保留现场。
+
+请选第一次创建得到的用户根，不要把源包的认证验收根或其他正式档案当作用户根。入口不搜索、接管或迁移旧目录；`new-local-trial.ps1` 仍拒绝已有根。要建立另一独立场景才选择另一个不存在的路径。两个脚本须保持同目录；不要用双击 EXE 替代环境绑定。
 
 ## 必要前置
 
-- 已有 WebView2；EXE 已嵌入前端，无需前端服务或再次构建。
+- PowerShell 7（`pwsh`）和已有 WebView2；EXE 已嵌入前端，无需前端服务或再次构建。
 - 原 Docker 身份环境可用：`task-processor-unified-20261010-identity-db-1`、`zitadel-api-1`、`zitadel-login-1` 需 healthy，`runtime-network-1` 需 running。入口不检查或启动服务、不探测 IdP；使用正常系统 TLS，不修改证书/安全设置。
 - 登录由本人完成；应用 API 使用 loopback 19876，运行前须确认端口无冲突并保留其他现有会话，回调端口由 OS 分配。业务 API 仍需登录、有效 key 及本代次明确授权，入口不创建 key。
 - 内核不捆绑、不下载。需要实例运行时，通过**上游原内核管理**使用用户指定版本 **148.0.7778.215**；不增加固定内核 manifest 或专用管理器。已有认证验收不等于内核/所有业务功能均已重验。
@@ -51,4 +60,4 @@
 .\scripts\tests\new-local-trial.Tests.ps1
 ```
 
-测试只用自建文本 EXE fixture 与临时公开配置，替换进程启动边界；不执行目标 EXE，不联系 IdP、启动内核或容器。新脚本的真实产品启动仍为 NOT_RUN，不能移用旧手动场景 PASS。
+测试只用自建文本 EXE fixture 与临时公开配置，替换进程启动边界；检查首次创建、同根重开、配置/SQLite fixture 哈希保持和错误输入拒绝，不执行目标 EXE，不联系 IdP、启动内核或容器。两个新入口的真实产品启动及持久化重开验收仍为 NOT_RUN，不能移用旧手动场景 PASS。

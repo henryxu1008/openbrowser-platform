@@ -63,7 +63,10 @@ func BuildScope(opts BuildOptions) (Scope, error) {
 	if userDataRootSetting == "" {
 		userDataRootSetting = "data"
 	}
-	userDataRoot := apppath.ResolveUserDataRoot(appRootAbs, userDataRootSetting)
+	userDataRoot := strings.TrimSpace(opts.UserDataRoot)
+	if userDataRoot == "" {
+		userDataRoot = apppath.ResolveUserDataRoot(appRootAbs, userDataRootSetting)
+	}
 	builder.add(ScopeEntry{
 		ID:          "browser_user_data_root",
 		Category:    CategoryBrowserData,

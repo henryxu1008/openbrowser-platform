@@ -10,8 +10,9 @@ type BackupManifest = backup.Manifest
 
 func (a *App) backupBuildScope() (backup.Scope, error) {
 	return backup.BuildScope(backup.BuildOptions{
-		AppRoot: a.appStateRootAbs(),
-		Config:  a.config,
+		AppRoot:      a.appStateRootAbs(),
+		Config:       a.config,
+		UserDataRoot: a.backupResolveUserDataRoot(a.config),
 	})
 }
 

@@ -19,11 +19,19 @@ The CDP fixture signals each completed upstream upgrade through a channel before
 
 The first new integration run exposed HTTP 500 for a profile write whose captured identity was revoked during body decoding. The complete red case verifies the real catalog and SQLite stay at zero, but receives 500. mapProfileWriteErrorStatus treated the typed errRequestRevoked as an unknown server failure. The fix maps errors.Is(err, errRequestRevoked) to 401 before ordinary write-error mapping. It changes neither admission timing, committed-write receipts nor unrelated error classes.
 
-Red exit 1 and green receipts are retained locally at build/dist/verification/issue3-negative-ingress-20261025/. Final full offline Go race: 397 top-level / 1235 including subtests, zero failures/test-level skips, stderr zero. Frontend 41/41 remains complete; TypeScript/build, vet, compile and exact-HEAD CI results are recorded with the PR and local receipts. Generated EXEs are compile-only, NOT_RUN.
+Red exit 1 and green receipts are retained locally at build/dist/verification/issue3-negative-ingress-20261025/. Initial full offline Go race: 397 top-level / 1235 including subtests, zero failures/test-level skips, stderr zero. Frontend 41/41 remains complete; TypeScript/build, vet, compile and exact-HEAD CI results are recorded with the PR and local receipts. Generated EXEs are compile-only, NOT_RUN.
 
-The CI's existing critical Package+Test guard now also requires these three integration tests, without filtering the full Go suite, skipping failures, upgrading Actions or changing permissions.
+The CI's existing critical Package+Test guard now also requires these three integration tests and the two Windows shell contract cases below, without filtering the full Go suite, skipping failures, upgrading Actions or changing permissions.
 
-Local TypeScript/clean build, full vet and Windows desktop,production compile also passed, exit 0. Go/vet/native stderr are zero bytes. The compile-only EXE is 52,172,288 bytes, SHA256 7623cb248b16eac9c3b424dbaa86a267a8e421e33f6631172df270203abaea73, NOT_RUN. The existing nonblocking stale Browserslist-data warning is retained; dependencies were not changed.
+Local TypeScript/clean build, full vet and Windows desktop,production compile also passed, exit 0. Go/vet/native stderr are zero bytes. The initial compile-only EXE is 52,172,288 bytes, SHA256 7623cb248b16eac9c3b424dbaa86a267a8e421e33f6631172df270203abaea73, NOT_RUN. The existing nonblocking stale Browserslist-data warning is retained; dependencies were not changed.
+
+## Exact-candidate CI repair
+
+At 7e818d3e6171fcb30bd50cd16d238570169cf068, push 40165910287 passed but PR 40165912585 failed the existing TestRunPowerShellJSONBindsNamedArguments after its fixed eight-second query deadline (8.09 seconds). The sibling push completed that test in 3.42 seconds. All new authentication integration cases passed in both runs; the sibling success did not supersede the failure. Full logs and failure receipts remain preserved, with no manual rerun.
+
+The named-argument test now gives its real PowerShell subprocess a separate thirty-second context. Production runPowerShellJSON still creates the same eight-second context and delegates to the private context-taking helper. TestRunPowerShellJSONHonorsExpiredDeadline verifies a deadline already in the past returns no output and the timeout error, without executing the supplied script. No product timeout, retry, argument encoding, window handling or process-discovery behavior changes.
+
+After this repair, the full local offline race suite passes 398 top-level / 1236 including subtests, with zero failures/test-level skips and zero stderr. Full vet and production compile pass again. The new compile-only EXE is 52,171,776 bytes, SHA256 e754a19c45b5be13365594b0ce50ce3c5c4cb8b0e4b9e5f38827fb1fb58c735b, NOT_RUN; the earlier binary is retained separately. Exact new-HEAD and eventual merge-SHA CI evidence is recorded on PR #7 and in the local receipts, not inferred from the old head.
 
 ## Existing coverage reused
 

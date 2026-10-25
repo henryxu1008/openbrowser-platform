@@ -146,7 +146,10 @@ if ($portMatch.Success) { [void][int]::TryParse($portMatch.Groups[1].Value, [ref
 func runPowerShellJSON(script string, args ...string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()
+	return runPowerShellJSONContext(ctx, script, args...)
+}
 
+func runPowerShellJSONContext(ctx context.Context, script string, args ...string) ([]byte, error) {
 	powershellPath := `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`
 	if _, err := exec.LookPath(powershellPath); err != nil {
 		if fallbackPath, lookErr := exec.LookPath("powershell.exe"); lookErr == nil {

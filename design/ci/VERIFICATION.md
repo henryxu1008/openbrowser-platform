@@ -14,9 +14,14 @@ this workflow reaches those branches; new CI runs are identified by exact head.
 ## Coverage
 
 A Windows 2022 runner uses Node 24.18.1 and Go 1.26.5, matching the known local
-toolchain. It reuses the repository's checkout/setup actions, package-lock.json,
+toolchain. It reuses the official checkout/setup actions, package-lock.json,
 go.sum and frontend scripts. The runner's existing GCC supports CGO/race builds;
 no extra compiler, Wails CLI or browser installer is added.
+
+The initial a49e875 push/PR runs passed but reported the old action runtime being
+forced from Node 20 to Node 24. The new CI workflow uses the supported v6
+checkout/setup actions instead. The existing publishing workflows are untouched;
+the follow-up head must finish its own push/PR checks before closure.
 
 1. `npm ci --no-audit --no-fund` installs locked frontend dependencies.
 2. `npm test -- --reporter=dot` runs the complete existing Vitest suite.
@@ -69,7 +74,7 @@ tests. A CI pass does not relabel either binary's live acceptance.
 ## References
 
 - [Runner's Windows 2022 software inventory](https://github.com/actions/runner-images/blob/main/images/windows/Windows2022-Readme.md)
-- [Go setup and module/build caching](https://github.com/actions/setup-go/tree/v5)
+- [Go setup and module/build caching](https://github.com/actions/setup-go/tree/v6)
 - [GitHub workflow trigger semantics](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)
 
 Local logs and exact source/run receipts stay in the ignored

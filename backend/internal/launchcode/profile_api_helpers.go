@@ -2,6 +2,7 @@ package launchcode
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -116,6 +117,9 @@ func parseProfilePathID(path string) (string, bool) {
 func mapProfileWriteErrorStatus(err error) int {
 	if err == nil {
 		return http.StatusOK
+	}
+	if errors.Is(err, errRequestRevoked) {
+		return http.StatusUnauthorized
 	}
 
 	msg := strings.ToLower(strings.TrimSpace(err.Error()))

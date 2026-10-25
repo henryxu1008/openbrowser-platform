@@ -2,6 +2,7 @@ package launchcode
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -116,6 +117,8 @@ type launchServerState struct {
 	browserMgr    *browser.Manager
 	port          int
 	server        *http.Server
+	listener      net.Listener
+	lifecycleMu   sync.Mutex
 	mu            sync.Mutex
 	authMu        sync.RWMutex
 	logMu         sync.Mutex
@@ -147,17 +150,31 @@ func NewLaunchServer(service *LaunchCodeService, starter BrowserStarter, mgr *br
 //   - port <= 0：自动分配随机可用端口（仅内部测试/显式传 0 时）
 //   - port > 0：绑定指定固定端口；若被占用则直接返回错误
 func (s *LaunchServer) Start() error {
+	return s.startWithServe((*http.Server).Serve)
+}
+
+func (s *LaunchServer) startWithServe(serve func(*http.Server, net.Listener) error) error {
+	s.lifecycleMu.Lock()
+	defer s.lifecycleMu.Unlock()
+	s.mu.Lock()
+	if s.listener != nil {
+		s.mu.Unlock()
+		return fmt.Errorf("LaunchServer 已启动")
+	}
+	preferredPort := s.port
+	s.mu.Unlock()
 	handler := s.buildHandler(true)
 
-	preferredPort := s.port
 	ln, port, err := bindLaunchListener(preferredPort)
 	if err != nil {
 		return err
 	}
 
+	server := &http.Server{Handler: handler}
 	s.mu.Lock()
 	s.port = port
-	s.server = &http.Server{Handler: handler}
+	s.server = server
+	s.listener = ln
 	s.mu.Unlock()
 
 	log := logger.New("LaunchServer")
@@ -175,7 +192,7 @@ func (s *LaunchServer) Start() error {
 	log.Info("LaunchServer 已启动", logger.F("port", port))
 
 	go func() {
-		if serveErr := s.server.Serve(ln); serveErr != nil && serveErr != http.ErrServerClosed {
+		if serveErr := serve(server, ln); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) && !errors.Is(serveErr, net.ErrClosed) {
 			log.Error("LaunchServer 异常退出", logger.F("error", serveErr.Error()))
 		}
 	}()
@@ -226,8 +243,13 @@ func listenerPort(ln net.Listener) (int, error) {
 
 // Stop 优雅关闭（5 秒超时）
 func (s *LaunchServer) Stop() error {
+	s.lifecycleMu.Lock()
+	defer s.lifecycleMu.Unlock()
 	s.mu.Lock()
 	srv := s.server
+	ln := s.listener
+	s.server = nil
+	s.listener = nil
 	s.mu.Unlock()
 
 	if srv == nil {
@@ -236,7 +258,15 @@ func (s *LaunchServer) Stop() error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	return srv.Shutdown(ctx)
+	err := srv.Shutdown(ctx)
+	// Shutdown only knows listeners already registered by Serve. Start owns the
+	// bound listener immediately, including the dispatch gap before Serve runs.
+	if ln != nil {
+		if closeErr := ln.Close(); err == nil && !errors.Is(closeErr, net.ErrClosed) {
+			err = closeErr
+		}
+	}
+	return err
 }
 
 // Port 返回实际绑定的端口

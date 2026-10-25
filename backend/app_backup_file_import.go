@@ -65,23 +65,28 @@ func (a *App) backupImportFileTrees(payloadRoot string, incomingCfg *config.Conf
 			return
 		}
 
-		targetExternal := a.backupCollectExternalCoreTargets(incomingCfg)
 		sourceCoreIDs := backupExternalCoreIDsByFolder(manifest)
 		var importMappings *backupImportReferenceMappings
 		if len(referenceMappings) > 0 {
 			importMappings = referenceMappings[0]
 		}
+		identifiedCores := make(map[string]struct{}, len(sourceCoreIDs))
+		for folder, coreID := range sourceCoreIDs {
+			if importMappings != nil {
+				if mappedCoreID := backupImportMappedID(importMappings.Cores, coreID); mappedCoreID != "" {
+					coreID = mappedCoreID
+				}
+			}
+			sourceCoreIDs[folder] = coreID
+			identifiedCores[strings.ToLower(strings.TrimSpace(coreID))] = struct{}{}
+		}
+		targetExternal := a.backupCollectExternalCoreTargets(incomingCfg, identifiedCores)
 		usedTargets := make(map[string]struct{}, len(targetExternal))
 		fallbackIndex := 0
 		for _, folder := range sourceExternal {
 			src := filepath.Join(externalSrcRoot, folder)
 			componentID := "browser_core_external_" + folder
 			coreID := sourceCoreIDs[folder]
-			if importMappings != nil {
-				if mappedCoreID := backupImportMappedID(importMappings.Cores, coreID); mappedCoreID != "" {
-					coreID = mappedCoreID
-				}
-			}
 			dst, ok := backupSelectExternalCoreTarget(targetExternal, coreID, usedTargets, &fallbackIndex)
 			if !ok {
 				stats.Skipped++
@@ -106,15 +111,20 @@ func (a *App) backupCollectExternalCorePaths(cfg *config.Config) []string {
 }
 
 type backupExternalCoreTarget struct {
-	CoreId string
-	Path   string
+	CoreId        string
+	Path          string
+	requireCoreID bool
 }
 
-func (a *App) backupCollectExternalCoreTargets(cfg *config.Config) []backupExternalCoreTarget {
+func (a *App) backupCollectExternalCoreTargets(cfg *config.Config, manifestCoreIDs ...map[string]struct{}) []backupExternalCoreTarget {
 	if cfg == nil {
 		return nil
 	}
 	defaultChromeRoot := a.resolveAppPath("chrome")
+	var identifiedCores map[string]struct{}
+	if len(manifestCoreIDs) > 0 {
+		identifiedCores = manifestCoreIDs[0]
+	}
 	seen := map[string]struct{}{}
 	result := make([]backupExternalCoreTarget, 0)
 	for _, core := range cfg.Browser.Cores {
@@ -123,7 +133,9 @@ func (a *App) backupCollectExternalCoreTargets(cfg *config.Config) []backupExter
 			continue
 		}
 		abs := a.resolveAppPath(p)
-		if backupPathWithin(abs, defaultChromeRoot) {
+		managed := backupPathWithin(abs, defaultChromeRoot)
+		_, identified := identifiedCores[strings.ToLower(strings.TrimSpace(core.CoreId))]
+		if managed && !identified {
 			continue
 		}
 		norm := backupNormalizePath(abs)
@@ -132,8 +144,9 @@ func (a *App) backupCollectExternalCoreTargets(cfg *config.Config) []backupExter
 		}
 		seen[norm] = struct{}{}
 		result = append(result, backupExternalCoreTarget{
-			CoreId: strings.TrimSpace(core.CoreId),
-			Path:   abs,
+			CoreId:        strings.TrimSpace(core.CoreId),
+			Path:          abs,
+			requireCoreID: managed,
 		})
 	}
 	sort.Slice(result, func(i, j int) bool {
@@ -180,6 +193,11 @@ func backupSelectExternalCoreTarget(targets []backupExternalCoreTarget, coreID s
 	for *fallbackIndex < len(targets) {
 		target := targets[*fallbackIndex]
 		*fallbackIndex = *fallbackIndex + 1
+		// A managed chrome target is eligible only for its manifest core ID,
+		// never for the legacy positional fallback used by unidentified payloads.
+		if target.requireCoreID {
+			continue
+		}
 		if _, usedAlready := used[target.Path]; usedAlready {
 			continue
 		}

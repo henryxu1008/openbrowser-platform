@@ -1,6 +1,7 @@
 package browser
 
 import (
+	"ant-chrome/backend/internal/apppath"
 	"ant-chrome/backend/internal/logger"
 	"fmt"
 	"os"
@@ -377,7 +378,7 @@ func (m *Manager) deleteProfileUserDataDir(userDataDir string) error {
 	if root == "" {
 		root = "data"
 	}
-	rootAbs, err := filepath.Abs(m.ResolveRelativePath(root))
+	rootAbs, err := filepath.Abs(apppath.ResolveUserDataRoot(m.AppRoot, root))
 	if err != nil {
 		return fmt.Errorf("解析用户数据根目录失败: %w", err)
 	}

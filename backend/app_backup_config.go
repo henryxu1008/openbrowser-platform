@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"ant-chrome/backend/internal/apppath"
 	"ant-chrome/backend/internal/config"
 	"database/sql"
 	"fmt"
@@ -16,7 +17,7 @@ func (a *App) backupResolveDBPath(cfg *config.Config) string {
 	if path == "" {
 		path = "data/app.db"
 	}
-	return a.resolveAppPath(path)
+	return apppath.ResolveDatabasePath(a.appRoot, path)
 }
 
 func (a *App) backupResolveUserDataRoot(cfg *config.Config) string {
@@ -27,7 +28,7 @@ func (a *App) backupResolveUserDataRoot(cfg *config.Config) string {
 	if root == "" {
 		root = "data"
 	}
-	return a.resolveAppPath(root)
+	return apppath.ResolveUserDataRoot(a.appRoot, root)
 }
 
 func (a *App) backupApplyIncomingConfig(incoming *config.Config) error {

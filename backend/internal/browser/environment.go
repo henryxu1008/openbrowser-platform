@@ -1,6 +1,7 @@
 package browser
 
 import (
+	"ant-chrome/backend/internal/apppath"
 	"ant-chrome/backend/internal/logger"
 	"path/filepath"
 	"strings"
@@ -27,7 +28,7 @@ func (m *Manager) ResolveUserDataDir(profile *Profile) string {
 	if root == "" {
 		root = "data"
 	}
-	root = m.ResolveRelativePath(root)
+	root = apppath.ResolveUserDataRoot(m.AppRoot, root)
 	return filepath.Join(root, userDataDir)
 }
 

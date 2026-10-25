@@ -87,7 +87,7 @@ func findInstalledProxyCoreBinary(appRoot string, spec proxyCoreSpec, target pro
 		path   string
 		source string
 	}{
-		{apppath.Resolve(appRoot, filepath.Join("bin", platformDir, spec.Core)), "downloaded"},
+		{filepath.Join(apppath.StateRoot(appRoot), "bin", platformDir, spec.Core), "downloaded"},
 		{apppath.Resolve(appRoot, filepath.Join("bin", platformDir)), "runtime"},
 		{apppath.Resolve(appRoot, "bin"), "runtime"},
 	}

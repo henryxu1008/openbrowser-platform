@@ -350,7 +350,7 @@ func proxyCoreInstallDir(a *App, spec proxyCoreSpec, target proxyCoreTarget) str
 	if a != nil {
 		appRoot = a.appRoot
 	}
-	return apppath.Resolve(appRoot, filepath.Join("bin", fmt.Sprintf("%s-%s", target.GOOS, target.GOARCH), spec.Core))
+	return filepath.Join(apppath.StateRoot(appRoot), "bin", fmt.Sprintf("%s-%s", target.GOOS, target.GOARCH), spec.Core)
 }
 
 func manualProxyCoreDownloadMessage(spec proxyCoreSpec, target proxyCoreTarget, reason string) string {

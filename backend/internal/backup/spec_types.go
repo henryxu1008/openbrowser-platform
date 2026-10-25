@@ -78,6 +78,10 @@ type ManifestEntry struct {
 type BuildOptions struct {
 	AppRoot string
 	Config  *config.Config
+	// UserDataRoot is the resolved profile root when AppRoot is a detached
+	// state directory and no longer carries the original installation context.
+	UserDataRoot string
+	DatabasePath string
 }
 
 type scopeBuilder struct {

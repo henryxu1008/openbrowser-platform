@@ -16,6 +16,7 @@ const button=label=>tree.root.findAllByType('button').find(node=>node.children.j
 it('keeps original business effects unmounted when configuration is missing',async()=>{
  native.AuthStatus.mockResolvedValue({generation:0,state:'unconfigured',configured:false});await mount();
  expect(mounted).not.toHaveBeenCalled();expect(button('通过浏览器登录').props.disabled).toBe(true);
+ expect(JSON.stringify(tree.toJSON())).toContain('联系应用提供方');expect(JSON.stringify(tree.toJSON())).not.toContain('提供公开客户端配置');
  act(()=>button('仅退出应用').props.onClick());expect(native.QuitAppOnly).toHaveBeenCalledTimes(1);
 });
 it('opens one login attempt under duplicate input and shows the existing cancellation path',async()=>{

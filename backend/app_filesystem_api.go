@@ -1,6 +1,8 @@
 package backend
 
 import (
+	"ant-chrome/backend/internal/apppath"
+	"ant-chrome/backend/internal/browser"
 	"ant-chrome/backend/internal/fsutil"
 	"ant-chrome/backend/internal/logger"
 	"fmt"
@@ -19,7 +21,7 @@ func (a *App) OpenUserDataDir(userDataDir string) error {
 	if a.config != nil {
 		userDataRoot = a.config.Browser.UserDataRoot
 	}
-	fullPath, err := fsutil.ResolveUserDataDir(a.resolveAppPath, userDataRoot, userDataDir)
+	fullPath, err := fsutil.ResolveUserDataDir(a.resolveAppPath, apppath.ResolveUserDataRoot(a.appRoot, userDataRoot), userDataDir)
 	if err != nil {
 		return err
 	}
@@ -54,7 +56,7 @@ func (a *App) OpenUserDataRoot() error {
 	if a.config != nil && strings.TrimSpace(a.config.Browser.UserDataRoot) != "" {
 		userDataRoot = strings.TrimSpace(a.config.Browser.UserDataRoot)
 	}
-	rootPath := a.resolveAppPath(userDataRoot)
+	rootPath := apppath.ResolveUserDataRoot(a.appRoot, userDataRoot)
 	if _, err := os.Stat(rootPath); os.IsNotExist(err) {
 		if err := os.MkdirAll(rootPath, 0755); err != nil {
 			log.Error("创建用户数据根目录失败", logger.F("path", rootPath), logger.F("error", err))
@@ -79,9 +81,14 @@ func (a *App) OpenUserDataRoot() error {
 
 // OpenCorePath 在资源管理器中打开内核路径
 func (a *App) OpenCorePath(corePath string) error {
+	return a.openCorePathWith(corePath, openPathInFileManager)
+}
+
+func (a *App) openCorePathWith(corePath string, open func(string) error) error {
 	log := logger.New("Browser")
 
-	fullPath, err := fsutil.ResolveExistingPath(a.resolveAppPath, corePath, "内核路径不能为空")
+	manager := browser.NewManager(a.config, a.appRoot)
+	fullPath, err := fsutil.ResolveExistingPath(manager.ResolveCoreDirectory, corePath, "内核路径不能为空")
 	if err != nil {
 		return err
 	}
@@ -96,7 +103,7 @@ func (a *App) OpenCorePath(corePath string) error {
 		return err
 	}
 
-	if err := openPathInFileManager(absPath); err != nil {
+	if err := open(absPath); err != nil {
 		log.Error("打开资源管理器失败", logger.F("path", absPath), logger.F("error", err))
 		return err
 	}

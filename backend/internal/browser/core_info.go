@@ -14,7 +14,7 @@ func (m *Manager) GetChromeVersion(corePath string) string {
 		return ""
 	}
 
-	baseDir := m.ResolveRelativePath(corePath)
+	baseDir := m.ResolveCoreDirectory(corePath)
 
 	// 尝试读取 manifest.json 或 *.manifest 文件
 	manifestPath := filepath.Join(baseDir, "manifest.json")

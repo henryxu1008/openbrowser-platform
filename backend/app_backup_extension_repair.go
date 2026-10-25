@@ -31,6 +31,17 @@ type backupProfileExtensionRuntimePathRecord struct {
 }
 
 func (a *App) backupRepairExtensionPathsAfterImport() ([]error, error) {
+	return a.repairExtensionPaths("", nil)
+}
+
+// A nonempty legacyRoot limits startup repair to fields pointing into the old
+// installation's managed trees. Backup import retains its existing full repair.
+func (a *App) repairExtensionPaths(legacyRoot string, check func() error) ([]error, error) {
+	if check != nil {
+		if err := check(); err != nil {
+			return nil, err
+		}
+	}
 	if a == nil || a.db == nil || a.db.GetConn() == nil {
 		return nil, fmt.Errorf("数据库未初始化，无法修复插件迁移路径")
 	}
@@ -47,7 +58,7 @@ func (a *App) backupRepairExtensionPathsAfterImport() ([]error, error) {
 		return issues, err
 	}
 	for _, extension := range extensions {
-		if err := a.backupRepairExtensionPathRecord(tx, extension, &issues); err != nil {
+		if err := a.backupRepairExtensionPathRecord(tx, extension, &issues, legacyRoot); err != nil {
 			return issues, err
 		}
 	}
@@ -57,15 +68,34 @@ func (a *App) backupRepairExtensionPathsAfterImport() ([]error, error) {
 		return issues, err
 	}
 	for _, runtimeState := range runtimeStates {
+		if !repairManagedLegacyPath(runtimeState.backupPath, legacyRoot, backupExtensionBackupsRoot) {
+			continue
+		}
 		if err := a.backupRepairProfileExtensionRuntimePath(tx, runtimeState); err != nil {
 			return issues, err
 		}
 	}
 
+	if check != nil {
+		if err := check(); err != nil {
+			return issues, err
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return issues, fmt.Errorf("提交插件路径修复事务失败: %w", err)
 	}
 	return issues, nil
+}
+
+func repairManagedLegacyPath(path, legacyRoot, managedDir string) bool {
+	if legacyRoot == "" {
+		return true
+	}
+	if !filepath.IsAbs(path) {
+		return false
+	}
+	rel, err := filepath.Rel(filepath.Join(legacyRoot, managedDir), filepath.Clean(path))
+	return err == nil && rel != "." && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }
 
 func backupLoadExtensionPathRecords(tx *sql.Tx) ([]backupExtensionPathRecord, error) {
@@ -115,7 +145,12 @@ func backupLoadProfileExtensionRuntimePathRecords(tx *sql.Tx) ([]backupProfileEx
 	return items, nil
 }
 
-func (a *App) backupRepairExtensionPathRecord(tx *sql.Tx, record backupExtensionPathRecord, issues *[]error) error {
+func (a *App) backupRepairExtensionPathRecord(tx *sql.Tx, record backupExtensionPathRecord, issues *[]error, legacyRoot string) error {
+	repairInstall := repairManagedLegacyPath(record.installDir, legacyRoot, backupManagedExtensionsRoot)
+	repairPackage := repairManagedLegacyPath(record.packagePath, legacyRoot, backupManagedExtensionsRoot)
+	if !repairInstall && !repairPackage {
+		return nil
+	}
 	extensionID := browser.NormalizeExtensionID(record.extensionID)
 	if extensionID == "" {
 		if strings.TrimSpace(record.installDir) != "" || strings.TrimSpace(record.packagePath) != "" {
@@ -133,7 +168,7 @@ func (a *App) backupRepairExtensionPathRecord(tx *sql.Tx, record backupExtension
 	newPackageHash := strings.TrimSpace(record.packageHash)
 	changed := false
 
-	if backupExtensionManifestExists(installDir) {
+	if repairInstall && backupExtensionManifestExists(installDir) {
 		if !backupSamePath(newInstallDir, installDir) {
 			newInstallDir = installDir
 			changed = true
@@ -141,14 +176,14 @@ func (a *App) backupRepairExtensionPathRecord(tx *sql.Tx, record backupExtension
 		if !backupExtensionManifestValid(installDir) {
 			*issues = append(*issues, fmt.Errorf("插件 manifest.json 内容损坏(%s): %s", extensionID, filepath.Join(installDir, "manifest.json")))
 		}
-	} else if backupPathHasSuffix(newInstallDir, filepath.ToSlash(filepath.Join(backupManagedExtensionsRoot, extensionID))) {
+	} else if repairInstall && backupPathHasSuffix(newInstallDir, filepath.ToSlash(filepath.Join(backupManagedExtensionsRoot, extensionID))) {
 		if newInstallDir != "" {
 			newInstallDir = ""
 			changed = true
 		}
 	}
 
-	if newPackagePath != "" {
+	if repairPackage && newPackagePath != "" {
 		if backupExtensionRegularFileExists(packagePath) {
 			if !backupValidCRXFile(packagePath) {
 				if newPackagePath != "" || newPackageHash != "" {

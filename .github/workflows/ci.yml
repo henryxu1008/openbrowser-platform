@@ -60,6 +60,9 @@ jobs:
       - name: Check local trial launcher without product execution
         run: ./scripts/tests/new-local-trial.Tests.ps1
 
+      - name: Check native distribution metadata and compile installer fixtures without execution
+        run: ./scripts/tests/native-delivery.Tests.ps1 -CompileInstaller
+
       - name: Install locked frontend dependencies
         working-directory: frontend
         run: npm ci --no-audit --no-fund

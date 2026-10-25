@@ -1,12 +1,31 @@
 package browser
 
 import (
+	"ant-chrome/backend/internal/apppath"
 	"ant-chrome/backend/internal/fsutil"
 	"ant-chrome/backend/internal/logger"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
+
+// ResolveCoreDirectory keeps legacy installation-relative imports readable after
+// state detachment. Writable state wins; this fallback is limited to core lookup
+// and does not change where new downloads or other application data are written.
+func (m *Manager) ResolveCoreDirectory(corePath string) string {
+	baseDir := m.ResolveRelativePath(corePath)
+	if filepath.IsAbs(corePath) || !apppath.IsDetached(m.AppRoot) {
+		return baseDir
+	}
+	if _, _, ok := FindCoreExecutable(baseDir); !ok {
+		legacyDir := filepath.Join(apppath.InstallRoot(m.AppRoot), fsutil.NormalizePathInput(corePath))
+		if _, _, legacyOK := FindCoreExecutable(legacyDir); legacyOK {
+			return legacyDir
+		}
+	}
+	return baseDir
+}
 
 func normalizeProfileCoreID(coreId string) string {
 	coreId = strings.TrimSpace(coreId)
@@ -51,7 +70,7 @@ func (m *Manager) ResolveCoreExecutable(core Core) (string, error) {
 		return "", fmt.Errorf("浏览器内核路径为空，请在“内核管理”中补充内核目录")
 	}
 
-	baseDir := m.ResolveRelativePath(corePath)
+	baseDir := m.ResolveCoreDirectory(corePath)
 	exePath, _, ok := FindCoreExecutable(baseDir)
 	if !ok {
 		return "", fmt.Errorf("浏览器内核目录无效：未找到可执行文件（候选：%s）。请检查内核目录是否完整或重新下载内核", strings.Join(CoreExecutableCandidates(), ", "))
@@ -70,7 +89,7 @@ func (m *Manager) ValidateCorePath(corePath string) CoreValidateResult {
 		return CoreValidateResult{Valid: false, Message: "路径不能为空"}
 	}
 
-	baseDir := m.ResolveRelativePath(corePath)
+	baseDir := m.ResolveCoreDirectory(corePath)
 
 	if _, err := os.Stat(baseDir); os.IsNotExist(err) {
 		return CoreValidateResult{Valid: false, Message: fmt.Sprintf("目录不存在: %s", baseDir)}

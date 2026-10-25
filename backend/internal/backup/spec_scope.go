@@ -1,6 +1,7 @@
 package backup
 
 import (
+	"ant-chrome/backend/internal/apppath"
 	"ant-chrome/backend/internal/config"
 	"fmt"
 	"path/filepath"
@@ -62,7 +63,10 @@ func BuildScope(opts BuildOptions) (Scope, error) {
 	if userDataRootSetting == "" {
 		userDataRootSetting = "data"
 	}
-	userDataRoot := resolvePath(appRootAbs, userDataRootSetting)
+	userDataRoot := strings.TrimSpace(opts.UserDataRoot)
+	if userDataRoot == "" {
+		userDataRoot = apppath.ResolveUserDataRoot(appRootAbs, userDataRootSetting)
+	}
 	builder.add(ScopeEntry{
 		ID:          "browser_user_data_root",
 		Category:    CategoryBrowserData,
@@ -105,7 +109,10 @@ func BuildScope(opts BuildOptions) (Scope, error) {
 		if dbPath == "" {
 			dbPath = "data/app.db"
 		}
-		dbAbs := resolvePath(appRootAbs, dbPath)
+		dbAbs := strings.TrimSpace(opts.DatabasePath)
+		if dbAbs == "" {
+			dbAbs = apppath.ResolveDatabasePath(appRootAbs, dbPath)
+		}
 		builder.add(ScopeEntry{
 			ID:          "database_sqlite_main",
 			Category:    CategoryAppData,

@@ -1,4 +1,6 @@
-# Windows 本地试用：首次创建与再次打开
+# Windows 内部隔离试用工具
+
+本文脚本仅用于内部隔离试用，不是硕米终端用户的安装或日常启动入口。正式安装、原生登录与数据目录的交付约定见 [原生交付说明](../native-delivery/README.md)。
 
 从仓库根使用 PowerShell 7。首次创建使用 `new-local-trial.ps1`，显式提供 EXE、完整预期 SHA256、公开 OIDC JSON 和一个**尚不存在**的绝对本地试用目录；以后使用 `open-local-trial.ps1` 指定第一次返回的同一 `TrialRoot`。
 

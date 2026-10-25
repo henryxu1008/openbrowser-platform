@@ -13,7 +13,7 @@ function authFailureMessage(code: string) {
     case 'identity_discovery_document_invalid': return '登录服务配置格式无效，请保留现场后退出应用。';
     case 'identity_discovery_metadata_invalid': return '登录服务配置不兼容，请保留现场后退出应用。';
     case 'identity_login_setup_failed': return '本机登录准备未完成，请保留现场后退出应用。';
-    case 'identity_configuration_required': return '尚未配置登录服务，请联系管理员。';
+    case 'identity_configuration_required': return '安装包的登录配置不可用，请联系应用提供方。';
     default: return '登录未完成，请保留现场后退出应用。';
   }
 }
@@ -88,7 +88,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         <h1 className="text-2xl font-semibold">登录 Ant Browser</h1>
         <p className="text-sm text-[var(--color-text-secondary)]">登录后继续使用本机浏览器档案。</p>
         {status.state === 'loading' ? <Loading text="确认登录状态..." /> : null}
-        {!status.configured && status.state !== 'loading' ? <p role="status">尚未配置登录服务，请联系管理员提供公开客户端配置。</p> : null}
+        {!status.configured && status.state !== 'loading' ? <p role="status">安装包的登录配置不可用，请联系应用提供方。</p> : null}
         {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
         {status.errorCode && <p role="status" className="text-sm">{authFailureMessage(status.errorCode)}</p>}
         {status.state === 'signing_in' ? <>

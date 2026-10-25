@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -104,35 +105,47 @@ func (m *Manager) begin(expectedGeneration uint64) (loginAttempt, error) {
 	m.mu.Unlock()
 
 	ctx, cancel := context.WithTimeout(context.Background(), loginLifetime)
-	fail := func() (loginAttempt, error) {
+	fail := func(code string) (loginAttempt, error) {
 		cancel()
 		m.mu.Lock()
-		defer m.mu.Unlock()
-		if m.generation == generation {
-			m.resetLocked("signed_out", "identity_login_failed")
+		current := m.generation == generation
+		if current {
+			m.resetLocked("signed_out", code)
+		}
+		m.mu.Unlock()
+		if current {
+			// Only fixed local stage codes: never log provider bodies, URLs,
+			// transport errors, authorization codes, tokens or identity data.
+			log.Printf("[desktopauth] %s", code)
 		}
 		return loginAttempt{}, ErrLogin
 	}
 	var d discovery
 	body, err := m.request(ctx, "GET", strings.TrimRight(m.cfg.Issuer, "/")+"/.well-known/openid-configuration", nil)
-	if err != nil || strictJSON(body, &d) != nil || !d.valid(m.cfg) {
-		return fail()
+	if err != nil {
+		return fail("identity_discovery_request_failed")
+	}
+	if strictJSON(body, &d) != nil {
+		return fail("identity_discovery_document_invalid")
+	}
+	if !d.valid(m.cfg) {
+		return fail("identity_discovery_metadata_invalid")
 	}
 	state, err := randomString()
 	if err != nil {
-		return fail()
+		return fail("identity_login_setup_failed")
 	}
 	nonce, err := randomString()
 	if err != nil {
-		return fail()
+		return fail("identity_login_setup_failed")
 	}
 	verifier, err := randomString()
 	if err != nil {
-		return fail()
+		return fail("identity_login_setup_failed")
 	}
 	ln, err := listenCallback()
 	if err != nil {
-		return fail()
+		return fail("identity_login_setup_failed")
 	}
 	tx := &transaction{state: state, nonce: nonce, verifier: verifier, discovery: d, deadline: m.now().Add(loginLifetime), listener: ln, cancel: cancel}
 	// Keep the path registerable; only the ephemeral port varies (RFC 8252).

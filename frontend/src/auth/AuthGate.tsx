@@ -5,6 +5,19 @@ import { acceptAuth, authEpoch, authSnapshot, beginAuthAction, signedIn, subscri
 
 export const useAuthStatus = () => useSyncExternalStore(subscribeAuth, authSnapshot, authSnapshot);
 
+function authFailureMessage(code: string) {
+  switch (code) {
+    case 'authentication_required':
+    case 'identity_login_expired': return '登录状态已失效，请重新登录。';
+    case 'identity_discovery_request_failed': return '无法读取登录服务配置，请保留现场后退出应用。';
+    case 'identity_discovery_document_invalid': return '登录服务配置格式无效，请保留现场后退出应用。';
+    case 'identity_discovery_metadata_invalid': return '登录服务配置不兼容，请保留现场后退出应用。';
+    case 'identity_login_setup_failed': return '本机登录准备未完成，请保留现场后退出应用。';
+    case 'identity_configuration_required': return '尚未配置登录服务，请联系管理员。';
+    default: return '登录未完成，请保留现场后退出应用。';
+  }
+}
+
 export function AuthGate({ children }: { children: ReactNode }) {
   const status = useAuthStatus();
   const [busy, setBusy] = useState(false);
@@ -77,7 +90,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         {status.state === 'loading' ? <Loading text="确认登录状态..." /> : null}
         {!status.configured && status.state !== 'loading' ? <p role="status">尚未配置登录服务，请联系管理员提供公开客户端配置。</p> : null}
         {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-        {status.errorCode && <p role="status" className="text-sm">登录状态已失效，请重新登录。</p>}
+        {status.errorCode && <p role="status" className="text-sm">{authFailureMessage(status.errorCode)}</p>}
         {status.state === 'signing_in' ? <>
           <p>请在系统浏览器中完成登录。</p>
           <Button variant="secondary" disabled={busy} onClick={() => { void action('cancel'); }}>取消登录</Button>

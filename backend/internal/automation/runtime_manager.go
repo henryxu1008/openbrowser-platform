@@ -17,8 +17,9 @@ func (m *Manager) InstallAsync(ctx context.Context) {
 	m.mu.Unlock()
 
 	go func() {
+		// This worker owns the flag set before dispatch, including admission failures.
+		defer m.finishRuntimeInstall()
 		if check() != nil {
-			m.finishRuntimeInstall()
 			return
 		}
 		_ = m.ensureInstalledAdmitted(ctx, true, check)
@@ -41,7 +42,10 @@ func (m *Manager) ensureInstalledAdmitted(ctx context.Context, flagAlreadySet bo
 	if !m.beginRuntimeInstall(flagAlreadySet) {
 		return nil
 	}
-	defer m.finishRuntimeInstall()
+	// Async callers release their flag after this call; synchronous callers own it here.
+	if !flagAlreadySet {
+		defer m.finishRuntimeInstall()
+	}
 
 	auto := m.currentAutomationConfig()
 	nodeMode := runtimeInstallNodeMode(auto)

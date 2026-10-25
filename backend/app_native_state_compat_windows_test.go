@@ -145,6 +145,55 @@ func TestWindowsDetachedImportedCoreLocationsRemainUsable(t *testing.T) {
 	}
 }
 
+func TestWindowsImportedCoreBackupUsesLaunchLocationWithoutConfigMutation(t *testing.T) {
+	root, state := installedCompatibilityFixture(t)
+	writeCompatibilityCore(t, root)
+	writeCompatibilityCore(t, filepath.Join(root, "custom-core"))
+	external := t.TempDir()
+	writeCompatibilityCore(t, external)
+	writeCompatibilityCore(t, filepath.Join(state, "chrome", "managed"))
+	cfg := config.DefaultConfig()
+	cfg.Browser.Cores = []config.BrowserCore{
+		{CoreId: "legacy", CorePath: "custom-core"},
+		{CoreId: "external", CorePath: external},
+		{CoreId: "managed", CorePath: "chrome/managed"},
+		{CoreId: "empty", CorePath: ""},
+	}
+	a := &App{appState: &appState{appRoot: root, config: cfg}}
+	m := browser.NewManager(cfg, root)
+	for _, phase := range []string{"legacy", "user-precedence"} {
+		t.Run(phase, func(t *testing.T) {
+			if phase == "user-precedence" {
+				writeCompatibilityCore(t, filepath.Join(state, "custom-core"))
+			}
+			scope, err := a.backupBuildScope()
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, entry := range scope.Entries {
+				if entry.CoreId == "empty" {
+					t.Fatal("empty core setting caused the entire installation to be exported")
+				}
+			}
+			for _, core := range cfg.Browser.Cores[:2] {
+				want := m.ResolveCoreDirectory(core.CorePath)
+				found := false
+				for _, entry := range scope.Entries {
+					if entry.CoreId == core.CoreId {
+						found = entry.SourcePath == want && entry.Exists
+					}
+				}
+				if !found {
+					t.Fatal("backup omitted a working imported core or used a different origin")
+				}
+			}
+			if cfg.Browser.Cores[0].CorePath != "custom-core" || cfg.Browser.Cores[2].CorePath != "chrome/managed" {
+				t.Fatal("backup scope rewrote stored core paths")
+			}
+		})
+	}
+}
+
 func setFixtureOwnerToCurrentUser(t *testing.T, path string) {
 	t.Helper()
 	user, err := windows.GetCurrentProcessToken().GetTokenUser()

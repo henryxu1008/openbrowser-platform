@@ -140,3 +140,61 @@ dependency/base/commit range under separate merge authority. Exact-head remote
 CI is tracked separately from local checks and remains NOT_RUN when no check is
 present. No product/kernel/service run, IAM change, merge or deployment occurred
 in this follow-up; old binaries, data and evidence were preserved.
+
+## Follow-up: latest fixed EXE FAIL and safe login diagnostics (2026-10-25)
+
+The preceding P2 and dependency/base statements are historical snapshots. PR #2
+was merged at f753a4909b93f4c5fadb4ac28b4e02632ce1f4b7 and PR #4 retargeted to main,
+without changing its four-commit authentication patch/tree at that time.
+
+A newly approved single start of c26571a / EXE SHA256
+416fa958fe5c9f571d63b774835f42d9eb377cba5d6541b3a9b698961ae0ce19 failed after one
+native browser-login click: the gate displayed the generic session-expired text
+and the original business page never unlocked. Browser dispatch and OIDC request
+occurrence remain UNKNOWN; raw native Status was not captured. No login retry,
+identity step, logout, kernel/proxy start or additional service was performed.
+One approved app-only quit completed with actual exit 0, stdout 106 bytes and
+stderr 64 bytes (only WebView2 environment-created information). Later exact
+window/process/listener observations were empty. This FAIL blocks #4 and #6;
+old 4bdef57/6910b... PASS and CI success cannot replace this result.
+
+Bounded source review established a diagnostic defect, not the live failure's
+specific cause: discovery request, JSON and metadata failures were collapsed
+into identity_login_failed, and the gate called every errorCode an expired
+session. The production Login entrypoint is still generation-checked before
+request/browser dispatch; no business gate, SDK shape, TLS or claim check was
+weakened. The browser opener still has no success acknowledgment, so opening a
+browser is never inferred from its void call.
+
+Tests were added before the fix. Four in-memory transport cases failed red
+(exit 1) because their safe stage was lost; stale-generation rejection already
+passed without request/browser dispatch. Four actual-generated-SDK gate cases
+failed red (exit 1) because they displayed expiry instead of the failure stage.
+The fix preserves fixed local request/document/metadata/setup codes in Status
+and logs only those codes outside the identity mutex. It never logs provider
+bodies, URLs, transport errors, authorization codes, tokens or identity data.
+The gate displays known safe descriptions, keeps true expiry separate and uses
+a fixed fallback for unknown codes. There is no replay or new login mechanism.
+
+Validation after the fix: complete frontend 41/41 PASS, including actual SDK
+single-call/no-replay and a late pre-login poll that cannot unlock business;
+TypeScript and clean Vite build PASS. desktopauth + launchcode race passed 16
+top-level / 38 including subtests. Moving logging outside the identity mutex
+was followed by a final desktopauth race run: 11 top-level / 29 including
+subtests PASS; unchanged launchcode remains 5/9 PASS. All passed command exits
+are 0. The frontend build retains a nonblocking stale Browserslist-data warning;
+no dependency update was performed. Red/green raw logs and exit receipts are
+local under build/dist/verification/issue3-login-diagnostic-20261025/ and the
+sibling issue3-login-diagnostic-frontend-20261025/ directory.
+
+The failed run's raw streams, screenshots, exit/ownership receipts and existing
+frozen EXEs remain unchanged. The exact original live failure remains UNKNOWN;
+this patch improves safe diagnosis and corrects misleading UI, and does not
+claim to repair or pass that real login. Any newly compiled EXE remains NOT_RUN
+without fresh artifact-specific runtime authority. No real IdP request, Cookie/
+token/account read, IAM/config change, product retry, merge or deployment occurred
+in this offline follow-up.
+
+Applicable two-package vet and Windows desktop,production compile also passed,
+exit 0, stderr 0 bytes. The new compile-only EXE is 52,165,120 bytes, SHA256
+d4988f695a4bfd49d3f3f64b9cd258950f896d1290e36d615f8cfdd32c957785, NOT_RUN.

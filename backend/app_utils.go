@@ -179,7 +179,7 @@ func normalizeCorePathForCompare(path string) string {
 func (a *App) scanChromeDir(chromeRoot string) []browser.Core {
 	log := logger.New("Browser")
 
-	baseDir := a.resolveAppPath(chromeRoot)
+	baseDir := browser.NewManager(a.config, a.appRoot).ResolveCoreDirectory(chromeRoot)
 
 	if _, err := os.Stat(baseDir); os.IsNotExist(err) {
 		return nil

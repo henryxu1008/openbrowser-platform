@@ -104,6 +104,43 @@ func TestWindowsInstalledCustomProfileConsumersAgree(t *testing.T) {
 	}
 }
 
+func TestWindowsFreshUserFindsBundledCoresWithoutAdoptingLegacyChrome(t *testing.T) {
+	root, state := installedCompatibilityFixture(t)
+	cfg := config.DefaultConfig()
+	if err := cfg.Save(filepath.Join(root, "config.defaults.yaml")); err != nil {
+		t.Fatal(err)
+	}
+	exe := writeCompatibilityCore(t, filepath.Join(root, "chrome", "148"))
+	privateDir := filepath.Join(root, "chrome", "profiles", "A")
+	if err := os.MkdirAll(privateDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(privateDir, "Preferences"), []byte("other user fixture"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	// No legacy config or database proves this installation belongs to the
+	// current user. Publisher defaults are public, legacy chrome contents are not.
+	if err := EnsureRuntimeLayout(root); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(state, "chrome")); !os.IsNotExist(err) {
+		t.Fatal("unknown legacy chrome tree was adopted")
+	}
+	a := &App{appState: &appState{appRoot: root}}
+	a.config = a.startupLoadConfig()
+	a.ensureDefaultCores()
+	if len(a.config.Browser.Cores) != 1 {
+		t.Fatal("fresh user did not discover the bundled kernel")
+	}
+	manager := browser.NewManager(a.config, root)
+	if got, err := manager.ResolveCoreExecutable(a.config.Browser.Cores[0]); err != nil || got != exe {
+		t.Fatal("fresh user cannot resolve the read-only bundled kernel")
+	}
+	if data, err := os.ReadFile(filepath.Join(privateDir, "Preferences")); err != nil || string(data) != "other user fixture" {
+		t.Fatal("legacy private source changed")
+	}
+}
+
 func TestWindowsDetachedImportedCoreLocationsRemainUsable(t *testing.T) {
 	root, state := installedCompatibilityFixture(t)
 	legacyDir := filepath.Join(root, "custom-core")

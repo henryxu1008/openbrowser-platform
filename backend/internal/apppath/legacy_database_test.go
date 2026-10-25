@@ -7,7 +7,7 @@ import (
 )
 
 func TestWindowsConfiguredDatabaseAndSidecarsFollowSavedPath(t *testing.T) {
-	for _, setting := range []string{"app.db", "storage/custom.sqlite", "profiles/app.db", "data/custom.sqlite", "bin/custom.sqlite", "../outside.sqlite", "absolute"} {
+	for _, setting := range []string{"app.db", "storage/custom.sqlite", "profiles/app.db", "data/custom.sqlite", "chrome/app.db", "bin/custom.sqlite", "../outside.sqlite", "absolute"} {
 		t.Run(setting, func(t *testing.T) {
 			root, state := windowsFixture(t)
 			if setting == "absolute" {

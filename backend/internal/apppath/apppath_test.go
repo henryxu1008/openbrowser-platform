@@ -149,13 +149,14 @@ func TestWindowsDoesNotAdoptAnotherUsersLegacyProfiles(t *testing.T) {
 	writeFixture(t, root, "config.yaml", "other user configuration")
 	writeFixture(t, root, "proxies.yaml", "other user proxy configuration")
 	writeFixture(t, root, "data/app.db", "other user database")
+	writeFixture(t, root, "chrome/profiles/A/Preferences", "other user profile")
 	writeFixture(t, root, "config.defaults.yaml", "publisher defaults")
 	windowsLegacyStateOwned = func(string) bool { return false }
 	if err := ensureWritableLayoutForOS(root, "windows"); err != nil {
 		t.Fatal(err)
 	}
 	assertFixture(t, state, "config.yaml", "publisher defaults")
-	for _, path := range []string{"proxies.yaml", "data/app.db"} {
+	for _, path := range []string{"proxies.yaml", "data/app.db", "chrome/profiles/A/Preferences"} {
 		if _, err := os.Stat(filepath.Join(state, path)); !os.IsNotExist(err) {
 			t.Fatalf("adopted foreign legacy state: %s", path)
 		}

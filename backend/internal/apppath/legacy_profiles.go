@@ -32,6 +32,11 @@ func copyLegacyConfiguredPaths(root roots, goos string) error {
 		return err
 	}
 	defer release()
+	// A configured database can be under chrome/ too. Freeze before this copy,
+	// and copy cores before a nested profile root can create a partial parent.
+	if err := copyDirIfMissing(filepath.Join(root.installRoot, "chrome"), filepath.Join(root.stateRoot, "chrome")); err != nil {
+		return err
+	}
 	if err := copyDirIfMissing(filepath.Join(root.installRoot, "data"), filepath.Join(root.stateRoot, "data")); err != nil {
 		return err
 	}

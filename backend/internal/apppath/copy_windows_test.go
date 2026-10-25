@@ -77,27 +77,31 @@ func TestWindowsCustomProfileRootRejectsParentJunction(t *testing.T) {
 }
 
 func TestWindowsConfiguredDatabaseRefusesActiveWriter(t *testing.T) {
-	root, state := windowsFixture(t)
-	writeFixture(t, root, "config.yaml", "database:\n  sqlite:\n    path: app.db\n")
-	writeFixture(t, root, "app.db", "owned database fixture")
-	name, err := windows.UTF16PtrFromString(filepath.Join(root, "app.db"))
-	if err != nil {
-		t.Fatal(err)
+	for _, dbPath := range []string{"app.db", "profiles/app.db", "chrome/app.db"} {
+		t.Run(dbPath, func(t *testing.T) {
+			root, state := windowsFixture(t)
+			writeFixture(t, root, "config.yaml", "database:\n  sqlite:\n    path: "+dbPath+"\n")
+			writeFixture(t, root, dbPath, "owned database fixture")
+			name, err := windows.UTF16PtrFromString(filepath.Join(root, dbPath))
+			if err != nil {
+				t.Fatal(err)
+			}
+			handle, err := windows.CreateFile(name, windows.GENERIC_READ|windows.GENERIC_WRITE, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING, windows.FILE_ATTRIBUTE_NORMAL, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer windows.CloseHandle(handle)
+			if err := ensureWritableLayoutForOS(root, "windows"); err == nil {
+				t.Fatal("database copy accepted an active writer")
+			}
+			for _, path := range []string{dbPath, "config.yaml"} {
+				if _, err := os.Stat(filepath.Join(state, path)); !os.IsNotExist(err) {
+					t.Fatal("busy database was published")
+				}
+			}
+			assertFixture(t, root, dbPath, "owned database fixture")
+		})
 	}
-	handle, err := windows.CreateFile(name, windows.GENERIC_READ|windows.GENERIC_WRITE, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING, windows.FILE_ATTRIBUTE_NORMAL, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer windows.CloseHandle(handle)
-	if err := ensureWritableLayoutForOS(root, "windows"); err == nil {
-		t.Fatal("database copy accepted an active writer")
-	}
-	for _, path := range []string{"app.db", "config.yaml"} {
-		if _, err := os.Stat(filepath.Join(state, path)); !os.IsNotExist(err) {
-			t.Fatal("busy database was published")
-		}
-	}
-	assertFixture(t, root, "app.db", "owned database fixture")
 }
 
 func TestWindowsLegacyOwnershipFollowsConfiguredDatabase(t *testing.T) {
@@ -112,5 +116,27 @@ func TestWindowsLegacyOwnershipFollowsConfiguredDatabase(t *testing.T) {
 	windowsLegacyFileOwned = func(path string) bool { return path == filepath.Join(root, "data", "app.db") }
 	if ownsWindowsLegacyState(root) {
 		t.Fatal("an unrelated default database conferred legacy ownership")
+	}
+}
+
+func TestWindowsChromeDatabaseChecksOwnershipBeforeAnyTreeCopy(t *testing.T) {
+	for _, foreignSuffix := range []string{"", "-wal"} {
+		t.Run("foreign"+foreignSuffix, func(t *testing.T) {
+			root, state := windowsFixture(t)
+			writeFixture(t, root, "config.yaml", "database:\n  sqlite:\n    path: chrome/app.db\n")
+			writeFixture(t, root, "chrome/app.db", "legacy database")
+			writeFixture(t, root, "chrome/app.db-wal", "legacy WAL")
+			foreign := filepath.Join(root, "chrome", "app.db") + foreignSuffix
+			windowsLegacyFileOwned = func(path string) bool { return path != foreign }
+			if err := ensureWritableLayoutForOS(root, "windows"); err == nil {
+				t.Fatal("chrome copy bypassed database ownership")
+			}
+			for _, path := range []string{"chrome", "config.yaml"} {
+				if _, err := os.Stat(filepath.Join(state, path)); !os.IsNotExist(err) {
+					t.Fatal("unverified chrome database was published")
+				}
+			}
+			assertFixture(t, root, "chrome/app.db", "legacy database")
+		})
 	}
 }

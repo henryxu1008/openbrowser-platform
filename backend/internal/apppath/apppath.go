@@ -132,11 +132,6 @@ func ensureWritableLayoutForOS(appRoot, goos string) error {
 		}
 	}
 	copyLegacyState := normalizeGOOS(goos) != "windows" || windowsLegacyStateOwned(root.installRoot)
-	// Copy bundled cores before a custom profile directory can create a parent
-	// inside chrome/ and make the non-overwriting directory copy skip the bundle.
-	if err := copyDirIfMissing(filepath.Join(root.installRoot, "chrome"), filepath.Join(root.stateRoot, "chrome")); err != nil {
-		return err
-	}
 	if normalizeGOOS(goos) == "windows" && copyLegacyState {
 		// An upgrade may have legacy SQLite/profile files beside the executable.
 		// Copy only into a missing destination; leave the original and any existing
@@ -166,6 +161,14 @@ func ensureWritableLayoutForOS(appRoot, goos string) error {
 			return err
 		}
 	}
+	if normalizeGOOS(goos) != "windows" {
+		if err := copyDirIfMissing(filepath.Join(root.installRoot, "chrome"), filepath.Join(root.stateRoot, "chrome")); err != nil {
+			return err
+		}
+	}
+	// Windows copies chrome only inside the ownership-gated, frozen first-init
+	// operation. It can contain configured SQLite/profile files, not just cores.
+	// Other users read bundled cores in place via the existing core lookup.
 	return os.MkdirAll(filepath.Join(root.stateRoot, "data"), 0755)
 }
 

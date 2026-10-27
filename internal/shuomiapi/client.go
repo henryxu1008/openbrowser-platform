@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,10 +26,37 @@ var ErrContext = errors.New("store_context_changed")
 
 // Only a validated non-success response is a definite admission rejection.
 // Transport errors, malformed envelopes, 5xx and stale identity remain unknown.
-type Rejection struct{ Code string }
+type Rejection struct {
+	Code       string
+	StatusCode int
+}
 
-func (e *Rejection) Error() string { return e.Code }
-func IsRejected(err error) bool    { var rejection *Rejection; return errors.As(err, &rejection) }
+func (e *Rejection) Error() string {
+	if e.StatusCode == 0 {
+		return e.Code
+	}
+	// Only the fixed protocol code and HTTP status cross the native bridge.
+	// Never include response messages, headers, URLs or transport credentials.
+	return fmt.Sprintf("%s (store_api_response=%d)", e.Code, e.StatusCode)
+}
+func IsRejected(err error) bool { var rejection *Rejection; return errors.As(err, &rejection) }
+
+func rejectionStatus(code string) int {
+	switch code {
+	case "AUTHENTICATION_REQUIRED":
+		return http.StatusUnauthorized
+	case "PERMISSION_DENIED", "ORGANIZATION_ACCESS_REVOKED":
+		return http.StatusForbidden
+	case "ORGANIZATION_CONTEXT_CHANGED", "OPERATION_CONFLICT", "BINDING_VERSION_CONFLICT":
+		return http.StatusConflict
+	case "STORE_OR_OPERATION_NOT_FOUND":
+		return http.StatusNotFound
+	case "INVALID_REQUEST":
+		return http.StatusBadRequest
+	default:
+		return 0
+	}
+}
 
 type Auth interface {
 	Check(uint64) error
@@ -156,11 +184,8 @@ func (c *Client) request(ctx context.Context, g uint64, org, method, path, key s
 			Code string `json:"code"`
 		}
 		_ = json.Unmarshal(raw, &failure)
-		switch failure.Code {
-		case "AUTHENTICATION_REQUIRED", "PERMISSION_DENIED", "ORGANIZATION_ACCESS_REVOKED", "ORGANIZATION_CONTEXT_CHANGED", "STORE_OR_OPERATION_NOT_FOUND", "OPERATION_CONFLICT", "BINDING_VERSION_CONFLICT", "INVALID_REQUEST":
-			if response.StatusCode == 400 || response.StatusCode == 401 || response.StatusCode == 403 || response.StatusCode == 404 || response.StatusCode == 409 {
-				return &Rejection{Code: failure.Code}
-			}
+		if expected := rejectionStatus(failure.Code); expected != 0 && response.StatusCode == expected {
+			return &Rejection{Code: failure.Code, StatusCode: response.StatusCode}
 		}
 		return ErrUnavailable
 	}

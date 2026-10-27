@@ -124,3 +124,75 @@ func TestStorePublicConfigStrictlyRejectsExtraDuplicateOrUnsafeOrigins(t *testin
 		t.Fatal(err)
 	}
 }
+
+func TestStoreClientAuthenticationRejectionRetainsSafeHTTPStage(t *testing.T) {
+	auth := &authFixture{}
+	calls := 0
+	client, err := newClient(Config{APIOrigin: "https://api.example.test"}, auth, &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		calls++
+		return &http.Response{StatusCode: http.StatusUnauthorized, Body: io.NopCloser(strings.NewReader(`{"code":"AUTHENTICATION_REQUIRED","message":"response detail must stay private"}`))}, nil
+	})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = client.Context(context.Background(), 7, "")
+	if err == nil || err.Error() != "AUTHENTICATION_REQUIRED (store_api_response=401)" {
+		t.Fatalf("remote authentication rejection lost safe response stage: %v", err)
+	}
+	if !IsRejected(err) || auth.Check(7) != nil || calls != 1 {
+		t.Fatal("remote rejection changed local identity or retried the request")
+	}
+	var rejected *Rejection
+	if !errors.As(err, &rejected) || rejected.StatusCode != http.StatusUnauthorized {
+		t.Fatal("remote authentication status was not retained in the Go-only error")
+	}
+}
+
+func TestStoreClientUnknownResponseCannotBecomeDefiniteRejection(t *testing.T) {
+	for _, status := range []int{0, 400, 401, 403, 404, 409, 503} {
+		client, err := newClient(Config{APIOrigin: "https://api.example.test"}, &authFixture{}, &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+			return &http.Response{StatusCode: status, Body: io.NopCloser(strings.NewReader(`{"code":"UNRECOGNIZED"}`))}, nil
+		})})
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = client.Context(context.Background(), 7, "")
+		if !errors.Is(err, ErrUnavailable) || IsRejected(err) {
+			t.Fatal("unrecognized response code became a definite rejection")
+		}
+	}
+}
+
+func TestStoreClientRejectsMismatchedHTTPStatusAndProtocolCode(t *testing.T) {
+	contracts := map[string]int{
+		"AUTHENTICATION_REQUIRED":      http.StatusUnauthorized,
+		"PERMISSION_DENIED":            http.StatusForbidden,
+		"ORGANIZATION_ACCESS_REVOKED":  http.StatusForbidden,
+		"ORGANIZATION_CONTEXT_CHANGED": http.StatusConflict,
+		"STORE_OR_OPERATION_NOT_FOUND": http.StatusNotFound,
+		"OPERATION_CONFLICT":           http.StatusConflict,
+		"BINDING_VERSION_CONFLICT":     http.StatusConflict,
+		"INVALID_REQUEST":              http.StatusBadRequest,
+	}
+	for code, expectedStatus := range contracts {
+		for _, status := range []int{400, 401, 403, 404, 409, 503} {
+			t.Run(code+"/"+http.StatusText(status), func(t *testing.T) {
+				calls := 0
+				client, err := newClient(Config{APIOrigin: "https://api.example.test"}, &authFixture{}, &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+					calls++
+					return &http.Response{StatusCode: status, Body: io.NopCloser(strings.NewReader(`{"code":"` + code + `"}`))}, nil
+				})})
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, err = client.Context(context.Background(), 7, "")
+				if err == nil || IsRejected(err) != (status == expectedStatus) || calls != 1 {
+					t.Fatal("status/code mismatch accepted as definite rejection or request retried")
+				}
+				if status != expectedStatus && !errors.Is(err, ErrUnavailable) {
+					t.Fatal("non-contract response did not stay unavailable/unknown")
+				}
+			})
+		}
+	}
+}

@@ -536,7 +536,7 @@ function Assert-WindowsStagingPrivacy {
     }
 
     Assert-ReleaseConfigPrivacy -ConfigPath (Join-Path $StagingDir 'config.yaml')
-    [void](Read-PublicIdentityConfig -Path (Join-Path $StagingDir 'oidc-public.json'))
+    [void](Read-PublicIdentityConfig -Path (Join-Path $StagingDir 'oidc-public.json') -RequireAPIProject)
     [void](Read-PublicStoreConfig -Path (Join-Path $StagingDir 'shuomi-public.json'))
 }
 
@@ -755,7 +755,7 @@ function Publish-Windows {
     if ([string]::IsNullOrWhiteSpace($PublicIdentityConfig)) {
         throw 'Windows distribution requires -PublicIdentityConfig from the existing Shuomi identity instance. Never ship the local trial configuration.'
     }
-    [void](Read-PublicIdentityConfig -Path $PublicIdentityConfig)
+    [void](Read-PublicIdentityConfig -Path $PublicIdentityConfig -RequireAPIProject)
     if ([string]::IsNullOrWhiteSpace($PublicStoreConfig)) { throw 'Windows Store distribution requires -PublicStoreConfig from the confirmed Shuomi instance.' }
     [void](Read-PublicStoreConfig -Path $PublicStoreConfig)
 

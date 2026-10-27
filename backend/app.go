@@ -104,7 +104,7 @@ func NewApp(appRoot string, appVersion ...string) *App {
 		profileWindowMarkers:   make(map[string]*profileWindowMarker),
 		browserProcessMonitors: make(map[string]*browserProcessMonitor),
 	}}
-	app.configureStoreClient()
+	app.configureStoreClient(identityConfig)
 	return app
 }
 

@@ -37,16 +37,21 @@ func TestInstalledConfigRejectsInvalidFileWithoutFallback(t *testing.T) {
 	t.Setenv("ABFREE_OIDC_ISSUER", "https://valid-env.example.test")
 	t.Setenv("ABFREE_OIDC_CLIENT_ID", "env-native")
 	for name, input := range map[string]string{
-		"missing client": `{"issuer":"https://identity.example.test"}`,
-		"duplicate":      `{"issuer":"https://identity.example.test","issuer":"https://other.example.test","clientId":"native"}`,
-		"unknown secret": `{"issuer":"https://identity.example.test","clientId":"native","clientSecret":"fixture"}`,
-		"alias":          `{"Issuer":"https://identity.example.test","clientId":"native"}`,
-		"http":           `{"issuer":"http://identity.example.test","clientId":"native"}`,
-		"userinfo":       `{"issuer":"https://fixture@identity.example.test","clientId":"native"}`,
-		"null":           `{"issuer":"https://identity.example.test","clientId":null}`,
-		"non-string":     `{"issuer":"https://identity.example.test","clientId":123}`,
-		"trailing":       `{"issuer":"https://identity.example.test","clientId":"native"}{}`,
-		"large":          strings.Repeat(" ", 4097),
+		"missing client":    `{"issuer":"https://identity.example.test"}`,
+		"duplicate":         `{"issuer":"https://identity.example.test","issuer":"https://other.example.test","clientId":"native"}`,
+		"unknown secret":    `{"issuer":"https://identity.example.test","clientId":"native","clientSecret":"fixture"}`,
+		"empty API project": `{"issuer":"https://identity.example.test","clientId":"native","apiProjectId":""}`,
+		"null API project":  `{"issuer":"https://identity.example.test","clientId":"native","apiProjectId":null}`,
+		"scope injection":   `{"issuer":"https://identity.example.test","clientId":"native","apiProjectId":"project offline_access"}`,
+		"URN injection":     `{"issuer":"https://identity.example.test","clientId":"native","apiProjectId":"project:aud"}`,
+		"extra scopes":      `{"issuer":"https://identity.example.test","clientId":"native","apiProjectId":"project","scopes":"openid"}`,
+		"alias":             `{"Issuer":"https://identity.example.test","clientId":"native"}`,
+		"http":              `{"issuer":"http://identity.example.test","clientId":"native"}`,
+		"userinfo":          `{"issuer":"https://fixture@identity.example.test","clientId":"native"}`,
+		"null":              `{"issuer":"https://identity.example.test","clientId":null}`,
+		"non-string":        `{"issuer":"https://identity.example.test","clientId":123}`,
+		"trailing":          `{"issuer":"https://identity.example.test","clientId":"native"}{}`,
+		"large":             strings.Repeat(" ", 4097),
 	} {
 		t.Run(name, func(t *testing.T) {
 			root := t.TempDir()

@@ -41,7 +41,12 @@ type storeAPI interface {
 	Audit(context.Context, uint64, string, string, shuomiapi.AuditQuery) (shuomiapi.AuditPage, error)
 }
 
-func (a *App) configureStoreClient() {
+func (a *App) configureStoreClient(identityConfig desktopauth.Config) {
+	// Basic Native identity alone does not provide the Store API resources.
+	// Consume the same immutable publisher configuration as the manager.
+	if identityConfig.APIProjectID == "" || len(identityConfig.ConfigurationIssues()) != 0 {
+		return
+	}
 	config, err := shuomiapi.LoadConfig(a.appRoot)
 	if err != nil {
 		return

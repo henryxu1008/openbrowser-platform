@@ -98,6 +98,17 @@ try {
     }
     $script:PassedCases++
     $missingExisting = Join-Path $testRoot 'missing-existing'
+    $resourcePublic=Join-Path $sourceDirectory 'resource-public.json'
+    [IO.File]::WriteAllText($resourcePublic,'{"issuer":"https://identity.example.test","clientId":"public-native-fixture","apiProjectId":"existing-api-project"}')
+    $resourceRoot=Join-Path $testRoot 'resource-trial'
+    $beforeResource=$script:StartCalls
+    New-AntLocalTrial -ExePath $fixtureExe -ExpectedExeSha256 $fixtureHash -PublicConfigPath $resourcePublic -TrialRoot $resourceRoot | Out-Null
+    $copiedResource=Get-Content -LiteralPath (Join-Path $resourceRoot 'oidc-public.json') -Raw | ConvertFrom-Json
+    Assert-True ($copiedResource.apiProjectId -ceq 'existing-api-project') 'Trial dropped the installed API resource configuration.'
+    Open-AntLocalTrial -ExpectedExeSha256 $fixtureHash -PublicConfigPath $resourcePublic -TrialRoot $resourceRoot | Out-Null
+    Assert-True ($script:StartCalls -eq $beforeResource+2) 'Resource trial did not use the original mocked launch seam.'
+    Assert-Rejected {Open-AntLocalTrial -ExpectedExeSha256 $fixtureHash -PublicConfigPath $resourcePublic -TrialRoot $newRoot}
+    $script:PassedCases++
     Assert-Rejected { Open-AntLocalTrial -ExpectedExeSha256 $fixtureHash -PublicConfigPath $publicFile -TrialRoot $missingExisting } $missingExisting
     Assert-Rejected { Open-AntLocalTrial -ExpectedExeSha256 ('0' * 64) -PublicConfigPath $publicFile -TrialRoot $newRoot }
     $invalidOpenFile = Join-Path $sourceDirectory 'invalid-open.json'

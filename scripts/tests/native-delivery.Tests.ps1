@@ -25,6 +25,16 @@ try {
     $cases++
     $storeSource=Join-Path $testRoot 'store-public.json'
     [IO.File]::WriteAllText($storeSource,'{"apiOrigin":"https://stores.example.test"}')
+    $missingResourceRejected=$false
+    try { Copy-PublicStoreConfig -Path $storeSource -StagingDir $staging } catch { $missingResourceRejected=$true }
+    if(-not $missingResourceRejected -or (Test-Path -LiteralPath (Join-Path $staging 'shuomi-public.json'))){throw 'Store package without API resource was staged.'}
+    $cases++
+    [IO.File]::WriteAllText($source,'{"issuer":"https://identity.example.test","clientId":"existing-native","apiProjectId":"existing-api-project"}')
+    Copy-PublicIdentityConfig -Path $source -StagingDir $staging
+    $resourceMetadata=Get-Content -LiteralPath (Join-Path $staging 'oidc-public.json') -Raw | ConvertFrom-Json
+    if($resourceMetadata.apiProjectId -cne 'existing-api-project'){throw 'Publisher dropped the public API resource.'}
+    $bytes=[IO.File]::ReadAllBytes((Join-Path $staging 'oidc-public.json'))
+    $cases++
     Copy-PublicStoreConfig -Path $storeSource -StagingDir $staging
     $storeBytes=[IO.File]::ReadAllBytes((Join-Path $staging 'shuomi-public.json'))
     if(($storeBytes[0] -eq 239) -or (([Text.Encoding]::UTF8.GetString($storeBytes)|ConvertFrom-Json).apiOrigin -cne 'https://stores.example.test')){throw 'Native Store metadata copy failed.'}

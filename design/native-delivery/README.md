@@ -10,7 +10,7 @@
 
 ## 发行配置（维护者）
 
-打包者从目标硕米实例取得已有 Native public client 的 issuer/clientId，仅这两项公开元数据。Web client secret、账号、密码、token、私钥不得进入发行文件。不重新注册客户端，不把 Web client ID 当 Native client 使用。
+打包者从目标硕米实例取得已有 Native public client 的 issuer/clientId，以及现有硕米 API 的公开 apiProjectId。Store 配套必须提供三项；两字段文件仍适用于基础身份登录。Web client secret、账号、密码、token、私钥不得进入发行文件。不重新注册客户端，不把 Web client ID 当 Native client 使用，也不能用 clientId/企业ID猜填项目ID。
 
 程序从 EXE 同目录的 `oidc-public.json` 读取公开配置；文件存在时优先使用它，读取/格式错误则保留原有未配置登录界面并拒绝业务操作，不能回退为其他身份配置。文件不存在时保留历史开发环境变量入口。该文件位于安装目录，不与用户可写业务配置混存。
 
@@ -23,7 +23,7 @@ Windows 原有打包入口增加一个维护者参数；打包工具使用 Power
 公开文件结构（示例地址仅说明格式，不能代替目标实例配置）：
 
 ```json
-{"issuer":"https://identity.example.test","clientId":"existing-native-public-client"}
+{"issuer":"https://identity.example.test","clientId":"existing-native-public-client","apiProjectId":"existing-api-project"}
 ```
 
 打包前拒绝缺失、重复/额外字段、secret、HTTP 及 loopback 开发地址，复制为原生可读取的 UTF-8 文件，再由现有 NSIS 安装到 EXE 旁边。既有内核与代理资源打包逻辑不变；缺少内核时沿用原内核管理，版本需求仍为 148.0.7778.215，不增加下载器、服务或固定清单。

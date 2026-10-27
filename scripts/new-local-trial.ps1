@@ -45,7 +45,8 @@ function Read-AntTrialPublicConfig {
         $document = [System.Text.Json.JsonDocument]::Parse([IO.File]::ReadAllText($file))
         if ($document.RootElement.ValueKind -ne [System.Text.Json.JsonValueKind]::Object) { throw 'shape' }
         $properties = @($document.RootElement.EnumerateObject())
-        if ($properties.Count -ne 2 -or
+        $hasProject = @($properties | Where-Object Name -CEQ 'apiProjectId').Count -eq 1
+        if (($properties.Count -ne 2 -and -not ($properties.Count -eq 3 -and $hasProject)) -or
             @($properties | Where-Object Name -CEQ 'issuer').Count -ne 1 -or
             @($properties | Where-Object Name -CEQ 'clientId').Count -ne 1 -or
             @($properties | Where-Object { $_.Value.ValueKind -ne [System.Text.Json.JsonValueKind]::String }).Count -ne 0) {
@@ -53,8 +54,13 @@ function Read-AntTrialPublicConfig {
         }
         $issuer = $document.RootElement.GetProperty('issuer').GetString().Trim()
         $clientId = $document.RootElement.GetProperty('clientId').GetString().Trim()
+        $apiProjectId = $null
+        if ($hasProject) {
+            $apiProjectId = $document.RootElement.GetProperty('apiProjectId').GetString()
+            if ($apiProjectId -cnotmatch '\A[A-Za-z0-9_-]{1,128}\z') { throw 'shape' }
+        }
     } catch {
-        throw 'Public JSON must contain only one string issuer and one string clientId.'
+        throw 'Public JSON requires issuer/clientId and permits only a bounded public apiProjectId.'
     } finally {
         if ($null -ne $document) { $document.Dispose() }
     }
@@ -64,11 +70,17 @@ function Read-AntTrialPublicConfig {
         [string]::IsNullOrWhiteSpace($clientId) -or $clientId -match '[\x00-\x1f]') {
         throw 'Use a normal HTTPS issuer without credentials/query/fragment and a nonempty public clientId.'
     }
-    return [pscustomobject]@{ Issuer = $issuer; ClientId = $clientId }
+    return [pscustomobject]@{ Issuer = $issuer; ClientId = $clientId; APIProjectId = $apiProjectId }
 }
 
 function Start-AntTrialAtRoot {
     param([string]$Root, [string]$ExpectedHash, [object]$PublicConfig)
+    if ($PublicConfig.APIProjectId) {
+        $installed = Read-AntTrialPublicConfig -Path (Join-Path $Root 'oidc-public.json')
+        if ($installed.Issuer -cne $PublicConfig.Issuer -or $installed.ClientId -cne $PublicConfig.ClientId -or $installed.APIProjectId -cne $PublicConfig.APIProjectId) {
+            throw 'Existing trial identity/resource differs; do not adopt or overwrite it.'
+        }
+    }
     $copiedExe = Join-Path $Root 'ant-chrome.exe'
     [void](Get-AntTrialLocalPath $copiedExe)
     if (-not (Test-Path -LiteralPath $copiedExe -PathType Leaf) -or
@@ -154,6 +166,9 @@ function New-AntLocalTrial {
     New-Item -ItemType Directory -Path $root -ErrorAction Stop | Out-Null
     [void](Get-AntTrialLocalPath $root)
     [IO.File]::Copy($source, (Join-Path $root 'ant-chrome.exe'), $false)
+    $metadata = [ordered]@{ issuer = $public.Issuer; clientId = $public.ClientId }
+    if ($public.APIProjectId) { $metadata['apiProjectId'] = $public.APIProjectId }
+    [IO.File]::WriteAllText((Join-Path $root 'oidc-public.json'), ($metadata | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
     foreach ($relative in @('user', 'user\Roaming', 'user\Local', 'temp')) {
         New-Item -ItemType Directory -Path (Join-Path $root $relative) -ErrorAction Stop | Out-Null
     }

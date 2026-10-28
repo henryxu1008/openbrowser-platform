@@ -14,23 +14,30 @@ const actions: Record<string,string> = { browser_operation_admitted:'操作获�
 function ErrorNotice({message}: {message: string}) { return message ? <p role="alert" className="text-sm text-red-600 whitespace-pre-wrap">{message}</p> : null }
 
 export function StoreWorkspace() {
+  const navigate = useNavigate()
   const [scope,setScope] = useState<StoreContext | null>(null)
   const [error,setError] = useState(''), [busy,setBusy] = useState(true)
   const [dirty,setDirty]=useState(false),[pendingOrg,setPendingOrg]=useState('')
-  const alive = useRef(true)
-  useEffect(() => {alive.current=true;void load();return()=>{alive.current=false}},[])
+  const requestEpoch = useRef(0), requestPending = useRef(false)
+  useEffect(() => {void load();return()=>{requestEpoch.current++}},[])
   async function load() {
+    const epoch=++requestEpoch.current;requestPending.current=true
     setBusy(true);setScope(null);setError('')
-    try {const value=await storeAPI().context();if(alive.current)setScope(value)} catch(e){if(alive.current)setError(storeError(e))} finally{if(alive.current)setBusy(false)}
+    try {const value=await storeAPI().context();if(epoch===requestEpoch.current)setScope(value)} catch(e){if(epoch===requestEpoch.current)setError(storeError(e))} finally{if(epoch===requestEpoch.current){requestPending.current=false;setBusy(false)}}
   }
   async function select(id: string) {
-    if(!scope||busy)return
+    if(!scope||requestPending.current||id===scope.context.effectiveOrganizationId)return
+    const epoch=++requestEpoch.current;requestPending.current=true
     const previous=scope;setBusy(true);setScope(null);setError('')
-    try {const value=await storeAPI().select(id,previous.revision);if(alive.current)setScope(value)}catch(e){if(alive.current)setError(storeError(e))}finally{if(alive.current)setBusy(false)}
+    setDirty(false);setPendingOrg('')
+    // A store route is a selection within its enterprise. Leave it before a
+    // replacement context can mount a detail/editor with the old store ID.
+    navigate('/stores',{replace:true})
+    try {const value=await storeAPI().select(id,previous.revision);if(epoch===requestEpoch.current)setScope(value)}catch(e){if(epoch===requestEpoch.current)setError(storeError(e))}finally{if(epoch===requestEpoch.current){requestPending.current=false;setBusy(false)}}
   }
   return <div className="space-y-4">
     <Card padding="none"><div className="p-4 flex items-center justify-between gap-4"><Link to="/stores" className="font-semibold">店铺工作台</Link>
-      <Select aria-label="当前企业" disabled={busy||!scope} value={scope?.context.effectiveOrganizationId||''} onChange={e=>{if(dirty)setPendingOrg(e.target.value);else void select(e.target.value)}} options={[{value:'',label:busy?'加载中…':'请选择企业'},...(scope?.context.organizations||[]).map(org=>({value:org.id,label:org.name}))]} />
+      <Select aria-label="当前企业" disabled={busy||!scope} value={scope?.context.effectiveOrganizationId||''} onChange={e=>{if(e.target.value===scope?.context.effectiveOrganizationId)return;if(dirty)setPendingOrg(e.target.value);else void select(e.target.value)}} options={[{value:'',label:busy?'加载中…':'请选择企业'},...(scope?.context.organizations||[]).map(org=>({value:org.id,label:org.name}))]} />
     </div></Card>
     <ErrorNotice message={error}/>
     {error&&<Button variant="secondary" onClick={()=>void load()}>只读核对企业上下文</Button>}
@@ -69,17 +76,20 @@ function StoreDetail() {
   const [receipt,setReceipt]=useState('')
   const [unknownKey,setUnknownKey]=useState('')
   const actionBusy=useRef(false)
+  const reading=useRef(false)
   const viewEpoch=useRef(0)
-  useEffect(()=>{const epoch=++viewEpoch.current;void read(epoch);return()=>{viewEpoch.current++}},[storeId,scope.revision])
-  async function read(epoch=viewEpoch.current) {
+  useEffect(()=>{void read();return()=>{viewEpoch.current++}},[storeId,scope.revision])
+  async function read() {
+    if(actionBusy.current)return
+    const epoch=++viewEpoch.current;reading.current=true
     setLoaded(false);setError('');setStore(null);setEnvironment(null);setReceipt('');setUnknownKey('')
     const api=storeAPI()
-    try{const record=await api.store(storeId,scope.revision);const state=await api.environment(storeId,scope.revision);if(epoch===viewEpoch.current){setStore(record);setEnvironment(state)}}catch(e){if(epoch===viewEpoch.current)setError(storeError(e))}finally{if(epoch===viewEpoch.current)setLoaded(true)}
+    try{const record=await api.store(storeId,scope.revision);if(epoch!==viewEpoch.current)return;const state=await api.environment(storeId,scope.revision);if(epoch===viewEpoch.current){setStore(record);setEnvironment(state)}}catch(e){if(epoch===viewEpoch.current)setError(storeError(e))}finally{if(epoch===viewEpoch.current){reading.current=false;setLoaded(true)}}
   }
   const org=scope.context.organizations.find(org=>org.id===scope.context.effectiveOrganizationId)
   const canUse=!!org?.permissions.includes('workbench.store.browser.use')&&store?.recordStatus==='active'
   async function action(kind:'open'|'close') {
-    if(actionBusy.current||!environment?.binding)return
+    if(actionBusy.current||reading.current||!environment?.binding)return
     actionBusy.current=true
     const epoch=viewEpoch.current;setBusy(true);setError('');setReceipt('')
     try{
@@ -92,7 +102,7 @@ function StoreDetail() {
   const tab=params.get('tab')==='records'?'records':'environment'
   return <div className="space-y-4">
     <Link to={`/stores?${params.get('return')||''}`}>返回店铺列表</Link>
-    <Card title={store?.name||'店铺详情'}><p className="text-sm">{store&&`${store.platform} · ${store.region} · ${store.recordStatus}`}</p><div className="flex gap-3 mt-3">{(['environment','records'] as const).map(value=><Button key={value} variant={tab===value?'primary':'secondary'} onClick={()=>{const next=new URLSearchParams(params);next.set('tab',value);setParams(next)}}>{value==='environment'?'店铺环境':'操作记录'}</Button>)}<Button variant="secondary" disabled={busy} onClick={()=>void read()}>只读刷新</Button></div></Card>
+    <Card title={store?.name||'店铺详情'}><p className="text-sm">{store&&`${store.platform} · ${store.region} · ${store.recordStatus}`}</p><div className="flex gap-3 mt-3">{(['environment','records'] as const).map(value=><Button key={value} variant={tab===value?'primary':'secondary'} onClick={()=>{const next=new URLSearchParams(params);next.set('tab',value);setParams(next)}}>{value==='environment'?'店铺环境':'操作记录'}</Button>)}<Button variant="secondary" disabled={busy||!loaded} onClick={()=>void read()}>只读刷新</Button></div></Card>
     <ErrorNotice message={error}/>
     {!loaded&&<p role="status">加载中…</p>}
     {store&&environment&&tab==='environment'&&<>
@@ -108,10 +118,13 @@ function StoreDetail() {
 export function StoreEnvironmentEditPage() {
   const {storeId=''}=useParams(),scope=useScope(),navigate=useNavigate(),[params]=useSearchParams()
   const setDirty=useContext(Dirty)
+  const activeEditor=useRef<ManagedBrowserEditor|null>(null)
   const editor=useMemo<ManagedBrowserEditor>(()=>{
     const api=storeAPI();let bindingVersion: string | null=null
-    return {title:'店铺环境配置',onDirtyChange:setDirty,load:async()=>{const result=await api.options(storeId,scope.revision);bindingVersion=result.binding?.bindingVersion||'0';return result},save:async input=>{if(bindingVersion===null)throw new Error('store_configuration_unavailable');try{await api.save(storeId,bindingVersion,input,scope.revision)}catch(e){throw new Error(storeError(e))}},back:()=>navigate(`/stores/${storeId}?${params.get('return')||''}`)}
+    const adapter:ManagedBrowserEditor={title:'店铺环境配置',onDirtyChange:setDirty,load:async()=>{const result=await api.options(storeId,scope.revision);bindingVersion=result.binding?.bindingVersion||'0';return result},save:async input=>{if(bindingVersion===null)throw new Error('store_configuration_unavailable');try{await api.save(storeId,bindingVersion,input,scope.revision)}catch(e){throw new Error(storeError(e))}},back:()=>{if(activeEditor.current===adapter)navigate(`/stores/${storeId}?${params.get('return')||''}`)}}
+    return adapter
   },[storeId,scope.revision,navigate,params,setDirty])
+  useEffect(()=>{activeEditor.current=editor;return()=>{if(activeEditor.current===editor)activeEditor.current=null}},[editor])
   return <BrowserEditPage key={`${storeId}:${scope.revision}`} managed={editor}/>
 }
 

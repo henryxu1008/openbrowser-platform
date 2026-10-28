@@ -14,6 +14,10 @@
 
 路由为 `/stores`、`/stores/:storeId?tab=environment|records`、`/stores/:storeId/environment/edit`。保留原首页与独立入口；列表查询条件随返回链接保存。组织切换、原生 generation/revision 改变和迟到响应不重新绑定原动作。
 
+企业切换先清空旧页面并替换为 `/stores`，再发布新上下文；不把上一企业的店铺 ID、记录页签或筛选带入新企业。选择当前企业不提交请求，未保存表单仍先确认放弃。旧编辑器离开后，即使原保存请求完成，也不能再导航回原店铺；原操作结果和归属仍由 Go/journal 保留。
+
+企业上下文及店铺详情读取按本次请求标识发布结果，过期响应不能覆盖新 DTO、错误或加载状态。详情页离开后不继续发起下一段环境读取；读取与打开/关闭在页面内互斥，保留原生准入、CAS 与 UNKNOWN 规则。对应离线回归为 `frontend/test/store-workspace-lifecycle.test.jsx`，使用真实页面/Router 和受控 API Promise，不代表真实 Native 登录、店铺授权或内核验收。
+
 ## 原能力的接入位置
 
 - `internal/shuomiapi`：Go-only 固定 HTTPS origin、原 Native 内存 token、既有 context/catalog/summary，加 C3/C4 四条接口；无 renderer token、任意 URL/header 或重定向。
@@ -32,7 +36,7 @@
 
 ## 安装和发布前条件
 
-沿用 `bat/publish.ps1` 和 NSIS；维护者为 Windows 发行同时提供 `-PublicIdentityConfig` 和 `-PublicStoreConfig`。用户不运行这些脚本。前者仍严格保持 issuer/clientId 两字段；后者仅为：
+沿用 `bat/publish.ps1` 和 NSIS；维护者为 Windows 发行同时提供 `-PublicIdentityConfig` 和 `-PublicStoreConfig`。用户不运行这些脚本。基础登录配置为 issuer/clientId；启用店铺功能时，身份文件还须包含维护者确认的公开 apiProjectId，沿原 PKCE 请求固定资源 scope，详见 CONTRACTS C1。后者仅为：
 
 ```json
 {"apiOrigin":"https://confirmed-shuomi-api.example"}

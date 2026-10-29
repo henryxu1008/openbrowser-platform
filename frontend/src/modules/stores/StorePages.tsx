@@ -90,9 +90,11 @@ function StoreDetail() {
   const actionBusy=useRef(false)
   const reading=useRef(false)
   const viewEpoch=useRef(0)
+  const renderedEpoch=viewEpoch.current
   useEffect(()=>{void read();return()=>{viewEpoch.current++}},[storeId,scope.revision])
   async function read(refreshContext=false) {
-    if(actionBusy.current)return
+    // A rejected duplicate must not release the original read's action lock.
+    if(actionBusy.current||(refreshContext&&(reading.current||renderedEpoch!==viewEpoch.current)))return
     const epoch=++viewEpoch.current;reading.current=true
     setLoaded(false);setError('');setStore(null);setEnvironment(null);setReceipt('');setUnknownKey('')
     try {
@@ -106,7 +108,7 @@ function StoreDetail() {
   const org=scope.context.organizations.find(org=>org.id===scope.context.effectiveOrganizationId)
   const canUse=!!org?.permissions.includes('workbench.store.browser.use')&&store?.recordStatus==='active'
   async function action(kind:'open'|'close') {
-    if(actionBusy.current||reading.current||!environment?.binding)return
+    if(renderedEpoch!==viewEpoch.current||actionBusy.current||reading.current||!environment?.binding)return
     actionBusy.current=true
     const epoch=viewEpoch.current;setBusy(true);setError('');setReceipt('')
     try{

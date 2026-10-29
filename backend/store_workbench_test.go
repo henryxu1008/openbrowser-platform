@@ -114,13 +114,13 @@ func TestStoreEnvironmentGetProxySummary(t *testing.T) {
 		{"builtin-direct", "__direct__", "direct://", "直连"},
 		{"normalized-direct", "", " \tDiReCt://\n", "直连"},
 		{"whitespace-only", "", " \t\n", "直连"},
-		{"explicit-direct-overrides-id", "saved-proxy", "direct://", "直连"},
+		{"saved-id-with-direct-snapshot", "saved-proxy", "direct://", "本机代理"},
 		{"id-only", "saved-proxy", "", "本机代理"},
 		{"id-with-blank-config", "saved-proxy", " \t", "本机代理"},
 		{"http", "", "http://fixture-user:fixture-secret@127.0.0.1:8080", "本机代理"},
 		{"https", "", "https://127.0.0.1:8443", "本机代理"},
 		{"socks5", "", "socks5://127.0.0.1:1080", "本机代理"},
-		{"config-overrides-builtin-id", "__direct__", "socks5://127.0.0.1:1080", "本机代理"},
+		{"non-direct-config-with-builtin-id", "__direct__", "socks5://127.0.0.1:1080", "本机代理"},
 		{"vless", "", "vless://fixture@proxy.example.test:443", "本机代理"},
 		{"sing-box", "", "hysteria2://fixture@proxy.example.test:443", "本机代理"},
 		{"mihomo", "", "proxies:\n  - {name: fixture, type: tuic}", "本机代理"},
@@ -175,6 +175,68 @@ func TestStoreEnvironmentGetProxySummaryRequiresRemoteAuthorization(t *testing.T
 	api.denied = &shuomiapi.Rejection{Code: "PERMISSION_DENIED"}
 	if payload, err := a.StoreEnvironmentGet(scope.StoreID, 1); !shuomiapi.IsRejected(err) || payload != "" {
 		t.Fatal("denied store read exposed environment details")
+	}
+}
+
+type storeSummaryProxyCatalog struct {
+	browser.ProxyDAO
+	items []browser.Proxy
+	reads int
+}
+
+func (p *storeSummaryProxyCatalog) List() ([]browser.Proxy, error) {
+	p.reads++
+	return append([]browser.Proxy{}, p.items...), nil
+}
+
+func TestStoreEnvironmentGetProxySummaryPreservesPoolBoundary(t *testing.T) {
+	for _, tc := range []struct {
+		name, id, config, summary, effective string
+	}{
+		{"inline-direct", "", "direct://", "直连", "direct://"},
+		{"inline-http", "", "http://127.0.0.1:18081", "本机代理", "http://127.0.0.1:18081"},
+		{"pool-id-with-direct-snapshot", "pool-proxy", "direct://", "本机代理", "http://127.0.0.1:18080"},
+		{"pool-id-case-variant", "POOL-PROXY", "direct://", "本机代理", "http://127.0.0.1:18080"},
+		{"missing-pool-id-stays-conservative", "missing-proxy", "direct://", "本机代理", "direct://"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a, api, scope := storeAppFixture(t)
+			binding := installStoreFixture(t, a, scope)
+			profile := a.browserMgr.Profiles[binding.ProfileID]
+			profile.ProxyId, profile.ProxyConfig = tc.id, tc.config
+			before := *profile
+			catalog := &storeSummaryProxyCatalog{items: []browser.Proxy{{ProxyId: "pool-proxy", ProxyConfig: "http://127.0.0.1:18080"}}}
+			a.browserMgr.ProxyDAO = catalog
+
+			payload, err := a.StoreEnvironmentGet(scope.StoreID, 1)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var view storeEnvironmentView
+			if err := json.Unmarshal([]byte(payload), &view); err != nil {
+				t.Fatal(err)
+			}
+			if view.ProxySummary != tc.summary {
+				t.Errorf("proxy summary = %q, want %q", view.ProxySummary, tc.summary)
+			}
+			if catalog.reads != 0 {
+				t.Fatal("summary consulted the unowned legacy proxy catalog")
+			}
+			if err := a.validateStoreLaunchProfile(profile); (tc.id == "" && err != nil) || (tc.id != "" && !errors.Is(err, errStoreBoundary)) {
+				t.Fatalf("managed launch boundary changed: %v", err)
+			}
+
+			// Compare only the legacy proxy preparation leaf with a synthetic pool.
+			// Managed startup rejects the nonempty IDs above; no launch is attempted.
+			a.admission = func() error { return nil }
+			effective, _, bridge, err := a.resolveBrowserStartProxy(browserStartInput{ProfileID: binding.ProfileID}, profile)
+			if err != nil || bridge || effective != tc.effective || catalog.reads != 1 {
+				t.Fatalf("offline native proxy preparation = %q, bridge=%t, reads=%d, error=%v", effective, bridge, catalog.reads, err)
+			}
+			if !reflect.DeepEqual(*profile, before) || api.admitted != 0 || api.reports != 0 {
+				t.Fatal("comparison changed profile state or admitted/reported a command")
+			}
+		})
 	}
 }
 

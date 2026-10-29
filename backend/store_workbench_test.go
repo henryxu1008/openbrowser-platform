@@ -6,13 +6,16 @@ import (
 	"ant-chrome/backend/internal/database"
 	"ant-chrome/internal/desktopauth"
 	"ant-chrome/internal/shuomiapi"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 )
@@ -100,6 +103,81 @@ func installStoreFixture(t *testing.T, a *App, s browser.StoreScope) browser.Sto
 	}
 	return b
 }
+
+func TestStoreEnvironmentGetProxySummary(t *testing.T) {
+	for _, tc := range []struct {
+		name, proxyID, config, want string
+	}{
+		{"empty", "", "", "直连"},
+		{"builtin-id", "__direct__", "", "直连"},
+		{"canonical-direct", "", "direct://", "直连"},
+		{"builtin-direct", "__direct__", "direct://", "直连"},
+		{"normalized-direct", "", " \tDiReCt://\n", "直连"},
+		{"whitespace-only", "", " \t\n", "直连"},
+		{"explicit-direct-overrides-id", "saved-proxy", "direct://", "直连"},
+		{"id-only", "saved-proxy", "", "本机代理"},
+		{"id-with-blank-config", "saved-proxy", " \t", "本机代理"},
+		{"http", "", "http://fixture-user:fixture-secret@127.0.0.1:8080", "本机代理"},
+		{"https", "", "https://127.0.0.1:8443", "本机代理"},
+		{"socks5", "", "socks5://127.0.0.1:1080", "本机代理"},
+		{"config-overrides-builtin-id", "__direct__", "socks5://127.0.0.1:1080", "本机代理"},
+		{"vless", "", "vless://fixture@proxy.example.test:443", "本机代理"},
+		{"sing-box", "", "hysteria2://fixture@proxy.example.test:443", "本机代理"},
+		{"mihomo", "", "proxies:\n  - {name: fixture, type: tuic}", "本机代理"},
+		{"invalid-direct-uri", "", "direct://proxy.example.test", "本机代理"},
+		{"unsupported-direct-alias", "", "direct", "本机代理"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a, api, scope := storeAppFixture(t)
+			binding := installStoreFixture(t, a, scope)
+			profile := a.browserMgr.Profiles[binding.ProfileID]
+			profile.ProxyId, profile.ProxyConfig = tc.proxyID, tc.config
+			before := *profile
+			latest, err := a.store.dao.Latest(a.ctx, scope)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			payload, err := a.StoreEnvironmentGet(scope.StoreID, 1)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var view storeEnvironmentView
+			if err := json.Unmarshal([]byte(payload), &view); err != nil {
+				t.Fatal(err)
+			}
+			if view.ProxySummary != tc.want {
+				t.Errorf("proxy summary = %q, want %q", view.ProxySummary, tc.want)
+			}
+			latestJSON, _ := json.Marshal(latest)
+			viewLatestJSON, _ := json.Marshal(view.LastOperation)
+			if view.Binding == nil || view.Binding.ProfileID != binding.ProfileID || view.Pending != nil || !bytes.Equal(viewLatestJSON, latestJSON) {
+				t.Error("summary read changed binding or operation evidence")
+			}
+			after, err := a.store.dao.Latest(a.ctx, scope)
+			if err != nil || !reflect.DeepEqual(after, latest) {
+				t.Error("summary read changed persisted operation evidence")
+			}
+			if !reflect.DeepEqual(*profile, before) || api.admitted != 0 || api.reports != 0 {
+				t.Error("summary read changed the profile or admitted/reported a command")
+			}
+			if strings.Contains(payload, "fixture-secret") || strings.Contains(payload, "fixture-user") {
+				t.Error("summary exposed proxy credentials")
+			}
+		})
+	}
+}
+
+func TestStoreEnvironmentGetProxySummaryRequiresRemoteAuthorization(t *testing.T) {
+	a, api, scope := storeAppFixture(t)
+	binding := installStoreFixture(t, a, scope)
+	a.browserMgr.Profiles[binding.ProfileID].ProxyConfig = "direct://"
+	api.denied = &shuomiapi.Rejection{Code: "PERMISSION_DENIED"}
+	if payload, err := a.StoreEnvironmentGet(scope.StoreID, 1); !shuomiapi.IsRejected(err) || payload != "" {
+		t.Fatal("denied store read exposed environment details")
+	}
+}
+
 func TestStoreOpenLateAdmissionAndReplayNeverReachRuntime(t *testing.T) {
 	for _, scenario := range []string{"replay", "switch", "logout"} {
 		t.Run(scenario, func(t *testing.T) {

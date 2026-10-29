@@ -815,7 +815,7 @@ function Publish-Linux {
 }
 
 try {
-    Write-Section "Ant Browser - 发布打包脚本"
+    Write-Section "硕米指纹浏览器 - 发布打包脚本"
     Write-Host ""
     Write-Host "当前工作目录: $repoRoot"
     Write-Host ""

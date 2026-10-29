@@ -4,6 +4,7 @@
 package backend
 
 import (
+	"ant-chrome/backend/internal/config"
 	"bytes"
 	_ "embed"
 	"image/png"
@@ -823,7 +824,7 @@ func clearProfileWindowMarkerTitle(hwnd uintptr) {
 		return
 	}
 	if pageTitle == "" {
-		pageTitle = "Ant Browser"
+		pageTitle = config.DefaultAppName
 	}
 	setProfileWindowMarkerTitle(hwnd, pageTitle)
 }

@@ -10,7 +10,9 @@ Unicode True
   !define STAGINGDIR "..\publish\staging"
 !endif
 
-!define PRODUCT_NAME    "Ant Browser"
+!define PRODUCT_NAME    "硕米指纹浏览器"
+; Keep backup credentials at the path used by existing installations and the backend.
+!define LEGACY_DATA_DIR_NAME "Ant Browser"
 !define PRODUCT_EXE     "ant-chrome.exe"
 !define PRODUCT_ICON    "AntBrowser.ico"
 !define UNINSTALL_KEY   "Software\Microsoft\Windows\CurrentVersion\Uninstall\AntBrowser"
@@ -134,15 +136,15 @@ Function PreserveLegacyBackupLocalConfig
   ${EndIf}
 
 legacy_use_current_install:
-  IfFileExists "$APPDATA\${PRODUCT_NAME}\backup.local.yaml" legacy_done
+  IfFileExists "$APPDATA\${LEGACY_DATA_DIR_NAME}\backup.local.yaml" legacy_done
   IfFileExists "$4\backup.local.yaml" 0 legacy_done
 
   ClearErrors
-  CreateDirectory "$APPDATA\${PRODUCT_NAME}"
+  CreateDirectory "$APPDATA\${LEGACY_DATA_DIR_NAME}"
   IfErrors legacy_failed
   DetailPrint "Preserving legacy backup credentials"
   ClearErrors
-  CopyFiles /SILENT "$4\backup.local.yaml" "$APPDATA\${PRODUCT_NAME}"
+  CopyFiles /SILENT "$4\backup.local.yaml" "$APPDATA\${LEGACY_DATA_DIR_NAME}"
   IfErrors legacy_failed
   Goto legacy_done
 
@@ -155,20 +157,20 @@ FunctionEnd
 
 Function un.PreserveLegacyBackupLocalConfig
   IfFileExists "$INSTDIR\backup.local.yaml" 0 done
-  IfFileExists "$APPDATA\${PRODUCT_NAME}\backup.local.yaml" done
+  IfFileExists "$APPDATA\${LEGACY_DATA_DIR_NAME}\backup.local.yaml" done
 
   ClearErrors
-  CreateDirectory "$APPDATA\${PRODUCT_NAME}"
+  CreateDirectory "$APPDATA\${LEGACY_DATA_DIR_NAME}"
   IfErrors preserve_failed
 
-  DetailPrint "迁移旧版本地备份凭据到 $APPDATA\${PRODUCT_NAME}"
+  DetailPrint "迁移旧版本地备份凭据到 $APPDATA\${LEGACY_DATA_DIR_NAME}"
   ClearErrors
-  CopyFiles "$INSTDIR\backup.local.yaml" "$APPDATA\${PRODUCT_NAME}\"
+  CopyFiles "$INSTDIR\backup.local.yaml" "$APPDATA\${LEGACY_DATA_DIR_NAME}\"
   IfErrors preserve_failed
   Goto done
 
 preserve_failed:
-  MessageBox MB_ICONSTOP|MB_OK "无法保存旧版本地备份凭据：$APPDATA\${PRODUCT_NAME}\backup.local.yaml。为避免 OpenList / S3 Token 丢失，卸载已取消。请检查该目录权限后重试。"
+  MessageBox MB_ICONSTOP|MB_OK "无法保存旧版本地备份凭据：$APPDATA\${LEGACY_DATA_DIR_NAME}\backup.local.yaml。为避免 OpenList / S3 Token 丢失，卸载已取消。请检查该目录权限后重试。"
   Abort "卸载已取消：旧版本地备份凭据迁移失败。"
 
 done:
@@ -192,7 +194,7 @@ RequestExecutionLevel admin
 !define MUI_UNICON "..\build\windows\icon.ico"
 
 !insertmacro MUI_PAGE_WELCOME
-!define MUI_DIRECTORYPAGE_TEXT_TOP "请选择 Ant Browser 的安装目录。配置、数据库和浏览器档案保存在当前 Windows 用户的本地应用数据目录，升级不会重置已有用户数据。"
+!define MUI_DIRECTORYPAGE_TEXT_TOP "请选择${PRODUCT_NAME}的安装目录。配置、数据库和浏览器档案保存在当前 Windows 用户的本地应用数据目录，升级不会重置已有用户数据。"
 !define MUI_DIRECTORYPAGE_TEXT_DESTINATION "程序安装目录"
 !insertmacro MUI_PAGE_DIRECTORY
 !define MUI_COMPONENTSPAGE_SMALLDESC
@@ -206,7 +208,7 @@ RequestExecutionLevel admin
 
 !insertmacro MUI_LANGUAGE "SimpChinese"
 
-Section "Ant Browser (required)" SecMain
+Section "${PRODUCT_NAME}（必选）" SecMain
   SectionIn RO
   Call CloseInstalledProcesses
   Call PreserveLegacyBackupLocalConfig
@@ -262,7 +264,7 @@ Section /o "Desktop Shortcut" SecDesktop
 SectionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMain}    "Ant Browser main program and default config (required)"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecMain}    "${PRODUCT_NAME}主程序及默认配置（必选）"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecRuntime} "xray and sing-box proxy tools (vless/vmess/hysteria2)"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecDesktop} "Create a shortcut on the desktop"
 !insertmacro MUI_FUNCTION_DESCRIPTION_END

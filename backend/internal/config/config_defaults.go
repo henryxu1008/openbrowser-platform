@@ -37,7 +37,7 @@ func DefaultBrowserStartURLs() []string {
 	return append([]string{}, defaultBrowserStartURLs...)
 }
 
-// normalizeConfig 对历史配置进行字段补齐，不覆盖用户已配置值。
+// normalizeConfig 补齐历史配置并升级旧默认值，保留用户自定义配置。
 func normalizeConfig(config *Config) {
 	defaultConfig := DefaultConfig()
 
@@ -48,7 +48,8 @@ func normalizeConfig(config *Config) {
 		config.Database.SQLite.Path = defaultConfig.Database.SQLite.Path
 	}
 
-	if strings.TrimSpace(config.App.Name) == "" {
+	switch strings.TrimSpace(config.App.Name) {
+	case "", "Ant Browser", "Ant Chrome":
 		config.App.Name = defaultConfig.App.Name
 	}
 	if config.App.Window.Width <= 0 {
@@ -269,7 +270,7 @@ func DefaultConfig() *Config {
 			},
 		},
 		App: AppConfig{
-			Name: "Ant Browser",
+			Name: DefaultAppName,
 			Window: WindowConfig{
 				Width:     1750,
 				Height:    1000,

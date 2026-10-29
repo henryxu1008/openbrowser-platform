@@ -108,7 +108,11 @@ export async function fetchSettings(): Promise<AppSettings> {
   try {
     const stored = localStorage.getItem(SETTINGS_KEY)
     if (stored) {
-      return { ...defaultSettings, ...JSON.parse(stored) }
+      const settings: AppSettings = { ...defaultSettings, ...JSON.parse(stored) }
+      if (['', 'Ant Browser', 'Ant Chrome'].includes(String(settings.appName ?? '').trim())) {
+        settings.appName = defaultSettings.appName
+      }
+      return settings
     }
   } catch (error) {
     console.error('Failed to load settings:', error)

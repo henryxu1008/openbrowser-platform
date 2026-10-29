@@ -1,4 +1,4 @@
-﻿# Ant Browser
+# 硕米指纹浏览器
 
 > 面向多账号隔离、代理绑定和本地环境管理的桌面浏览器工具（Windows / Linux / macOS unsigned）。
 
@@ -10,15 +10,15 @@
 
 ## 推荐内核项目
 
-Ant Browser 当前推荐配套使用的浏览器内核，来源于开源项目 [fingerprint-chromium](https://github.com/adryfish/fingerprint-chromium)。
+硕米指纹浏览器当前推荐配套使用的浏览器内核，来源于开源项目 [fingerprint-chromium](https://github.com/adryfish/fingerprint-chromium)。
 
 如果你正在寻找可直接下载和维护的指纹内核版本，建议先查看它的 Releases 页面：
 
 - <https://github.com/adryfish/fingerprint-chromium/releases>
 
-这个项目为 Ant Browser 的内核准备提供了直接可用的基础来源，这里先对原项目做明确推荐与致谢。
+这个项目为硕米指纹浏览器的内核准备提供了直接可用的基础来源，这里先对原项目做明确推荐与致谢。
 
-Ant Browser 的目标很明确：在一台桌面设备上，帮助用户稳定管理多个彼此隔离的浏览器实例，并配合代理池、浏览器内核和快捷启动能力完成日常运营或测试工作。
+硕米指纹浏览器的目标很明确：在一台桌面设备上，帮助用户稳定管理多个彼此隔离的浏览器实例，并配合代理池、浏览器内核和快捷启动能力完成日常运营或测试工作。
 
 ## 目录
 
@@ -39,7 +39,7 @@ Ant Browser 的目标很明确：在一台桌面设备上，帮助用户稳定�
 
 ## 项目简介
 
-Ant Browser 适合以下场景：
+硕米指纹浏览器适合以下场景：
 
 - 多账号环境隔离
 - 跨境电商与社媒账号运营
@@ -221,7 +221,7 @@ Ant Browser 适合以下场景：
 2. 安装版直接运行 `AntBrowser-Setup-*.exe`
 3. 便携版解压后运行 `ant-chrome.exe`
 4. Linux 包下载后可直接安装 `ant-browser_<version>_<arch>.deb`，或解压 `tar.gz` 后运行 `ant-chrome`
-5. macOS unsigned 包解压后运行 `AntBrowser-<version>-macos-<arch>.app`；如被 Gatekeeper 拦截，请对本机测试包执行 `xattr -dr com.apple.quarantine <app路径>` 后再打开
+5. macOS unsigned 包解压后运行 `硕米指纹浏览器-<version>-macos-<arch>.app`；如被 Gatekeeper 拦截，请对本机测试包执行 `xattr -dr com.apple.quarantine <app路径>` 后再打开
 
 ### 从源码运行
 
@@ -376,7 +376,7 @@ Windows 升级或卸载旧版本时，安装器会先将旧安装目录中的 `b
 
 先检查代理节点本身是否可用，再确认该实例已经正确绑定代理。建议启动后访问 IP 检测网站复核当前出口。
 
-如果代理池里本地客户端可用节点很多，但 Ant Browser 中“只展示可用”数量明显偏少，先确认当前 `default_connector_type` 是否与本地客户端一致。Ant Browser 不会在 `xray` 组合栈和 `mihomo` 栈之间自动混用；切换连接栈后需要重新测速。
+如果代理池里本地客户端可用节点很多，但硕米指纹浏览器中“只展示可用”数量明显偏少，先确认当前 `default_connector_type` 是否与本地客户端一致。硕米指纹浏览器不会在 `xray` 组合栈和 `mihomo` 栈之间自动混用；切换连接栈后需要重新测速。
 
 ### 3. 实例太多，怎么快速找到目标实例？
 

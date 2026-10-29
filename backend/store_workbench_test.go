@@ -12,7 +12,9 @@ import (
 	"github.com/google/uuid"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
+	"time"
 )
 
 type storeAPIFixture struct {
@@ -166,6 +168,42 @@ func TestStoreSaveUsesOriginalTransactionWithoutSecondSQLiteConnection(t *testin
 	b, found, err := a.store.dao.Binding(a.ctx, s)
 	if err != nil || !found || a.browserMgr.Profiles[b.ProfileID] == nil || api.admitted != 1 {
 		t.Fatal("not atomically published")
+	}
+}
+
+func TestStoreLaunchKeepsFirstRunAndBackgroundUIOutOfManagedProfile(t *testing.T) {
+	a, _, s := storeAppFixture(t)
+	exe := filepath.Join(t.TempDir(), browser.CoreExecutableCandidates()[0])
+	if err := os.WriteFile(exe, []byte("non-executable offline fixture"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	a.config.Browser.Cores = []browser.Core{{CoreId: "fixture-core", CoreName: "Offline", CorePath: filepath.Dir(exe), IsDefault: true}}
+	// Store startup must not import arbitrary global arguments to recover the
+	// normal browser defaults: these can escape the Store ownership boundary.
+	a.config.Browser.DefaultLaunchArgs = []string{"--proxy-server=http://foreign.invalid:1", "--load-extension=foreign", "https://foreign.invalid"}
+	b := installStoreFixture(t, a, s)
+	scoped, err := a.storeActionReceiver(1, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	scoped.storeProfileID = b.ProfileID
+	plan, err := scoped.prepareBrowserStartPlan(newBrowserStartInput(b.ProfileID, nil, nil, false, false, false, "", ""), a.browserMgr.Profiles[b.ProfileID])
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer plan.releaseBridgeIfNeeded(scoped)
+	for _, required := range []string{"--no-first-run", "--disable-background-mode"} {
+		if !slices.Contains(plan.args, required) {
+			t.Errorf("managed Store launch lacks %s", required)
+		}
+	}
+	for _, forbidden := range a.config.Browser.DefaultLaunchArgs {
+		if slices.Contains(plan.args, forbidden) {
+			t.Errorf("global argument escaped Store startup: %s", forbidden)
+		}
+	}
+	if len(a.browserMgr.Profiles[b.ProfileID].LaunchArgs) != 0 {
+		t.Fatal("fixed native startup flags were persisted as renderer-controlled profile arguments")
 	}
 }
 func TestStoreManagedBoundaryCoversOriginalFacadeAndRejectsDirectoryAlias(t *testing.T) {

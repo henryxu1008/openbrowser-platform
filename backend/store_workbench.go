@@ -654,14 +654,14 @@ func (a *App) StoreEnvironmentClose(storeID string, revision uint64) (string, er
 		receipt := a.ownedBrowsers.items[b.ProfileID]
 		a.ownedBrowsers.mu.Unlock()
 		if receipt.monitor == nil {
-			err = errOwnedCleanupUnknown
+			err = ownedCleanupUnknown("exit_monitor_missing")
 		} else {
 			timer := time.NewTimer(3 * time.Second)
 			defer timer.Stop()
 			select {
 			case <-receipt.monitor.Done():
 			case <-timer.C:
-				err = errOwnedCleanupUnknown
+				err = ownedCleanupUnknown("process_exit_unconfirmed")
 			}
 		}
 	}

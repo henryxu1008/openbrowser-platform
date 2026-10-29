@@ -127,7 +127,7 @@ func cdpBrowserCallVerified(debugPort int, method string, params map[string]any,
 	if verify != nil {
 		u, parseErr := url.Parse(wsURL)
 		if parseErr != nil || u.Scheme != "ws" || u.Host != fmt.Sprintf("127.0.0.1:%d", debugPort) || u.User != nil || u.RawQuery != "" || u.Fragment != "" || !strings.HasPrefix(u.Path, "/devtools/browser/") {
-			return nil, errOwnedCleanupUnknown
+			return nil, ownedCleanupUnknown("endpoint_identity_unproven")
 		}
 	}
 
@@ -156,7 +156,7 @@ func cdpBrowserCallVerified(debugPort int, method string, params map[string]any,
 		return nil, fmt.Errorf("浏览器级 CDP 错误: %s", cdpResp.Error.Message)
 	}
 	if verify != nil && cdpResp.Id != msg.Id {
-		return nil, errOwnedCleanupUnknown
+		return nil, ownedCleanupUnknown("cdp_ack_unmatched")
 	}
 	return cdpResp.Result, nil
 }

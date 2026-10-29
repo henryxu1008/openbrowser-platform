@@ -2,12 +2,19 @@ package backend
 
 import (
 	"errors"
+	"fmt"
 	"os/exec"
 	"path/filepath"
 	"sync"
 )
 
 var errOwnedCleanupUnknown = errors.New("owned_browser_close_unknown: close the browser window manually; no automatic retry")
+
+// Only fixed failure stages cross the native boundary. Never expose command
+// lines, directory paths, endpoint addresses or underlying native query errors.
+func ownedCleanupUnknown(stage string) error {
+	return fmt.Errorf("%w (%s)", errOwnedCleanupUnknown, stage)
+}
 
 // Private OS seams; production always uses native identity/endpoint proof.
 var readOwnedProcessCreation = ownedProcessCreation
@@ -52,34 +59,47 @@ func (a *AuthBoundApp) CloseOwnedBrowser(profileID string) error {
 	core := a.core
 	core.ownedBrowsers.mu.Lock()
 	receipt, ok := core.ownedBrowsers.items[profileID]
-	if !ok || receipt.attempted {
+	if !ok {
 		core.ownedBrowsers.mu.Unlock()
-		return errOwnedCleanupUnknown
+		return ownedCleanupUnknown("start_receipt_missing")
+	}
+	if receipt.attempted {
+		core.ownedBrowsers.mu.Unlock()
+		return ownedCleanupUnknown("close_already_attempted")
 	}
 	receipt.attempted = true
 	core.ownedBrowsers.items[profileID] = receipt
 	core.ownedBrowsers.mu.Unlock()
 	verify := func() error { return core.verifyOwnedBrowser(receipt) }
 	if _, err := cdpBrowserCallVerified(receipt.port, "Browser.close", nil, verify); err != nil {
-		return errOwnedCleanupUnknown
+		if errors.Is(err, errOwnedCleanupUnknown) {
+			return err
+		}
+		return ownedCleanupUnknown("cdp_exchange_unconfirmed")
 	}
 	return nil
 }
 
 func (a *App) verifyOwnedBrowser(receipt ownedBrowserReceipt) error {
 	if receipt.cmd == nil || receipt.cmd.Process == nil || receipt.monitor == nil || receipt.monitor.HasExited() || a.browserMgr == nil {
-		return errOwnedCleanupUnknown
+		return ownedCleanupUnknown("start_identity_unavailable")
 	}
 	a.browserMgr.Mutex.Lock()
 	profile := a.browserMgr.Profiles[receipt.profileID]
 	matches := profile != nil && a.browserMgr.BrowserProcesses[receipt.profileID] == receipt.cmd && a.browserProcessMonitors[receipt.profileID] == receipt.monitor && profile.Pid == receipt.cmd.Process.Pid && profile.DebugPort == receipt.port && filepath.Clean(a.browserMgr.ResolveUserDataDir(profile)) == receipt.userDataDir
 	a.browserMgr.Mutex.Unlock()
 	if !matches {
-		return errOwnedCleanupUnknown
+		return ownedCleanupUnknown("start_identity_changed")
 	}
 	creation, err := readOwnedProcessCreation(receipt.cmd.Process.Pid)
-	if err != nil || creation != receipt.creation {
-		return errOwnedCleanupUnknown
+	if err != nil {
+		return ownedCleanupUnknown("process_identity_unproven")
 	}
-	return verifyOwnedProcessEndpoint(receipt.cmd.Process.Pid, receipt.userDataDir, receipt.port)
+	if creation != receipt.creation {
+		return ownedCleanupUnknown("process_identity_changed")
+	}
+	if err := verifyOwnedProcessEndpoint(receipt.cmd.Process.Pid, receipt.userDataDir, receipt.port); err != nil {
+		return ownedCleanupUnknown("process_endpoint_unproven")
+	}
+	return nil
 }

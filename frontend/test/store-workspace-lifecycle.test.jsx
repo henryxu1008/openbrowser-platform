@@ -40,9 +40,9 @@ function deferred() {
   const promise = new Promise((yes, no) => { resolve = yes; reject = no })
   return { promise, resolve, reject }
 }
-let tree, location, navigate
+let tree, location, navigate, previousActEnvironment
 function Location() { location = useLocation(); navigate = useNavigate(); return null }
-async function mount(path = '/stores/shop-a') {
+async function mount(path = '/stores/shop-a', concurrent = false) {
   await act(async () => { tree = create(<MemoryRouter initialEntries={[path]}><Location/><Routes>
     <Route path="/stores" element={<StoreWorkspace/>}>
       <Route index element={<StoreListPage/>}/>
@@ -50,13 +50,15 @@ async function mount(path = '/stores/shop-a') {
       <Route path=":storeId/environment/edit" element={<StoreEnvironmentEditPage/>}/>
     </Route>
     <Route path="/elsewhere" element={<p>elsewhere</p>}/>
-  </Routes></MemoryRouter>) })
+  </Routes></MemoryRouter>, { unstable_isConcurrent: concurrent }) })
 }
 const button = label => tree.root.findAllByType('button').find(node => node.children.join('') === label)
 const selectOrg = id => tree.root.findByProps({ 'aria-label': '当前企业' }).props.onChange({ target: { value: id } })
 const detail = () => tree.root.findByType(BrowserDetailPage).props.managed
 const editor = () => tree.root.findByType(BrowserEditPage).props.managed
 beforeEach(() => {
+  previousActEnvironment = globalThis.IS_REACT_ACT_ENVIRONMENT
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true
   vi.resetAllMocks()
   fixture.api.context.mockResolvedValue(context())
   fixture.api.select.mockResolvedValue(context('org-b', 2))
@@ -67,7 +69,184 @@ beforeEach(() => {
   fixture.api.options.mockResolvedValue({ binding: { bindingVersion: '1' }, input: {}, cores: [] })
   fixture.api.save.mockResolvedValue(environment('saved'))
 })
-afterEach(() => { if (tree) act(() => tree.unmount()); tree = null })
+afterEach(() => { if (tree) act(() => tree.unmount()); tree = null; globalThis.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment })
+
+it.each([false, true])('refreshes enterprise permissions with the detail read, initially allowed=%s', async initiallyAllowed => {
+  const permissionContext = allowed => {
+    const value = context()
+    value.context.organizations = value.context.organizations.map(org => ({ ...org, permissions: allowed ? ['workbench.store.browser.use'] : [] }))
+    return value
+  }
+  fixture.api.context.mockResolvedValueOnce(permissionContext(initiallyAllowed))
+  await mount('/stores/shop-a?return=q%3Dkept')
+  expect(detail().canUse).toBe(initiallyAllowed)
+  fixture.api.context.mockResolvedValue(permissionContext(!initiallyAllowed))
+  await act(async () => { button('只读刷新').props.onClick() })
+  expect(fixture.api.context).toHaveBeenCalledTimes(2)
+  expect(detail().canUse).toBe(!initiallyAllowed)
+  expect(location.pathname + location.search).toBe('/stores/shop-a?return=q%3Dkept')
+  for (const method of ['select', 'options', 'save', 'open', 'close', 'receipt']) expect(fixture.api[method]).not.toHaveBeenCalled()
+})
+
+it('rebuilds the detail after an immediate context response in concurrent React with the same native revision', async () => {
+  await mount('/stores/shop-a', true)
+  const changed = context()
+  changed.context.organizations.forEach(org => { org.permissions = [] })
+  fixture.api.context.mockResolvedValueOnce(changed)
+  await act(async () => { button('只读刷新').props.onClick() })
+  expect(detail().canUse).toBe(false)
+  expect(button('只读刷新').props.disabled).toBe(false)
+  expect(fixture.api.store).toHaveBeenCalledTimes(2)
+  expect(fixture.api.context).toHaveBeenCalledTimes(2)
+})
+
+it('clears visible Store permissions when the explicit context recheck fails', async () => {
+  await mount()
+  fixture.api.context.mockRejectedValueOnce(new Error('context_unavailable'))
+  await act(async () => { button('只读刷新').props.onClick() })
+  expect(tree.root.findAllByType(BrowserDetailPage)).toHaveLength(0)
+  expect(button('只读核对企业上下文')).toBeDefined()
+  expect(fixture.api.store).toHaveBeenCalledTimes(1)
+  for (const method of ['select', 'save', 'open', 'close']) expect(fixture.api[method]).not.toHaveBeenCalled()
+})
+
+it('leaves the original Store route before publishing a replacement context organization', async () => {
+  await mount('/stores/shop-a?return=q%3Dkept')
+  fixture.api.context.mockResolvedValueOnce(context('org-b', 2))
+  await act(async () => { button('只读刷新').props.onClick() })
+  expect(location.pathname).toBe('/stores')
+  expect(tree.root.findAllByType(BrowserDetailPage)).toHaveLength(0)
+  expect(fixture.api.store).toHaveBeenCalledTimes(1)
+  expect(fixture.api.list).toHaveBeenCalledWith('', '', 1, 2)
+  expect(fixture.api.select).not.toHaveBeenCalled()
+})
+
+it('does not adopt a different subject from a detail context recheck', async () => {
+  await mount()
+  const foreign = context()
+  foreign.context.user.id = 'different-subject'
+  fixture.api.context.mockResolvedValueOnce(foreign)
+  await act(async () => { button('只读刷新').props.onClick() })
+  expect(tree.root.findAllByType(BrowserDetailPage)).toHaveLength(0)
+  expect(button('只读核对企业上下文')).toBeDefined()
+  expect(fixture.api.store).toHaveBeenCalledTimes(1)
+})
+
+it('keeps an original pending UNKNOWN blocked after refreshing the permission context', async () => {
+  const pending = { operationId: 'original-operation', phase: 'attempted', outcome: 'unknown', reportState: 'confirmed' }
+  fixture.api.environment.mockResolvedValue({ ...environment('pending'), pending, lastOperation: pending, runtimeKnown: false })
+  await mount()
+  await act(async () => { button('只读刷新').props.onClick() })
+  expect(fixture.api.context).toHaveBeenCalledTimes(2)
+  expect(detail().canUse).toBe(false)
+  expect(detail().known).toBe(false)
+  expect(detail().evidence).toContain('original-operation')
+  for (const method of ['select', 'save', 'open', 'close', 'receipt']) expect(fixture.api[method]).not.toHaveBeenCalled()
+})
+
+it('starts one context refresh and blocks stale open callbacks until the replacement detail loads', async () => {
+  await mount()
+  const refreshed = deferred(), oldOpen = detail().onOpen, refresh = button('只读刷新').props.onClick
+  fixture.api.context.mockReturnValueOnce(refreshed.promise)
+  await act(async () => { refresh(); refresh(); oldOpen() })
+  expect(fixture.api.context).toHaveBeenCalledTimes(2)
+  expect(fixture.api.open).not.toHaveBeenCalled()
+  expect(tree.root.findAllByType(BrowserDetailPage)).toHaveLength(0)
+  expect(fixture.api.store).toHaveBeenCalledTimes(1)
+  await act(async () => { refreshed.resolve(context('org-a', 2)) })
+  expect(fixture.api.store).toHaveBeenLastCalledWith('shop-a', 2)
+  expect(button('只读刷新').props.disabled).toBe(false)
+})
+
+it.each(['open', 'close'])('keeps the original refresh locked through duplicate settlement and rejects its old %s callback', async kind => {
+  fixture.api.environment.mockResolvedValue({ ...environment('initial'), running: kind === 'close' })
+  await mount('/stores/shop-a', true)
+  const refreshed = deferred(), refresh = button('只读刷新').props.onClick
+  const oldAction = kind === 'open' ? detail().onOpen : detail().onClose
+  fixture.api.context.mockReturnValueOnce(refreshed.promise)
+  fixture.api[kind].mockResolvedValue(kind === 'open'
+    ? { ...environment('opened'), running: true }
+    : { outcome: 'succeeded', observedAt: 'now' })
+  await act(async () => {
+    refresh(); refresh()
+    // Let an ignored duplicate settle before React commits the old detail's removal.
+    await Promise.resolve(); await Promise.resolve()
+    oldAction()
+  })
+  expect(fixture.api.context).toHaveBeenCalledTimes(2)
+  expect(fixture.api[kind]).not.toHaveBeenCalled()
+  expect(tree.root.findAllByType(BrowserDetailPage)).toHaveLength(0)
+  await act(async () => { refresh(); oldAction() })
+  expect(fixture.api.context).toHaveBeenCalledTimes(2)
+  expect(fixture.api[kind]).not.toHaveBeenCalled()
+  const latest = context()
+  // Normal close must remain available after permission revocation on the new detail.
+  if (kind === 'close') latest.context.organizations.forEach(org => { org.permissions = [] })
+  await act(async () => { refreshed.resolve(latest) })
+  expect(button('只读刷新').props.disabled).toBe(false)
+  expect(detail().canUse).toBe(kind === 'open')
+  await act(async () => { refresh(); oldAction() })
+  expect(fixture.api.context).toHaveBeenCalledTimes(2)
+  expect(fixture.api[kind]).not.toHaveBeenCalled()
+  await act(async () => { (kind === 'open' ? detail().onOpen : detail().onClose)() })
+  expect(fixture.api[kind]).toHaveBeenCalledTimes(1)
+  expect(detail().running).toBe(kind === 'open')
+  expect(fixture.api.select).not.toHaveBeenCalled()
+  expect(fixture.api.save).not.toHaveBeenCalled()
+})
+
+it('keeps old callbacks inactive after duplicate refresh fails and the workspace retry recovers', async () => {
+  await mount('/stores/shop-a', true)
+  const refreshed = deferred(), refresh = button('只读刷新').props.onClick, oldOpen = detail().onOpen
+  fixture.api.context.mockReturnValueOnce(refreshed.promise)
+  fixture.api.open.mockResolvedValue({ ...environment('unexpected'), running: true })
+  await act(async () => { refresh(); refresh() })
+  await act(async () => { refreshed.reject(new Error('context_unavailable')) })
+  expect(tree.root.findAllByType(BrowserDetailPage)).toHaveLength(0)
+  await act(async () => { refresh(); oldOpen() })
+  expect(fixture.api.context).toHaveBeenCalledTimes(2)
+  expect(fixture.api.open).not.toHaveBeenCalled()
+  await act(async () => { button('只读核对企业上下文').props.onClick() })
+  expect(button('只读刷新').props.disabled).toBe(false)
+  await act(async () => { refresh(); oldOpen() })
+  expect(fixture.api.context).toHaveBeenCalledTimes(3)
+  expect(fixture.api.open).not.toHaveBeenCalled()
+})
+
+it.each(['open', 'close'])('invalidates a loaded %s callback when its workspace leaves and a new one mounts', async kind => {
+  fixture.api.environment.mockResolvedValue({ ...environment('initial'), running: kind === 'close' })
+  await mount('/stores/shop-a', true)
+  const oldAction = kind === 'open' ? detail().onOpen : detail().onClose
+  fixture.api[kind].mockResolvedValue(kind === 'open'
+    ? { ...environment('opened'), running: true }
+    : { outcome: 'succeeded', observedAt: 'now' })
+  await act(async () => { navigate('/elsewhere') })
+  await act(async () => { oldAction() })
+  expect(fixture.api[kind]).not.toHaveBeenCalled()
+  await act(async () => { navigate('/stores/shop-a') })
+  await act(async () => { oldAction() })
+  expect(fixture.api[kind]).not.toHaveBeenCalled()
+  await act(async () => { (kind === 'open' ? detail().onOpen : detail().onClose)() })
+  expect(fixture.api[kind]).toHaveBeenCalledTimes(1)
+})
+
+it('cannot publish an old context or reuse its refresh callback after the workspace was replaced', async () => {
+  await mount()
+  const original = deferred(), oldRefresh = button('只读刷新').props.onClick
+  fixture.api.context.mockReturnValueOnce(original.promise)
+  await act(async () => { oldRefresh() })
+  await act(async () => { navigate('/elsewhere') })
+  const latest = context()
+  latest.context.organizations.forEach(org => { org.permissions = [] })
+  fixture.api.context.mockResolvedValueOnce(latest)
+  await act(async () => { navigate('/stores/shop-a') })
+  await act(async () => { original.resolve(context('org-b', 9)); oldRefresh() })
+  expect(detail().canUse).toBe(false)
+  expect(location.pathname).toBe('/stores/shop-a')
+  expect(tree.root.findByProps({ 'aria-label': '当前企业' }).props.value).toBe('org-a')
+  expect(fixture.api.context).toHaveBeenCalledTimes(3)
+  expect(fixture.api.store).toHaveBeenCalledTimes(2)
+})
 
 it('keeps an initial detail deep link, then leaves it before publishing another enterprise', async () => {
   await mount('/stores/shop-a?tab=records&return=q%3Dold')
@@ -163,12 +342,14 @@ it('ignores editor navigation after leaving the workspace and preserves a normal
   expect(location.pathname).toBe('/elsewhere')
 })
 
-it('ignores an older detail response and does not continue its environment lookup', async () => {
+it('ignores an older detail response after context refresh and navigation', async () => {
   await mount()
   const older = deferred(), newer = deferred()
   fixture.api.store.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise)
   const refresh = button('只读刷新').props.onClick
   await act(async () => { refresh(); refresh() })
+  expect(fixture.api.context).toHaveBeenCalledTimes(2)
+  await act(async () => { navigate('/stores/shop-b') })
   await act(async () => { newer.resolve({ ...store, name: 'newer' }) })
   expect(detail().name).toBe('initial')
   await act(async () => { older.resolve({ ...store, name: 'older' }) })
@@ -192,24 +373,29 @@ it('ignores a stale environment response and a stale error without replacing the
   const oldState = deferred(), oldError = deferred()
   fixture.api.environment.mockReturnValueOnce(oldState.promise).mockResolvedValue(environment('newest'))
   await act(async () => { button('只读刷新').props.onClick() })
+  await act(async () => { navigate('/stores') })
+  await act(async () => { navigate('/stores/shop-a') })
   const refresh = button('只读刷新').props.onClick
   fixture.api.store.mockReturnValueOnce(oldError.promise).mockResolvedValue(store)
-  await act(async () => { refresh(); refresh() })
+  await act(async () => { refresh() })
+  await act(async () => { navigate('/stores/shop-b') })
   await act(async () => { oldState.resolve(environment('obsolete')); oldError.reject(new Error('obsolete error')) })
   expect(detail().name).toBe('newest')
   expect(tree.root.findAllByProps({ role: 'alert' })).toHaveLength(0)
   expect(button('只读刷新').props.disabled).toBe(false)
 })
 
-it('blocks refresh callbacks during an open action and displays its original result once', async () => {
+it.each(['open','close'])('blocks refresh callbacks during a %s action and displays its original result once', async kind => {
+  fixture.api.environment.mockResolvedValue({ ...environment('initial'), running: kind==='close' })
   await mount()
   const opened = deferred(), refresh = button('只读刷新').props.onClick
-  fixture.api.open.mockReturnValueOnce(opened.promise)
-  await act(async () => { detail().onOpen(); refresh() })
+  fixture.api[kind].mockReturnValueOnce(opened.promise)
+  await act(async () => { (kind==='open'?detail().onOpen:detail().onClose)(); refresh() })
+  expect(fixture.api.context).toHaveBeenCalledTimes(1)
   expect(fixture.api.store).toHaveBeenCalledTimes(1)
-  expect(fixture.api.open).toHaveBeenCalledTimes(1)
-  await act(async () => { opened.resolve({ ...environment('opened'), running: true }) })
-  expect(detail().running).toBe(true)
+  expect(fixture.api[kind]).toHaveBeenCalledTimes(1)
+  await act(async () => { opened.resolve(kind==='open'?{ ...environment('opened'), running: true }:{ outcome:'succeeded', observedAt:'now' }) })
+  expect(detail().running).toBe(kind==='open')
 })
 
 it('blocks a stale open callback while a newer read is pending', async () => {

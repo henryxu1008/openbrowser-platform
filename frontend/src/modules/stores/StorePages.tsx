@@ -5,7 +5,8 @@ import { BrowserEditPage, type ManagedBrowserEditor } from '../browser/pages/Bro
 import { BrowserDetailPage } from '../browser/pages/BrowserDetailPage'
 import { storeAPI, storeError, storeOperationKey, type AuditItem, type AuditPage, type AuditQuery, type Catalog, type Environment, type Store, type StoreContext } from './api'
 
-const Scope = createContext<StoreContext | null>(null)
+type StoreScope = StoreContext & { refresh: () => Promise<void> }
+const Scope = createContext<StoreScope | null>(null)
 const Dirty = createContext<(dirty:boolean)=>void>(()=>{})
 const useScope = () => { const scope = useContext(Scope); if (!scope) throw new Error('store_context_required'); return scope }
 const time = (value?: string) => value ? new Date(value).toLocaleString('zh-CN') : '—'
@@ -19,11 +20,21 @@ export function StoreWorkspace() {
   const [error,setError] = useState(''), [busy,setBusy] = useState(true)
   const [dirty,setDirty]=useState(false),[pendingOrg,setPendingOrg]=useState('')
   const requestEpoch = useRef(0), requestPending = useRef(false)
-  useEffect(() => {void load();return()=>{requestEpoch.current++}},[])
-  async function load() {
+  const active = useRef(false)
+  useEffect(() => {active.current=true;void load();return()=>{active.current=false;requestEpoch.current++}},[])
+  async function load(previous?: StoreContext, expectedEpoch?: number) {
+    if(!active.current || (expectedEpoch!==undefined&&expectedEpoch!==requestEpoch.current))return
     const epoch=++requestEpoch.current;requestPending.current=true
+    // Reuse the workspace's context owner. Old details must leave before a
+    // refreshed identity/enterprise/permission snapshot can mount them again.
     setBusy(true);setScope(null);setError('')
-    try {const value=await storeAPI().context();if(epoch===requestEpoch.current)setScope(value)} catch(e){if(epoch===requestEpoch.current)setError(storeError(e))} finally{if(epoch===requestEpoch.current){requestPending.current=false;setBusy(false)}}
+    try {
+      const value=await storeAPI().context()
+      if(epoch!==requestEpoch.current)return
+      if(previous && value.context.user.id!==previous.context.user.id)throw new Error('store_context_changed')
+      if(previous && value.context.effectiveOrganizationId!==previous.context.effectiveOrganizationId)navigate('/stores',{replace:true})
+      setScope(value)
+    } catch(e){if(epoch===requestEpoch.current)setError(storeError(e))} finally{if(epoch===requestEpoch.current){requestPending.current=false;setBusy(false)}}
   }
   async function select(id: string) {
     if(!scope||requestPending.current||id===scope.context.effectiveOrganizationId)return
@@ -35,6 +46,7 @@ export function StoreWorkspace() {
     navigate('/stores',{replace:true})
     try {const value=await storeAPI().select(id,previous.revision);if(epoch===requestEpoch.current)setScope(value)}catch(e){if(epoch===requestEpoch.current)setError(storeError(e))}finally{if(epoch===requestEpoch.current){requestPending.current=false;setBusy(false)}}
   }
+  const scopeEpoch=requestEpoch.current
   return <div className="space-y-4">
     <Card padding="none"><div className="p-4 flex items-center justify-between gap-4"><Link to="/stores" className="font-semibold">店铺工作台</Link>
       <Select aria-label="当前企业" disabled={busy||!scope} value={scope?.context.effectiveOrganizationId||''} onChange={e=>{if(e.target.value===scope?.context.effectiveOrganizationId)return;if(dirty)setPendingOrg(e.target.value);else void select(e.target.value)}} options={[{value:'',label:busy?'加载中…':'请选择企业'},...(scope?.context.organizations||[]).map(org=>({value:org.id,label:org.name}))]} />
@@ -42,7 +54,7 @@ export function StoreWorkspace() {
     <ErrorNotice message={error}/>
     {error&&<Button variant="secondary" onClick={()=>void load()}>只读核对企业上下文</Button>}
     {scope?.context.selectionRequired&&<p role="status">请选择企业后查看获授权的店铺。</p>}
-    {scope?.context.effectiveOrganizationId&&!busy&&<Scope.Provider value={scope}><Dirty.Provider value={setDirty}><Outlet key={scope.revision}/></Dirty.Provider></Scope.Provider>}
+    {scope?.context.effectiveOrganizationId&&!busy&&<Scope.Provider value={{...scope,refresh:()=>load(scope,scopeEpoch)}}><Dirty.Provider value={setDirty}><Outlet key={`${scope.revision}:${scopeEpoch}`}/></Dirty.Provider></Scope.Provider>}
     <ConfirmModal open={!!pendingOrg} title="放弃未保存的更改并切换企业？" content="当前环境配置尚未保存。" onClose={()=>setPendingOrg('')} onConfirm={()=>{const org=pendingOrg;setPendingOrg('');setDirty(false);void select(org)}}/>
   </div>
 }
@@ -79,12 +91,17 @@ function StoreDetail() {
   const reading=useRef(false)
   const viewEpoch=useRef(0)
   useEffect(()=>{void read();return()=>{viewEpoch.current++}},[storeId,scope.revision])
-  async function read() {
+  async function read(refreshContext=false) {
     if(actionBusy.current)return
     const epoch=++viewEpoch.current;reading.current=true
     setLoaded(false);setError('');setStore(null);setEnvironment(null);setReceipt('');setUnknownKey('')
-    const api=storeAPI()
-    try{const record=await api.store(storeId,scope.revision);if(epoch!==viewEpoch.current)return;const state=await api.environment(storeId,scope.revision);if(epoch===viewEpoch.current){setStore(record);setEnvironment(state)}}catch(e){if(epoch===viewEpoch.current)setError(storeError(e))}finally{if(epoch===viewEpoch.current){reading.current=false;setLoaded(true)}}
+    try {
+      if(refreshContext){await scope.refresh();return}
+      const api=storeAPI(),record=await api.store(storeId,scope.revision)
+      if(epoch!==viewEpoch.current)return
+      const state=await api.environment(storeId,scope.revision)
+      if(epoch===viewEpoch.current){setStore(record);setEnvironment(state)}
+    }catch(e){if(epoch===viewEpoch.current)setError(storeError(e))}finally{if(epoch===viewEpoch.current){reading.current=false;setLoaded(true)}}
   }
   const org=scope.context.organizations.find(org=>org.id===scope.context.effectiveOrganizationId)
   const canUse=!!org?.permissions.includes('workbench.store.browser.use')&&store?.recordStatus==='active'
@@ -102,7 +119,7 @@ function StoreDetail() {
   const tab=params.get('tab')==='records'?'records':'environment'
   return <div className="space-y-4">
     <Link to={`/stores?${params.get('return')||''}`}>返回店铺列表</Link>
-    <Card title={store?.name||'店铺详情'}><p className="text-sm">{store&&`${store.platform} · ${store.region} · ${store.recordStatus}`}</p><div className="flex gap-3 mt-3">{(['environment','records'] as const).map(value=><Button key={value} variant={tab===value?'primary':'secondary'} onClick={()=>{const next=new URLSearchParams(params);next.set('tab',value);setParams(next)}}>{value==='environment'?'店铺环境':'操作记录'}</Button>)}<Button variant="secondary" disabled={busy||!loaded} onClick={()=>void read()}>只读刷新</Button></div></Card>
+    <Card title={store?.name||'店铺详情'}><p className="text-sm">{store&&`${store.platform} · ${store.region} · ${store.recordStatus}`}</p><div className="flex gap-3 mt-3">{(['environment','records'] as const).map(value=><Button key={value} variant={tab===value?'primary':'secondary'} onClick={()=>{const next=new URLSearchParams(params);next.set('tab',value);setParams(next)}}>{value==='environment'?'店铺环境':'操作记录'}</Button>)}<Button variant="secondary" disabled={busy||!loaded} onClick={()=>void read(true)}>只读刷新</Button></div></Card>
     <ErrorNotice message={error}/>
     {!loaded&&<p role="status">加载中…</p>}
     {store&&environment&&tab==='environment'&&<>

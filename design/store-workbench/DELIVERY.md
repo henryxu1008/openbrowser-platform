@@ -65,3 +65,13 @@
 新增缺失参数、错误阶段丢失、确认 CDP 但进程不退出三项回归均先 RED，再在修复后 GREEN。相关 Store/AuthBound/Windows proof race 测试及 backend vet 通过。Windows 原生证明测试仅启动当前 Go 测试程序作为合成 HTTP/WebSocket 子进程，直接执行真实创建时间、CIM 目录和监听端口核验，没有启动 Chrome、产品、店铺环境或共享服务。
 
 这些证据证明启动参数缺口与诊断丢失已修正，**没有证明旧 UNKNOWN 的唯一原因或新的真实 Chrome 正常关闭通过**。原试用目录、配置、报告、账号授权和管理员权限保持；受保护管理员授权的 B1 仍由后端 owner 单独处理。本次不部署、不操作现有环境、不关闭执行 Issue，新源码不能沿用原两 PR 的合并授权。
+
+## 2026-10-29：详情只读刷新同时更新权限上下文
+
+后续关闭复测和PR17合并已完成，记录见该PR及原owner回执；上节是当时源码修复阶段。新的桌面配套核对发现：详情只读刷新只重新读取Store/environment，按钮仍消费工作台初次加载的权限快照。用户已授权本轮本地修复、离线回归及只读核对后端最终交付，不授权部署、现有权限更改或店铺操作。
+
+Design Basis：Reuse Existing Architecture。复用现有StoreWorkspace的context读取、requestEpoch、清空旧scope、错误后显式核对以及原详情加载流程；只把原“只读刷新”接到该owner，不增加第二份权限状态或新API。刷新先让旧详情退出，再按新context重建；查询参数和同企业深链保留，企业变化先回列表，主体不一致或读取失败不发布旧权限控件。读取epoch也参与Outlet key，覆盖React并发批处理下context立即返回且原生revision不变的情况。
+
+旧回调和迟到响应按原epoch失效；打开/正常关闭进行中不发起上下文刷新，新context读取中不能用旧打开回调下发操作。刷新仅重读既有接口，不进行企业切换PUT、角色写入、配置/打开/关闭或原回执重发。UNKNOWN继续来自原持久化记录，重新加载后仍阻断新操作。服务端短缓存和每次操作的LiveWrite准入不变；这次修复保证消费服务器返回的权限，不宣称真实IAM即时投影。
+
+六例新增权限/失败/上下文/UNKNOWN回归先RED后GREEN；并发React的同revision立即响应曾独立复现详情未重建，再以读取epoch修正。最终相关Store生命周期与受管UI两组测试共25例通过、无跳过，TypeScript和生产前端构建通过。工件在`build/dist/store-context-readonly-refresh-20261029-01/`；全部为模拟API/离线构建，未启动桌面、Chrome或店铺环境，未更新保留EXE、登录、权限、配置或数据。没有新Windows EXE实机验收、新远端CI、推送、合并或部署。

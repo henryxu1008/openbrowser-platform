@@ -234,6 +234,12 @@ func (a *App) prepareBrowserLaunchContext(input browserStartInput, profile *Brow
 
 	sanitizedProfileLaunchArgs, managedProfileArgs := sanitizeManagedLaunchArgs(profile.LaunchArgs)
 	sanitizedExtraLaunchArgs, managedExtraArgs := sanitizeManagedLaunchArgs(input.ExtraLaunchArgs)
+	if a.storeProfileID != "" {
+		// Store profiles deliberately reject arbitrary profile/global launch
+		// arguments and skip ApplyDefaults. Keep first-run UI and background
+		// residency out of this host-owned lifecycle using fixed native flags.
+		sanitizedProfileLaunchArgs = append(sanitizedProfileLaunchArgs, "--no-first-run", "--disable-background-mode")
+	}
 	logManagedLaunchArgOverrides(log, input.ProfileID, "profile.launchArgs", managedProfileArgs)
 	logManagedLaunchArgOverrides(log, input.ProfileID, "start.extraLaunchArgs", managedExtraArgs)
 

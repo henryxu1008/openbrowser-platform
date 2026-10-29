@@ -114,7 +114,7 @@ func (a *App) appName() string {
 			return name
 		}
 	}
-	return "Ant Browser"
+	return config.DefaultAppName
 }
 
 func (a *App) appVersion() string {

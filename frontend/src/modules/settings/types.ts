@@ -1,4 +1,5 @@
 // Settings 模块类型定义
+import { projectConfig } from '../../config/projectBase.config'
 
 export interface AppSettings {
   id?: number
@@ -28,7 +29,7 @@ export interface AppSettings {
 }
 
 export const defaultSettings: AppSettings = {
-  appName: 'Ant Browser',
+  appName: projectConfig.name,
   appDescription: '基于 Wails + React 的桌面应用',
   theme: 'light',
   primaryColor: '#3B82F6',

@@ -48,7 +48,7 @@ Available options:
 Output files:
 
 ```text
-publish/output/AntBrowser-<version>-macos-<arch>.app
+publish/output/硕米指纹浏览器-<version>-macos-<arch>.app
 publish/output/AntBrowser-<version>-macos-<arch>.zip
 ```
 
@@ -66,11 +66,11 @@ The optional `version` input overrides the package version for that run. CI vali
 The current assembly layout is intentionally simple:
 
 ```text
-Ant Browser.app/Contents/MacOS/ant-chrome
-Ant Browser.app/Contents/MacOS/bin/xray
-Ant Browser.app/Contents/MacOS/bin/sing-box
-Ant Browser.app/Contents/MacOS/config.yaml
-Ant Browser.app/Contents/MacOS/chrome/README.md
+硕米指纹浏览器.app/Contents/MacOS/ant-chrome
+硕米指纹浏览器.app/Contents/MacOS/bin/xray
+硕米指纹浏览器.app/Contents/MacOS/bin/sing-box
+硕米指纹浏览器.app/Contents/MacOS/config.yaml
+硕米指纹浏览器.app/Contents/MacOS/chrome/README.md
 ```
 
 When the application runs from an `.app` bundle, writable state is redirected to:
@@ -86,8 +86,8 @@ Configuration, database, logs, browser cores, and profile data belong in the use
 For a package downloaded or copied from another machine, macOS may apply quarantine metadata. For an internal test package only:
 
 ```bash
-xattr -dr com.apple.quarantine "AntBrowser-<version>-macos-<arch>.app"
-open "AntBrowser-<version>-macos-<arch>.app"
+xattr -dr com.apple.quarantine "硕米指纹浏览器-<version>-macos-<arch>.app"
+open "硕米指纹浏览器-<version>-macos-<arch>.app"
 ```
 
 Unsigned builds are for internal testing. Removing quarantine is not a substitute for signing or notarization.

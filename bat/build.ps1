@@ -41,7 +41,7 @@ function Assert-RequiredSourceFiles {
 
 try {
     Write-Host "========================================"
-    Write-Host "  Ant Browser - Build Script"
+    Write-Host "  硕米指纹浏览器 - Build Script"
     Write-Host "========================================"
     Write-Host ""
     Write-Host "Current workdir: $repoRoot"

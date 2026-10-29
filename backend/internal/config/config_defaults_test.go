@@ -1,6 +1,40 @@
 package config
 
-import "testing"
+import (
+	"path/filepath"
+	"testing"
+)
+
+func TestLoadAppNameUpgradesLegacyDefaultsAndPreservesCustomNames(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		want string
+	}{
+		{name: "", want: DefaultAppName},
+		{name: "  ", want: DefaultAppName},
+		{name: "Ant Browser", want: DefaultAppName},
+		{name: " Ant Browser ", want: DefaultAppName},
+		{name: "Ant Chrome", want: DefaultAppName},
+		{name: DefaultAppName, want: DefaultAppName},
+		{name: "团队专用浏览器", want: "团队专用浏览器"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "config.yaml")
+			cfg := DefaultConfig()
+			cfg.App.Name = test.name
+			if err := cfg.Save(path); err != nil {
+				t.Fatal(err)
+			}
+			loaded, err := Load(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if loaded.App.Name != test.want {
+				t.Fatalf("app name = %q, want %q", loaded.App.Name, test.want)
+			}
+		})
+	}
+}
 
 func TestDefaultFingerprintArgsIncludeEffectiveRuntimeArgs(t *testing.T) {
 	args := defaultFingerprintArgsForOS("windows")

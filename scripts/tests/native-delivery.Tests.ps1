@@ -14,6 +14,16 @@ $source = Join-Path $testRoot 'public.json'
 $staging = Join-Path $testRoot 'staging'
 $cases = 0
 try {
+    $runtimeSource = [IO.File]::ReadAllText((Join-Path $repoRoot 'backend/app_backup_local_config.go'))
+    $installerSource = [IO.File]::ReadAllText((Join-Path $repoRoot 'publish/installer.nsi'))
+    $runtimeBackupDir = [regex]::Match($runtimeSource, 'backupLocalConfigDirName\s*=\s*"([^"]+)"')
+    $installerBackupDir = [regex]::Match($installerSource, '!define\s+LEGACY_DATA_DIR_NAME\s+"([^"]+)"')
+    if (-not $runtimeBackupDir.Success -or -not $installerBackupDir.Success -or
+        $runtimeBackupDir.Groups[1].Value -cne $installerBackupDir.Groups[1].Value -or
+        $installerSource.Contains('$APPDATA\${PRODUCT_NAME}')) {
+        throw 'Installer backup credentials must use the backend storage directory independently of the product display name.'
+    }
+    $cases++
     New-Item -ItemType Directory -Path $staging | Out-Null
     [IO.File]::WriteAllText($source, '{"issuer":"https://identity.example.test","clientId":"existing-native"}', [Text.UTF8Encoding]::new($true))
     $before = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash

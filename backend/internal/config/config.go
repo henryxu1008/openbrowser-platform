@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	DefaultAppName                  = "硕米指纹浏览器"
 	DefaultLaunchServerPort         = 19876
 	DefaultLaunchServerAPIKeyHeader = "X-Ant-Api-Key"
 	DefaultAutomationInstallPolicy  = "on_demand"

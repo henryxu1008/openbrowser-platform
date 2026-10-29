@@ -10,7 +10,10 @@ Unicode True
   !define STAGINGDIR "..\publish\staging"
 !endif
 
-!define PRODUCT_NAME    "Ant Browser"
+!define PRODUCT_NAME    "硕米指纹浏览器"
+!define LEGACY_PRODUCT_NAME "Ant Browser"
+; Keep backup credentials at the path used by existing installations and the backend.
+!define LEGACY_DATA_DIR_NAME "Ant Browser"
 !define PRODUCT_EXE     "ant-chrome.exe"
 !define PRODUCT_ICON    "AntBrowser.ico"
 !define UNINSTALL_KEY   "Software\Microsoft\Windows\CurrentVersion\Uninstall\AntBrowser"
@@ -19,6 +22,29 @@ Unicode True
 
 !include "MUI2.nsh"
 !include "LogicLib.nsh"
+
+Var ShortcutDesktopOption
+
+!macro MaintainShortcuts MODE
+retry_shortcuts:
+  ClearErrors
+  ExecWait '"${POWERSHELL_EXE}" -NoProfile -ExecutionPolicy Bypass -File "$INSTDIR\shortcut-migration.ps1" -Mode ${MODE} -InstallDir "$INSTDIR" -ProductName "${PRODUCT_NAME}" -LegacyProductName "${LEGACY_PRODUCT_NAME}" $ShortcutDesktopOption' $0
+  IfErrors shortcuts_failed
+  ${If} $0 == 0
+    Return
+  ${EndIf}
+shortcuts_failed:
+  MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "无法完成快捷方式迁移或清理。请检查快捷方式目录权限后重试；取消将停止本次操作。" IDRETRY retry_shortcuts
+  Abort "快捷方式维护未完成，操作已停止。"
+!macroend
+
+Function InstallShortcuts
+  !insertmacro MaintainShortcuts Install
+FunctionEnd
+
+Function un.RemoveShortcuts
+  !insertmacro MaintainShortcuts Uninstall
+FunctionEnd
 
 !macro WriteCloseProcessScript HANDLE
   FileWrite ${HANDLE} "param([string]$$InstallDir, [string]$$ExcludePath)$\r$\n"
@@ -134,15 +160,15 @@ Function PreserveLegacyBackupLocalConfig
   ${EndIf}
 
 legacy_use_current_install:
-  IfFileExists "$APPDATA\${PRODUCT_NAME}\backup.local.yaml" legacy_done
+  IfFileExists "$APPDATA\${LEGACY_DATA_DIR_NAME}\backup.local.yaml" legacy_done
   IfFileExists "$4\backup.local.yaml" 0 legacy_done
 
   ClearErrors
-  CreateDirectory "$APPDATA\${PRODUCT_NAME}"
+  CreateDirectory "$APPDATA\${LEGACY_DATA_DIR_NAME}"
   IfErrors legacy_failed
   DetailPrint "Preserving legacy backup credentials"
   ClearErrors
-  CopyFiles /SILENT "$4\backup.local.yaml" "$APPDATA\${PRODUCT_NAME}"
+  CopyFiles /SILENT "$4\backup.local.yaml" "$APPDATA\${LEGACY_DATA_DIR_NAME}"
   IfErrors legacy_failed
   Goto legacy_done
 
@@ -155,20 +181,20 @@ FunctionEnd
 
 Function un.PreserveLegacyBackupLocalConfig
   IfFileExists "$INSTDIR\backup.local.yaml" 0 done
-  IfFileExists "$APPDATA\${PRODUCT_NAME}\backup.local.yaml" done
+  IfFileExists "$APPDATA\${LEGACY_DATA_DIR_NAME}\backup.local.yaml" done
 
   ClearErrors
-  CreateDirectory "$APPDATA\${PRODUCT_NAME}"
+  CreateDirectory "$APPDATA\${LEGACY_DATA_DIR_NAME}"
   IfErrors preserve_failed
 
-  DetailPrint "迁移旧版本地备份凭据到 $APPDATA\${PRODUCT_NAME}"
+  DetailPrint "迁移旧版本地备份凭据到 $APPDATA\${LEGACY_DATA_DIR_NAME}"
   ClearErrors
-  CopyFiles "$INSTDIR\backup.local.yaml" "$APPDATA\${PRODUCT_NAME}\"
+  CopyFiles "$INSTDIR\backup.local.yaml" "$APPDATA\${LEGACY_DATA_DIR_NAME}\"
   IfErrors preserve_failed
   Goto done
 
 preserve_failed:
-  MessageBox MB_ICONSTOP|MB_OK "无法保存旧版本地备份凭据：$APPDATA\${PRODUCT_NAME}\backup.local.yaml。为避免 OpenList / S3 Token 丢失，卸载已取消。请检查该目录权限后重试。"
+  MessageBox MB_ICONSTOP|MB_OK "无法保存旧版本地备份凭据：$APPDATA\${LEGACY_DATA_DIR_NAME}\backup.local.yaml。为避免 OpenList / S3 Token 丢失，卸载已取消。请检查该目录权限后重试。"
   Abort "卸载已取消：旧版本地备份凭据迁移失败。"
 
 done:
@@ -192,7 +218,7 @@ RequestExecutionLevel admin
 !define MUI_UNICON "..\build\windows\icon.ico"
 
 !insertmacro MUI_PAGE_WELCOME
-!define MUI_DIRECTORYPAGE_TEXT_TOP "请选择 Ant Browser 的安装目录。配置、数据库和浏览器档案保存在当前 Windows 用户的本地应用数据目录，升级不会重置已有用户数据。"
+!define MUI_DIRECTORYPAGE_TEXT_TOP "请选择${PRODUCT_NAME}的安装目录。配置、数据库和浏览器档案保存在当前 Windows 用户的本地应用数据目录，升级不会重置已有用户数据。"
 !define MUI_DIRECTORYPAGE_TEXT_DESTINATION "程序安装目录"
 !insertmacro MUI_PAGE_DIRECTORY
 !define MUI_COMPONENTSPAGE_SMALLDESC
@@ -206,12 +232,14 @@ RequestExecutionLevel admin
 
 !insertmacro MUI_LANGUAGE "SimpChinese"
 
-Section "Ant Browser (required)" SecMain
+Section "${PRODUCT_NAME}（必选）" SecMain
   SectionIn RO
   Call CloseInstalledProcesses
   Call PreserveLegacyBackupLocalConfig
   SetOutPath "$INSTDIR"
   File "${STAGINGDIR}\${PRODUCT_EXE}"
+  File "${__FILEDIR__}\shortcut-migration.ps1"
+  File "${__FILEDIR__}\shell-link.cs"
   File "${STAGINGDIR}\oidc-public.json"
   File "${STAGINGDIR}\shuomi-public.json"
   File /oname=config.defaults.yaml "${STAGINGDIR}\config.yaml"
@@ -241,11 +269,6 @@ Section "Ant Browser (required)" SecMain
   WriteRegStr HKLM "${UNINSTALL_KEY}" "NoRepair"        "1"
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   Call RegisterDiagnosticsWatcher
-  SetShellVarContext all
-  CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
-  CreateShortcut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\${PRODUCT_EXE}" "" "$INSTDIR\${PRODUCT_ICON}"
-  CreateShortcut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\${PRODUCT_ICON}"
-  SetShellVarContext current
 SectionEnd
 
 Section "Proxy Runtime (xray / sing-box)" SecRuntime
@@ -256,13 +279,15 @@ Section "Proxy Runtime (xray / sing-box)" SecRuntime
 SectionEnd
 
 Section /o "Desktop Shortcut" SecDesktop
-  SetShellVarContext all
-  CreateShortcut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\${PRODUCT_EXE}" "" "$INSTDIR\${PRODUCT_ICON}"
-  SetShellVarContext current
+  StrCpy $ShortcutDesktopOption "-CreateDesktopShortcut"
+SectionEnd
+
+Section -FinalizeShortcuts
+  Call InstallShortcuts
 SectionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMain}    "Ant Browser main program and default config (required)"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecMain}    "${PRODUCT_NAME}主程序及默认配置（必选）"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecRuntime} "xray and sing-box proxy tools (vless/vmess/hysteria2)"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecDesktop} "Create a shortcut on the desktop"
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
@@ -271,6 +296,7 @@ Section "Uninstall"
   Call un.CloseInstalledProcesses
   Call un.UnregisterDiagnosticsWatcher
   Call un.PreserveLegacyBackupLocalConfig
+  Call un.RemoveShortcuts
 
   Delete /REBOOTOK "$INSTDIR\${PRODUCT_EXE}"
   Delete /REBOOTOK "$INSTDIR\oidc-public.json"
@@ -278,14 +304,10 @@ Section "Uninstall"
   Delete /REBOOTOK "$INSTDIR\config.defaults.yaml"
   Delete /REBOOTOK "$INSTDIR\${PRODUCT_ICON}"
   Delete /REBOOTOK "$INSTDIR\Uninstall.exe"
+  Delete /REBOOTOK "$INSTDIR\shortcut-migration.ps1"
+  Delete /REBOOTOK "$INSTDIR\shell-link.cs"
   RMDir /r /REBOOTOK "$INSTDIR\bin"
   RMDir /r /REBOOTOK "$INSTDIR\chrome"
-  SetShellVarContext all
-  Delete /REBOOTOK "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk"
-  Delete /REBOOTOK "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk"
-  RMDir /REBOOTOK "$SMPROGRAMS\${PRODUCT_NAME}"
-  Delete /REBOOTOK "$DESKTOP\${PRODUCT_NAME}.lnk"
-  SetShellVarContext current
   DeleteRegKey HKLM "${UNINSTALL_KEY}"
   MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 "是否清理旧版安装目录中的遗留数据？$\r$\n$\r$\n选择“是”将删除安装目录残留的旧版 data、日志和配置，操作不可恢复。选择“否”保留它们。$\r$\n$\r$\n各 Windows 用户本地应用数据目录中的数据均会保留，重新安装后可继续使用。" IDYES un_remove_all_data IDNO un_keep_user_data
 

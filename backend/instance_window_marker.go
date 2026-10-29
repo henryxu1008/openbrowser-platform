@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"ant-chrome/backend/internal/config"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -187,7 +188,7 @@ func sanitizeProfileWindowMarkerAppUserModelIDSuffix(value string) string {
 func applyProfileWindowMarkerTitle(currentTitle, markerCode, profileName string) string {
 	pageTitle := stripProfileWindowMarkerTitle(currentTitle)
 	if pageTitle == "" {
-		pageTitle = "Ant Browser"
+		pageTitle = config.DefaultAppName
 	}
 	return profileWindowMarkerPrefix(markerCode, profileName) + pageTitle
 }

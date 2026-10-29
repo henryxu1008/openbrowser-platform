@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AuthCancel, AuthGrantAPI, AuthLogin, AuthLogout, AuthStatus as NativeAuthStatus, QuitAppOnly } from '../wailsjs/go/main/App';
 import { Button, Loading } from '../shared/components';
+import { projectConfig } from '../config/projectBase.config';
 import { acceptAuth, authEpoch, authSnapshot, beginAuthAction, signedIn, subscribeAuth } from './session';
 
 export const useAuthStatus = () => useSyncExternalStore(subscribeAuth, authSnapshot, authSnapshot);
@@ -85,7 +86,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   return (
     <main className="flex h-screen items-center justify-center bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
       <div className="w-full max-w-sm space-y-5 px-6">
-        <h1 className="text-2xl font-semibold">登录 Ant Browser</h1>
+        <h1 className="text-2xl font-semibold">登录 {projectConfig.name}</h1>
         <p className="text-sm text-[var(--color-text-secondary)]">登录后继续使用本机浏览器档案。</p>
         {status.state === 'loading' ? <Loading text="确认登录状态..." /> : null}
         {!status.configured && status.state !== 'loading' ? <p role="status">安装包的登录配置不可用，请联系应用提供方。</p> : null}

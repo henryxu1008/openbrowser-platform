@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef, useState } from 'react'
+import { ReactNode, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { Button } from './Button'
@@ -27,6 +27,28 @@ export function Modal({
 }: ModalProps) {
   const [mounted, setMounted] = useState(open)
   const [closing, setClosing] = useState(false)
+	const titleId = useId()
+	const surfaceRef = useRef<HTMLDivElement>(null)
+	const closeRef = useRef(onClose)
+	closeRef.current = onClose
+	useEffect(() => {
+		if (!open || !mounted) return
+		const previous = document.activeElement as HTMLElement | null
+		const surface = surfaceRef.current
+		const focusable = () => Array.from(surface?.querySelectorAll<HTMLElement>('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]') || [])
+		;(focusable()[0] || surface)?.focus()
+		const keydown = (event: KeyboardEvent) => {
+			if (event.key === 'Escape' && closable) { event.preventDefault(); event.stopPropagation(); closeRef.current() }
+			if (event.key === 'Tab') {
+				const items=focusable(), first=items[0], last=items[items.length-1]
+				if (!first) { event.preventDefault(); surface?.focus() }
+				else if (event.shiftKey && (document.activeElement===first || document.activeElement===surface)) {event.preventDefault();last.focus()}
+				else if (!event.shiftKey && document.activeElement===last) {event.preventDefault();first.focus()}
+			}
+		}
+		surface?.addEventListener('keydown',keydown)
+		return () => {surface?.removeEventListener('keydown',keydown);if(previous?.isConnected)previous.focus()}
+	},[open,mounted,closable])
 
   useEffect(() => {
     if (open) {
@@ -60,6 +82,12 @@ export function Modal({
       />
 
       <div
+        ref={surfaceRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        aria-label={title ? undefined : '对话框'}
+        tabIndex={-1}
         className={`modal-surface relative flex max-h-[90vh] w-full flex-col rounded-xl bg-[var(--color-bg-elevated)] shadow-2xl ${closing ? 'animate-modal-out' : 'animate-modal-in'}`}
         style={{ width, maxWidth: '90vw' }}
         onClick={(e) => e.stopPropagation()}
@@ -67,12 +95,13 @@ export function Modal({
         {(title || closable) && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] flex-shrink-0">
             {title && (
-              <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">
+              <h3 id={titleId} className="text-lg font-semibold text-[var(--color-text-primary)]">
                 {title}
               </h3>
             )}
             {closable && (
               <button
+                aria-label="关闭对话框"
                 onClick={onClose}
                 className="p-1.5 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-muted)] transition-colors ml-auto"
               >

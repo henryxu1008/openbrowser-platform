@@ -30,10 +30,14 @@ func LoadConfig(installRoot string) (Config, error) {
 		return Config{}, ErrConfiguration
 	}
 	var fields map[string]string
-	if strictJSON(data, &fields) != nil || len(fields) != 2 {
+	if strictJSON(data, &fields) != nil {
 		return Config{}, ErrConfiguration
 	}
-	cfg := Config{Issuer: fields["issuer"], ClientID: fields["clientId"]}
+	project, hasProject := fields["apiProjectId"]
+	if (len(fields) != 2 && !(len(fields) == 3 && hasProject)) || (hasProject && project == "") {
+		return Config{}, ErrConfiguration
+	}
+	cfg := Config{Issuer: fields["issuer"], ClientID: fields["clientId"], APIProjectID: project}
 	if !cfg.valid() {
 		return Config{}, ErrConfiguration
 	}

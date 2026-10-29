@@ -67,6 +67,10 @@ func (a *App) startBackgroundTask(task func(context.Context)) error {
 
 	go func() {
 		defer a.backgroundTasks.Done()
+		if a.storeProfileID == "" {
+			a.storeGeneralMu.RLock()
+			defer a.storeGeneralMu.RUnlock()
+		}
 		if check() != nil {
 			return
 		}
@@ -115,6 +119,9 @@ func (a *App) emitRuntimeEvent(eventName string, optionalData ...interface{}) {
 
 func (a *App) emitRuntimeEventWithContext(ctx context.Context, eventName string, optionalData ...interface{}) {
 	if a == nil {
+		return
+	}
+	if a.hasStoreData() && eventName != "app:ready" && eventName != "app:request-close" {
 		return
 	}
 	if eventName != "app:ready" && eventName != "app:request-close" && a.identity != nil && a.identity.Status().State != "signed_in" {

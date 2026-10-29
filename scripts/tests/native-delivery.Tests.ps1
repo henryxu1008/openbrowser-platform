@@ -23,6 +23,29 @@ try {
     if ($public.issuer -cne 'https://identity.example.test' -or $public.clientId -cne 'existing-native' -or $bytes[0] -eq 239) { throw 'Native public metadata copy/BOM handling failed.' }
     if ((Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash -ne $before) { throw 'Publisher changed its input.' }
     $cases++
+    $storeSource=Join-Path $testRoot 'store-public.json'
+    [IO.File]::WriteAllText($storeSource,'{"apiOrigin":"https://stores.example.test"}')
+    $missingResourceRejected=$false
+    try { Copy-PublicStoreConfig -Path $storeSource -StagingDir $staging } catch { $missingResourceRejected=$true }
+    if(-not $missingResourceRejected -or (Test-Path -LiteralPath (Join-Path $staging 'shuomi-public.json'))){throw 'Store package without API resource was staged.'}
+    $cases++
+    [IO.File]::WriteAllText($source,'{"issuer":"https://identity.example.test","clientId":"existing-native","apiProjectId":"existing-api-project"}')
+    Copy-PublicIdentityConfig -Path $source -StagingDir $staging
+    $resourceMetadata=Get-Content -LiteralPath (Join-Path $staging 'oidc-public.json') -Raw | ConvertFrom-Json
+    if($resourceMetadata.apiProjectId -cne 'existing-api-project'){throw 'Publisher dropped the public API resource.'}
+    $bytes=[IO.File]::ReadAllBytes((Join-Path $staging 'oidc-public.json'))
+    $cases++
+    Copy-PublicStoreConfig -Path $storeSource -StagingDir $staging
+    $storeBytes=[IO.File]::ReadAllBytes((Join-Path $staging 'shuomi-public.json'))
+    if(($storeBytes[0] -eq 239) -or (([Text.Encoding]::UTF8.GetString($storeBytes)|ConvertFrom-Json).apiOrigin -cne 'https://stores.example.test')){throw 'Native Store metadata copy failed.'}
+    foreach($invalidStore in @('{"apiOrigin":"https://localhost:35443"}','{"apiOrigin":"https://stores.example.test/"}','{"apiOrigin":"https://stores.example.test/path"}','{"apiOrigin":"https://stores.example.test","token":"private"}','{"apiOrigin":"https://a.test","apiOrigin":"https://b.test"}','{"apiOrigin":"https://stores.example.test?"}')){
+        [IO.File]::WriteAllText($storeSource,$invalidStore)
+        $rejectedStore=$false
+        try{Copy-PublicStoreConfig -Path $storeSource -StagingDir $staging}catch{$rejectedStore=$true}
+        if(-not $rejectedStore){throw 'Unsafe Store metadata accepted.'}
+        if([Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $staging 'shuomi-public.json'))) -cne [Convert]::ToBase64String($storeBytes)){throw 'Rejected Store metadata replaced accepted file.'}
+        $cases++
+    }
     foreach ($invalid in @(
         '{"issuer":"https://localhost:35443","clientId":"native"}',
         '{"issuer":"https://127.0.0.1","clientId":"native"}',

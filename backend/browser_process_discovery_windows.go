@@ -29,48 +29,66 @@ func findBrowserUserDataProcessesOS(userDataDir string) ([]browserUserDataProces
 	}
 
 	psScript := `param([string]$UserDataDir)
-$ErrorActionPreference = 'SilentlyContinue'
-$target = [System.IO.Path]::GetFullPath($UserDataDir).TrimEnd('\')
+$ErrorActionPreference = 'Stop'
 $items = @()
-Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -and $_.CommandLine -match '--user-data-dir=' } | ForEach-Object {
+Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -and $_.CommandLine -match '(?i)--user-data-dir(?:=|\s)' } | ForEach-Object {
   $cmd = [string]$_.CommandLine
-  $match = [regex]::Match($cmd, '--user-data-dir=(?:"([^"]+)"|([^\s]+))')
-  if (-not $match.Success) { return }
-  $dir = $match.Groups[1].Value
-  if ([string]::IsNullOrWhiteSpace($dir)) { $dir = $match.Groups[2].Value }
-  if ([string]::IsNullOrWhiteSpace($dir)) { return }
-  try { $dir = [System.IO.Path]::GetFullPath($dir).TrimEnd('\') } catch {}
-  if (-not $dir.Equals($target, [System.StringComparison]::OrdinalIgnoreCase)) { return }
-  $port = 0
-  $portMatch = [regex]::Match($cmd, '--remote-debugging-port=(\d+)')
-  if ($portMatch.Success) { [void][int]::TryParse($portMatch.Groups[1].Value, [ref]$port) }
-  $items += [pscustomobject]@{ pid = [int]$_.ProcessId; debugPort = [int]$port; commandLine = $cmd }
+  $items += [pscustomobject]@{ pid = [int]$_.ProcessId; commandLine = $cmd }
 }
-$items | ConvertTo-Json -Compress
+[pscustomobject]@{ complete = $true; items = @($items) } | ConvertTo-Json -Depth 4 -Compress
 `
 
 	output, err := runPowerShellJSON(psScript, "-UserDataDir", fullUserDataDir)
 	if err != nil {
 		return nil, err
 	}
-	output = bytes.TrimSpace(output)
-	if len(output) == 0 || bytes.Equal(output, []byte("null")) {
-		return nil, nil
-	}
+	return decodeBrowserDirectoryObservation(output, fullUserDataDir)
+}
 
-	var list []browserUserDataProcess
-	if bytes.HasPrefix(output, []byte("[")) {
-		if err := json.Unmarshal(output, &list); err != nil {
-			return nil, err
-		}
-	} else {
-		var item browserUserDataProcess
-		if err := json.Unmarshal(output, &item); err != nil {
-			return nil, err
-		}
-		list = append(list, item)
+func decodeBrowserDirectoryObservation(output []byte, target string) ([]browserUserDataProcess, error) {
+	output = bytes.TrimSpace(output)
+	var observation struct {
+		Complete bool                      `json:"complete"`
+		Items    *[]browserUserDataProcess `json:"items"`
 	}
-	return list, nil
+	if err := json.Unmarshal(output, &observation); err != nil || !observation.Complete || observation.Items == nil {
+		return nil, fmt.Errorf("browser process observation incomplete")
+	}
+	result := []browserUserDataProcess{}
+	for _, process := range *observation.Items {
+		if process.PID <= 0 || strings.TrimSpace(process.CommandLine) == "" {
+			return nil, fmt.Errorf("browser process observation incomplete")
+		}
+		args := parseBrowserProcessCommandLineArgs(process.CommandLine)
+		found := false
+		matches := false
+		for i, arg := range args {
+			var dir string
+			if strings.EqualFold(arg, "--user-data-dir") {
+				if i+1 < len(args) {
+					dir = args[i+1]
+				}
+				found = true
+			} else if strings.HasPrefix(strings.ToLower(arg), "--user-data-dir=") {
+				dir = arg[len("--user-data-dir="):]
+				found = true
+			} else {
+				continue
+			}
+			if dir == "" || !filepath.IsAbs(dir) {
+				return nil, fmt.Errorf("browser directory argument ambiguous")
+			}
+			matches = matches || strings.EqualFold(filepath.Clean(dir), filepath.Clean(target))
+		}
+		if !found {
+			return nil, fmt.Errorf("browser directory argument ambiguous")
+		}
+		if matches {
+			process.DebugPort = parseRemoteDebuggingPort(process.CommandLine)
+			result = append(result, process)
+		}
+	}
+	return result, nil
 }
 
 func terminateBrowserUserDataProcessOS(pid int, timeout time.Duration) error {

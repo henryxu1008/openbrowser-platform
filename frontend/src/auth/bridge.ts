@@ -190,6 +190,17 @@ export const StartInstance = (...args: Args<typeof Native.StartInstance>): Retur
 export const StartInstanceWithParams = (...args: Args<typeof Native.StartInstanceWithParams>): ReturnType<typeof Native.StartInstanceWithParams> => callBusiness(Native.StartInstanceWithParams, args) as ReturnType<typeof Native.StartInstanceWithParams>;
 export const StatusInstance = (...args: Args<typeof Native.StatusInstance>): ReturnType<typeof Native.StatusInstance> => callBusiness(Native.StatusInstance, args) as ReturnType<typeof Native.StatusInstance>;
 export const StopInstance = (...args: Args<typeof Native.StopInstance>): ReturnType<typeof Native.StopInstance> => callBusiness(Native.StopInstance, args) as ReturnType<typeof Native.StopInstance>;
+export const StoreAuditList = (...args: Args<typeof Native.StoreAuditList>): ReturnType<typeof Native.StoreAuditList> => callBusiness(Native.StoreAuditList, args) as ReturnType<typeof Native.StoreAuditList>;
+export const StoreEnvironmentClose = (...args: Args<typeof Native.StoreEnvironmentClose>): ReturnType<typeof Native.StoreEnvironmentClose> => callBusiness(Native.StoreEnvironmentClose, args) as ReturnType<typeof Native.StoreEnvironmentClose>;
+export const StoreEnvironmentGet = (...args: Args<typeof Native.StoreEnvironmentGet>): ReturnType<typeof Native.StoreEnvironmentGet> => callBusiness(Native.StoreEnvironmentGet, args) as ReturnType<typeof Native.StoreEnvironmentGet>;
+export const StoreEnvironmentOpen = (...args: Args<typeof Native.StoreEnvironmentOpen>): ReturnType<typeof Native.StoreEnvironmentOpen> => callBusiness(Native.StoreEnvironmentOpen, args) as ReturnType<typeof Native.StoreEnvironmentOpen>;
+export const StoreEnvironmentOptions = (...args: Args<typeof Native.StoreEnvironmentOptions>): ReturnType<typeof Native.StoreEnvironmentOptions> => callBusiness(Native.StoreEnvironmentOptions, args) as ReturnType<typeof Native.StoreEnvironmentOptions>;
+export const StoreEnvironmentSave = (...args: Args<typeof Native.StoreEnvironmentSave>): ReturnType<typeof Native.StoreEnvironmentSave> => callBusiness(Native.StoreEnvironmentSave, args) as ReturnType<typeof Native.StoreEnvironmentSave>;
+export const StoreOperationGet = (...args: Args<typeof Native.StoreOperationGet>): ReturnType<typeof Native.StoreOperationGet> => callBusiness(Native.StoreOperationGet, args) as ReturnType<typeof Native.StoreOperationGet>;
+export const StoreWorkbenchContext = (...args: Args<typeof Native.StoreWorkbenchContext>): ReturnType<typeof Native.StoreWorkbenchContext> => callBusiness(Native.StoreWorkbenchContext, args) as ReturnType<typeof Native.StoreWorkbenchContext>;
+export const StoreWorkbenchGet = (...args: Args<typeof Native.StoreWorkbenchGet>): ReturnType<typeof Native.StoreWorkbenchGet> => callBusiness(Native.StoreWorkbenchGet, args) as ReturnType<typeof Native.StoreWorkbenchGet>;
+export const StoreWorkbenchList = (...args: Args<typeof Native.StoreWorkbenchList>): ReturnType<typeof Native.StoreWorkbenchList> => callBusiness(Native.StoreWorkbenchList, args) as ReturnType<typeof Native.StoreWorkbenchList>;
+export const StoreWorkbenchSelectOrganization = (...args: Args<typeof Native.StoreWorkbenchSelectOrganization>): ReturnType<typeof Native.StoreWorkbenchSelectOrganization> => callBusiness(Native.StoreWorkbenchSelectOrganization, args) as ReturnType<typeof Native.StoreWorkbenchSelectOrganization>;
 export const TestProxyConnectivity = (...args: Args<typeof Native.TestProxyConnectivity>): ReturnType<typeof Native.TestProxyConnectivity> => callBusiness(Native.TestProxyConnectivity, args) as ReturnType<typeof Native.TestProxyConnectivity>;
 export const TestProxyRealConnectivity = (...args: Args<typeof Native.TestProxyRealConnectivity>): ReturnType<typeof Native.TestProxyRealConnectivity> => callBusiness(Native.TestProxyRealConnectivity, args) as ReturnType<typeof Native.TestProxyRealConnectivity>;
 export const TriggerGC = (...args: Args<typeof Native.TriggerGC>): ReturnType<typeof Native.TriggerGC> => callBusiness(Native.TriggerGC, args) as ReturnType<typeof Native.TriggerGC>;
@@ -386,6 +397,17 @@ const businessBindings = {
   StartInstanceWithParams,
   StatusInstance,
   StopInstance,
+  StoreAuditList,
+  StoreEnvironmentClose,
+  StoreEnvironmentGet,
+  StoreEnvironmentOpen,
+  StoreEnvironmentOptions,
+  StoreEnvironmentSave,
+  StoreOperationGet,
+  StoreWorkbenchContext,
+  StoreWorkbenchGet,
+  StoreWorkbenchList,
+  StoreWorkbenchSelectOrganization,
   TestProxyConnectivity,
   TestProxyRealConnectivity,
   TriggerGC,

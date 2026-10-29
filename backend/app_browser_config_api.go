@@ -62,7 +62,9 @@ func (a *App) BrowserCoreList() []BrowserCore {
 	if a == nil || a.browserMgr == nil {
 		return []BrowserCore{}
 	}
-	return a.browserMgr.ListCores()
+	a.browserMgr.Mutex.Lock()
+	defer a.browserMgr.Mutex.Unlock()
+	return append([]BrowserCore{}, a.browserMgr.ListCores()...)
 }
 
 func (a *App) BrowserCoreSave(input BrowserCoreInput) error {

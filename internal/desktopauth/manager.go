@@ -176,7 +176,7 @@ func (m *Manager) begin(expectedGeneration uint64) (loginAttempt, error) {
 	query.Set("client_id", m.cfg.ClientID)
 	query.Set("response_type", "code")
 	query.Set("redirect_uri", tx.redirect)
-	query.Set("scope", "openid profile")
+	query.Set("scope", m.cfg.authorizationScopes())
 	query.Set("state", state)
 	query.Set("nonce", nonce)
 	query.Set("code_challenge", base64.RawURLEncoding.EncodeToString(challenge[:]))

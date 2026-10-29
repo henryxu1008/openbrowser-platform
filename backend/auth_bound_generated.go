@@ -10,7 +10,9 @@ import (
 )
 
 func (a *AuthBoundApp) AutomationDemoCreateProfile(generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationDemoCreateProfile")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -20,7 +22,9 @@ func (a *AuthBoundApp) AutomationDemoCreateProfile(generation uint64) (r0 map[st
 }
 
 func (a *AuthBoundApp) AutomationDemoCreateProfileWithOptions(optionsJSON string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationDemoCreateProfileWithOptions")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -30,7 +34,9 @@ func (a *AuthBoundApp) AutomationDemoCreateProfileWithOptions(optionsJSON string
 }
 
 func (a *AuthBoundApp) AutomationDemoDeleteProfile(profileId string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationDemoDeleteProfile")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -40,7 +46,9 @@ func (a *AuthBoundApp) AutomationDemoDeleteProfile(profileId string, generation 
 }
 
 func (a *AuthBoundApp) AutomationDemoHealthCheck(generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationDemoHealthCheck")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -50,7 +58,9 @@ func (a *AuthBoundApp) AutomationDemoHealthCheck(generation uint64) (r0 map[stri
 }
 
 func (a *AuthBoundApp) AutomationDemoLaunchProfile(code string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationDemoLaunchProfile")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -60,7 +70,9 @@ func (a *AuthBoundApp) AutomationDemoLaunchProfile(code string, generation uint6
 }
 
 func (a *AuthBoundApp) AutomationProbeSystemNode(systemNodePath string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationProbeSystemNode")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -70,7 +82,9 @@ func (a *AuthBoundApp) AutomationProbeSystemNode(systemNodePath string, generati
 }
 
 func (a *AuthBoundApp) AutomationRuntimeSelfCheck(generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationRuntimeSelfCheck")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -80,7 +94,9 @@ func (a *AuthBoundApp) AutomationRuntimeSelfCheck(generation uint64) (r0 map[str
 }
 
 func (a *AuthBoundApp) AutomationScriptDelete(scriptID string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptDelete")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -90,7 +106,9 @@ func (a *AuthBoundApp) AutomationScriptDelete(scriptID string, generation uint64
 }
 
 func (a *AuthBoundApp) AutomationScriptExport(scriptID string, generation uint64) (r0 map[string]any, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptExport")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -100,7 +118,9 @@ func (a *AuthBoundApp) AutomationScriptExport(scriptID string, generation uint64
 }
 
 func (a *AuthBoundApp) AutomationScriptExportBatchZip(scriptIDs []string, generation uint64) (r0 map[string]any, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptExportBatchZip")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -110,7 +130,9 @@ func (a *AuthBoundApp) AutomationScriptExportBatchZip(scriptIDs []string, genera
 }
 
 func (a *AuthBoundApp) AutomationScriptExportDirectory(scriptID string, generation uint64) (r0 map[string]any, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptExportDirectory")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -120,7 +142,9 @@ func (a *AuthBoundApp) AutomationScriptExportDirectory(scriptID string, generati
 }
 
 func (a *AuthBoundApp) AutomationScriptExportZip(scriptID string, generation uint64) (r0 map[string]any, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptExportZip")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -130,7 +154,9 @@ func (a *AuthBoundApp) AutomationScriptExportZip(scriptID string, generation uin
 }
 
 func (a *AuthBoundApp) AutomationScriptGet(scriptID string, generation uint64) (r0 *automation.ScriptRecord, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptGet")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -140,7 +166,9 @@ func (a *AuthBoundApp) AutomationScriptGet(scriptID string, generation uint64) (
 }
 
 func (a *AuthBoundApp) AutomationScriptImportGit(repoURL string, ref string, scriptPath string, generation uint64) (r0 *automation.ScriptRecord, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptImportGit")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -150,7 +178,9 @@ func (a *AuthBoundApp) AutomationScriptImportGit(repoURL string, ref string, scr
 }
 
 func (a *AuthBoundApp) AutomationScriptImportLocalDirectory(generation uint64) (r0 *automation.ScriptRecord, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptImportLocalDirectory")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -160,7 +190,9 @@ func (a *AuthBoundApp) AutomationScriptImportLocalDirectory(generation uint64) (
 }
 
 func (a *AuthBoundApp) AutomationScriptImportLocalFile(generation uint64) (r0 *automation.ScriptRecord, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptImportLocalFile")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -170,7 +202,9 @@ func (a *AuthBoundApp) AutomationScriptImportLocalFile(generation uint64) (r0 *a
 }
 
 func (a *AuthBoundApp) AutomationScriptImportLocalLibrary(generation uint64) (r0 *AutomationScriptBatchImportResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptImportLocalLibrary")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -180,7 +214,9 @@ func (a *AuthBoundApp) AutomationScriptImportLocalLibrary(generation uint64) (r0
 }
 
 func (a *AuthBoundApp) AutomationScriptImportRemote(rawURL string, generation uint64) (r0 *automation.ScriptRecord, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptImportRemote")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -190,7 +226,9 @@ func (a *AuthBoundApp) AutomationScriptImportRemote(rawURL string, generation ui
 }
 
 func (a *AuthBoundApp) AutomationScriptImportText(text string, generation uint64) (r0 *automation.ScriptRecord, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptImportText")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -200,7 +238,9 @@ func (a *AuthBoundApp) AutomationScriptImportText(text string, generation uint64
 }
 
 func (a *AuthBoundApp) AutomationScriptInvokePublicAPI(input AutomationScriptPublicAPIInvokeInput, generation uint64) (r0 *AutomationScriptPublicAPIInvokeResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptInvokePublicAPI")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -210,7 +250,9 @@ func (a *AuthBoundApp) AutomationScriptInvokePublicAPI(input AutomationScriptPub
 }
 
 func (a *AuthBoundApp) AutomationScriptList(generation uint64) (r0 []automation.ScriptRecord, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptList")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -220,7 +262,9 @@ func (a *AuthBoundApp) AutomationScriptList(generation uint64) (r0 []automation.
 }
 
 func (a *AuthBoundApp) AutomationScriptRefresh(scriptID string, generation uint64) (r0 *automation.ScriptRecord, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptRefresh")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -230,7 +274,9 @@ func (a *AuthBoundApp) AutomationScriptRefresh(scriptID string, generation uint6
 }
 
 func (a *AuthBoundApp) AutomationScriptRun(scriptID string, generation uint64) (r0 *automation.ScriptRunRecord, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptRun")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -240,7 +286,9 @@ func (a *AuthBoundApp) AutomationScriptRun(scriptID string, generation uint64) (
 }
 
 func (a *AuthBoundApp) AutomationScriptRunList(limit int, generation uint64) (r0 []automation.ScriptRunRecord, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptRunList")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -250,7 +298,9 @@ func (a *AuthBoundApp) AutomationScriptRunList(limit int, generation uint64) (r0
 }
 
 func (a *AuthBoundApp) AutomationScriptRunWithOptions(input automation.ScriptRunRequest, generation uint64) (r0 *automation.ScriptRunRecord, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptRunWithOptions")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -260,7 +310,9 @@ func (a *AuthBoundApp) AutomationScriptRunWithOptions(input automation.ScriptRun
 }
 
 func (a *AuthBoundApp) AutomationScriptSave(input automation.ScriptRecord, generation uint64) (r0 *automation.ScriptRecord, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "AutomationScriptSave")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -270,7 +322,9 @@ func (a *AuthBoundApp) AutomationScriptSave(input automation.ScriptRecord, gener
 }
 
 func (a *AuthBoundApp) BackupCreatePackage(input map[string]string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupCreatePackage")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -280,7 +334,9 @@ func (a *AuthBoundApp) BackupCreatePackage(input map[string]string, generation u
 }
 
 func (a *AuthBoundApp) BackupExportPackage(generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupExportPackage")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -290,7 +346,9 @@ func (a *AuthBoundApp) BackupExportPackage(generation uint64) (r0 map[string]int
 }
 
 func (a *AuthBoundApp) BackupGetLocalSettings(generation uint64) (r0 BackupLocalSettings, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupGetLocalSettings")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -300,7 +358,9 @@ func (a *AuthBoundApp) BackupGetLocalSettings(generation uint64) (r0 BackupLocal
 }
 
 func (a *AuthBoundApp) BackupGetManifestTemplate(generation uint64) (r0 BackupManifest, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupGetManifestTemplate")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -310,7 +370,9 @@ func (a *AuthBoundApp) BackupGetManifestTemplate(generation uint64) (r0 BackupMa
 }
 
 func (a *AuthBoundApp) BackupGetScopeDefinition(generation uint64) (r0 BackupScope, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupGetScopeDefinition")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -320,7 +382,9 @@ func (a *AuthBoundApp) BackupGetScopeDefinition(generation uint64) (r0 BackupSco
 }
 
 func (a *AuthBoundApp) BackupImportPackage(generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupImportPackage")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -330,7 +394,9 @@ func (a *AuthBoundApp) BackupImportPackage(generation uint64) (r0 map[string]int
 }
 
 func (a *AuthBoundApp) BackupListLocalBackups(directory string, generation uint64) (r0 []BackupLocalHistoryItem, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupListLocalBackups")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -340,7 +406,9 @@ func (a *AuthBoundApp) BackupListLocalBackups(directory string, generation uint6
 }
 
 func (a *AuthBoundApp) BackupOpenListDownload(input map[string]string, fileName string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupOpenListDownload")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -350,7 +418,9 @@ func (a *AuthBoundApp) BackupOpenListDownload(input map[string]string, fileName 
 }
 
 func (a *AuthBoundApp) BackupOpenListGetSettings(generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupOpenListGetSettings")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -360,7 +430,9 @@ func (a *AuthBoundApp) BackupOpenListGetSettings(generation uint64) (r0 map[stri
 }
 
 func (a *AuthBoundApp) BackupOpenListList(input map[string]string, generation uint64) (r0 []map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupOpenListList")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -370,7 +442,9 @@ func (a *AuthBoundApp) BackupOpenListList(input map[string]string, generation ui
 }
 
 func (a *AuthBoundApp) BackupOpenListRestore(input map[string]string, fileName string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupOpenListRestore")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -380,7 +454,9 @@ func (a *AuthBoundApp) BackupOpenListRestore(input map[string]string, fileName s
 }
 
 func (a *AuthBoundApp) BackupOpenListRevealToken(generation uint64) (r0 string, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupOpenListRevealToken")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -390,7 +466,9 @@ func (a *AuthBoundApp) BackupOpenListRevealToken(generation uint64) (r0 string, 
 }
 
 func (a *AuthBoundApp) BackupOpenListSaveSettings(input map[string]string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupOpenListSaveSettings")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -400,7 +478,9 @@ func (a *AuthBoundApp) BackupOpenListSaveSettings(input map[string]string, gener
 }
 
 func (a *AuthBoundApp) BackupOpenListTest(input map[string]string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupOpenListTest")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -410,7 +490,9 @@ func (a *AuthBoundApp) BackupOpenListTest(input map[string]string, generation ui
 }
 
 func (a *AuthBoundApp) BackupOpenListUpload(input map[string]string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupOpenListUpload")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -420,7 +502,9 @@ func (a *AuthBoundApp) BackupOpenListUpload(input map[string]string, generation 
 }
 
 func (a *AuthBoundApp) BackupRestoreLocalPackage(zipPath string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupRestoreLocalPackage")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -430,7 +514,9 @@ func (a *AuthBoundApp) BackupRestoreLocalPackage(zipPath string, generation uint
 }
 
 func (a *AuthBoundApp) BackupS3Download(input map[string]string, fileName string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupS3Download")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -440,7 +526,9 @@ func (a *AuthBoundApp) BackupS3Download(input map[string]string, fileName string
 }
 
 func (a *AuthBoundApp) BackupS3GetSettings(generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupS3GetSettings")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -450,7 +538,9 @@ func (a *AuthBoundApp) BackupS3GetSettings(generation uint64) (r0 map[string]int
 }
 
 func (a *AuthBoundApp) BackupS3List(input map[string]string, generation uint64) (r0 []map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupS3List")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -460,7 +550,9 @@ func (a *AuthBoundApp) BackupS3List(input map[string]string, generation uint64) 
 }
 
 func (a *AuthBoundApp) BackupS3Restore(input map[string]string, fileName string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupS3Restore")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -470,7 +562,9 @@ func (a *AuthBoundApp) BackupS3Restore(input map[string]string, fileName string,
 }
 
 func (a *AuthBoundApp) BackupS3RevealCredential(field string, generation uint64) (r0 string, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupS3RevealCredential")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -480,7 +574,9 @@ func (a *AuthBoundApp) BackupS3RevealCredential(field string, generation uint64)
 }
 
 func (a *AuthBoundApp) BackupS3SaveSettings(input map[string]string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupS3SaveSettings")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -490,7 +586,9 @@ func (a *AuthBoundApp) BackupS3SaveSettings(input map[string]string, generation 
 }
 
 func (a *AuthBoundApp) BackupS3Test(input map[string]string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupS3Test")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -500,7 +598,9 @@ func (a *AuthBoundApp) BackupS3Test(input map[string]string, generation uint64) 
 }
 
 func (a *AuthBoundApp) BackupS3Upload(input map[string]string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupS3Upload")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -510,7 +610,9 @@ func (a *AuthBoundApp) BackupS3Upload(input map[string]string, generation uint64
 }
 
 func (a *AuthBoundApp) BackupSaveLocalDirectory(directory string, generation uint64) (r0 BackupLocalSettings, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupSaveLocalDirectory")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -520,7 +622,9 @@ func (a *AuthBoundApp) BackupSaveLocalDirectory(directory string, generation uin
 }
 
 func (a *AuthBoundApp) BackupScheduledGetSettings(generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupScheduledGetSettings")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -530,7 +634,9 @@ func (a *AuthBoundApp) BackupScheduledGetSettings(generation uint64) (r0 map[str
 }
 
 func (a *AuthBoundApp) BackupScheduledSaveSettings(input map[string]string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupScheduledSaveSettings")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -540,7 +646,9 @@ func (a *AuthBoundApp) BackupScheduledSaveSettings(input map[string]string, gene
 }
 
 func (a *AuthBoundApp) BackupSelectLocalDirectory(generation uint64) (r0 BackupSelectLocalDirectoryResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BackupSelectLocalDirectory")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -550,7 +658,9 @@ func (a *AuthBoundApp) BackupSelectLocalDirectory(generation uint64) (r0 BackupS
 }
 
 func (a *AuthBoundApp) BookmarkList(generation uint64) (r0 []BrowserBookmark, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BookmarkList")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -560,7 +670,9 @@ func (a *AuthBoundApp) BookmarkList(generation uint64) (r0 []BrowserBookmark, r1
 }
 
 func (a *AuthBoundApp) BookmarkReset(generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BookmarkReset")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -570,7 +682,9 @@ func (a *AuthBoundApp) BookmarkReset(generation uint64) (r0 error) {
 }
 
 func (a *AuthBoundApp) BookmarkSave(items []BrowserBookmark, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BookmarkSave")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -580,7 +694,9 @@ func (a *AuthBoundApp) BookmarkSave(items []BrowserBookmark, generation uint64) 
 }
 
 func (a *AuthBoundApp) BookmarkSyncToProfiles(generation uint64) (r0 BookmarkSyncResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BookmarkSyncToProfiles")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -590,7 +706,9 @@ func (a *AuthBoundApp) BookmarkSyncToProfiles(generation uint64) (r0 BookmarkSyn
 }
 
 func (a *AuthBoundApp) BrowserClearCookies(profileId string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserClearCookies")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -600,7 +718,9 @@ func (a *AuthBoundApp) BrowserClearCookies(profileId string, generation uint64) 
 }
 
 func (a *AuthBoundApp) BrowserCoreDelete(coreId string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserCoreDelete")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -610,7 +730,9 @@ func (a *AuthBoundApp) BrowserCoreDelete(coreId string, generation uint64) (r0 e
 }
 
 func (a *AuthBoundApp) BrowserCoreDownload(coreName string, url string, proxyConfig string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserCoreDownload")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -620,7 +742,9 @@ func (a *AuthBoundApp) BrowserCoreDownload(coreName string, url string, proxyCon
 }
 
 func (a *AuthBoundApp) BrowserCoreExtendedInfo(generation uint64) (r0 []BrowserCoreExtendedInfo, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserCoreExtendedInfo")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -630,7 +754,9 @@ func (a *AuthBoundApp) BrowserCoreExtendedInfo(generation uint64) (r0 []BrowserC
 }
 
 func (a *AuthBoundApp) BrowserCoreImportLocal(generation uint64) (r0 *BrowserCore, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserCoreImportLocal")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -640,7 +766,9 @@ func (a *AuthBoundApp) BrowserCoreImportLocal(generation uint64) (r0 *BrowserCor
 }
 
 func (a *AuthBoundApp) BrowserCoreImportLocalDirectory(generation uint64) (r0 *BrowserCore, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserCoreImportLocalDirectory")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -650,7 +778,9 @@ func (a *AuthBoundApp) BrowserCoreImportLocalDirectory(generation uint64) (r0 *B
 }
 
 func (a *AuthBoundApp) BrowserCoreList(generation uint64) (r0 []BrowserCore, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserCoreList")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -660,7 +790,9 @@ func (a *AuthBoundApp) BrowserCoreList(generation uint64) (r0 []BrowserCore, r1 
 }
 
 func (a *AuthBoundApp) BrowserCoreRedownload(coreId string, url string, proxyConfig string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserCoreRedownload")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -670,7 +802,9 @@ func (a *AuthBoundApp) BrowserCoreRedownload(coreId string, url string, proxyCon
 }
 
 func (a *AuthBoundApp) BrowserCoreSave(input BrowserCoreInput, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserCoreSave")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -680,7 +814,9 @@ func (a *AuthBoundApp) BrowserCoreSave(input BrowserCoreInput, generation uint64
 }
 
 func (a *AuthBoundApp) BrowserCoreScan(generation uint64) (r0 []BrowserCore, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserCoreScan")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -690,7 +826,9 @@ func (a *AuthBoundApp) BrowserCoreScan(generation uint64) (r0 []BrowserCore, r1 
 }
 
 func (a *AuthBoundApp) BrowserCoreSetDefault(coreId string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserCoreSetDefault")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -700,7 +838,9 @@ func (a *AuthBoundApp) BrowserCoreSetDefault(coreId string, generation uint64) (
 }
 
 func (a *AuthBoundApp) BrowserCoreValidate(corePath string, generation uint64) (r0 BrowserCoreValidateResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserCoreValidate")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -710,7 +850,9 @@ func (a *AuthBoundApp) BrowserCoreValidate(corePath string, generation uint64) (
 }
 
 func (a *AuthBoundApp) BrowserExportCookies(profileId string, generation uint64) (r0 string, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserExportCookies")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -720,7 +862,9 @@ func (a *AuthBoundApp) BrowserExportCookies(profileId string, generation uint64)
 }
 
 func (a *AuthBoundApp) BrowserExtensionDelete(extensionID string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserExtensionDelete")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -730,7 +874,9 @@ func (a *AuthBoundApp) BrowserExtensionDelete(extensionID string, generation uin
 }
 
 func (a *AuthBoundApp) BrowserExtensionInstall(query string, generation uint64) (r0 BrowserExtension, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserExtensionInstall")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -740,7 +886,9 @@ func (a *AuthBoundApp) BrowserExtensionInstall(query string, generation uint64) 
 }
 
 func (a *AuthBoundApp) BrowserExtensionInstallLocalDirectory(generation uint64) (r0 BrowserExtension, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserExtensionInstallLocalDirectory")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -750,7 +898,9 @@ func (a *AuthBoundApp) BrowserExtensionInstallLocalDirectory(generation uint64) 
 }
 
 func (a *AuthBoundApp) BrowserExtensionInstallLocalFile(generation uint64) (r0 BrowserExtension, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserExtensionInstallLocalFile")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -760,7 +910,9 @@ func (a *AuthBoundApp) BrowserExtensionInstallLocalFile(generation uint64) (r0 B
 }
 
 func (a *AuthBoundApp) BrowserExtensionInstallManualDownloadFile(fileName string, generation uint64) (r0 BrowserExtension, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserExtensionInstallManualDownloadFile")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -770,7 +922,9 @@ func (a *AuthBoundApp) BrowserExtensionInstallManualDownloadFile(fileName string
 }
 
 func (a *AuthBoundApp) BrowserExtensionInstallWithProxy(input BrowserExtensionWebStoreRequest, generation uint64) (r0 BrowserExtension, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserExtensionInstallWithProxy")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -780,7 +934,9 @@ func (a *AuthBoundApp) BrowserExtensionInstallWithProxy(input BrowserExtensionWe
 }
 
 func (a *AuthBoundApp) BrowserExtensionList(generation uint64) (r0 []BrowserExtension, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserExtensionList")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -790,7 +946,9 @@ func (a *AuthBoundApp) BrowserExtensionList(generation uint64) (r0 []BrowserExte
 }
 
 func (a *AuthBoundApp) BrowserExtensionListManualDownloadFiles(generation uint64) (r0 []BrowserExtensionManualDownloadFile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserExtensionListManualDownloadFiles")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -800,7 +958,9 @@ func (a *AuthBoundApp) BrowserExtensionListManualDownloadFiles(generation uint64
 }
 
 func (a *AuthBoundApp) BrowserExtensionLookup(query string, generation uint64) (r0 BrowserExtensionLookupResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserExtensionLookup")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -810,7 +970,9 @@ func (a *AuthBoundApp) BrowserExtensionLookup(query string, generation uint64) (
 }
 
 func (a *AuthBoundApp) BrowserExtensionLookupWithProxy(input BrowserExtensionWebStoreRequest, generation uint64) (r0 BrowserExtensionLookupResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserExtensionLookupWithProxy")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -820,7 +982,9 @@ func (a *AuthBoundApp) BrowserExtensionLookupWithProxy(input BrowserExtensionWeb
 }
 
 func (a *AuthBoundApp) BrowserExtensionManualInstallGuide(query string, generation uint64) (r0 BrowserExtensionManualInstallGuide, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserExtensionManualInstallGuide")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -830,7 +994,9 @@ func (a *AuthBoundApp) BrowserExtensionManualInstallGuide(query string, generati
 }
 
 func (a *AuthBoundApp) BrowserExtensionOpenManualDownloadDir(generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserExtensionOpenManualDownloadDir")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -840,7 +1006,9 @@ func (a *AuthBoundApp) BrowserExtensionOpenManualDownloadDir(generation uint64) 
 }
 
 func (a *AuthBoundApp) BrowserExtensionSetDefaultInstall(extensionID string, enabled bool, generation uint64) (r0 BrowserExtension, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserExtensionSetDefaultInstall")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -850,7 +1018,9 @@ func (a *AuthBoundApp) BrowserExtensionSetDefaultInstall(extensionID string, ena
 }
 
 func (a *AuthBoundApp) BrowserExtensionSetEnabled(extensionID string, enabled bool, generation uint64) (r0 BrowserExtension, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserExtensionSetEnabled")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -860,7 +1030,9 @@ func (a *AuthBoundApp) BrowserExtensionSetEnabled(extensionID string, enabled bo
 }
 
 func (a *AuthBoundApp) BrowserGetAllTags(generation uint64) (r0 []string, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserGetAllTags")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -870,7 +1042,9 @@ func (a *AuthBoundApp) BrowserGetAllTags(generation uint64) (r0 []string, r1 err
 }
 
 func (a *AuthBoundApp) BrowserGetCookies(profileId string, generation uint64) (r0 []CookieInfo, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserGetCookies")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -880,7 +1054,9 @@ func (a *AuthBoundApp) BrowserGetCookies(profileId string, generation uint64) (r
 }
 
 func (a *AuthBoundApp) BrowserInstanceGetTabs(profileId string, generation uint64) (r0 []BrowserTab, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserInstanceGetTabs")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -890,7 +1066,9 @@ func (a *AuthBoundApp) BrowserInstanceGetTabs(profileId string, generation uint6
 }
 
 func (a *AuthBoundApp) BrowserInstanceOpenFingerprintCheck(profileId string, generation uint64) (r0 *BrowserProfile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserInstanceOpenFingerprintCheck")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -900,7 +1078,9 @@ func (a *AuthBoundApp) BrowserInstanceOpenFingerprintCheck(profileId string, gen
 }
 
 func (a *AuthBoundApp) BrowserInstanceOpenUrl(profileId string, targetUrl string, generation uint64) (r0 bool, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserInstanceOpenUrl")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -910,7 +1090,9 @@ func (a *AuthBoundApp) BrowserInstanceOpenUrl(profileId string, targetUrl string
 }
 
 func (a *AuthBoundApp) BrowserInstanceRestart(profileId string, generation uint64) (r0 *BrowserProfile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserInstanceRestart")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -920,7 +1102,9 @@ func (a *AuthBoundApp) BrowserInstanceRestart(profileId string, generation uint6
 }
 
 func (a *AuthBoundApp) BrowserInstanceStart(profileId string, generation uint64) (r0 *BrowserProfile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserInstanceStart")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -930,7 +1114,9 @@ func (a *AuthBoundApp) BrowserInstanceStart(profileId string, generation uint64)
 }
 
 func (a *AuthBoundApp) BrowserInstanceStartByCode(code string, generation uint64) (r0 *browser.Profile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserInstanceStartByCode")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -940,7 +1126,9 @@ func (a *AuthBoundApp) BrowserInstanceStartByCode(code string, generation uint64
 }
 
 func (a *AuthBoundApp) BrowserInstanceStartDirect(profileId string, generation uint64) (r0 *BrowserProfile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserInstanceStartDirect")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -950,7 +1138,9 @@ func (a *AuthBoundApp) BrowserInstanceStartDirect(profileId string, generation u
 }
 
 func (a *AuthBoundApp) BrowserInstanceStartWithParams(profileId string, extraLaunchArgs []string, startURLs []string, skipDefaultStartURLs bool, generation uint64) (r0 *BrowserProfile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserInstanceStartWithParams")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -960,7 +1150,9 @@ func (a *AuthBoundApp) BrowserInstanceStartWithParams(profileId string, extraLau
 }
 
 func (a *AuthBoundApp) BrowserInstanceStatus(profileId string, generation uint64) (r0 *BrowserProfile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserInstanceStatus")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -970,7 +1162,9 @@ func (a *AuthBoundApp) BrowserInstanceStatus(profileId string, generation uint64
 }
 
 func (a *AuthBoundApp) BrowserInstanceStop(profileId string, generation uint64) (r0 *BrowserProfile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserInstanceStop")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -980,7 +1174,9 @@ func (a *AuthBoundApp) BrowserInstanceStop(profileId string, generation uint64) 
 }
 
 func (a *AuthBoundApp) BrowserProfileBatchRemoveTags(profileIds []string, tags []string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileBatchRemoveTags")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -990,7 +1186,9 @@ func (a *AuthBoundApp) BrowserProfileBatchRemoveTags(profileIds []string, tags [
 }
 
 func (a *AuthBoundApp) BrowserProfileBatchSetTags(profileIds []string, tags []string, replace bool, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileBatchSetTags")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1000,7 +1198,9 @@ func (a *AuthBoundApp) BrowserProfileBatchSetTags(profileIds []string, tags []st
 }
 
 func (a *AuthBoundApp) BrowserProfileCopy(profileId string, newName string, generation uint64) (r0 *BrowserProfile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileCopy")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1010,7 +1210,9 @@ func (a *AuthBoundApp) BrowserProfileCopy(profileId string, newName string, gene
 }
 
 func (a *AuthBoundApp) BrowserProfileCopyWithMode(profileId string, newName string, mode string, generation uint64) (r0 *BrowserProfile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileCopyWithMode")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1020,7 +1222,9 @@ func (a *AuthBoundApp) BrowserProfileCopyWithMode(profileId string, newName stri
 }
 
 func (a *AuthBoundApp) BrowserProfileCopyWithOptions(profileId string, newName string, options BrowserProfileCopyOptions, generation uint64) (r0 *BrowserProfile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileCopyWithOptions")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1030,7 +1234,9 @@ func (a *AuthBoundApp) BrowserProfileCopyWithOptions(profileId string, newName s
 }
 
 func (a *AuthBoundApp) BrowserProfileCreate(input BrowserProfileInput, generation uint64) (r0 *BrowserProfile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileCreate")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1040,7 +1246,9 @@ func (a *AuthBoundApp) BrowserProfileCreate(input BrowserProfileInput, generatio
 }
 
 func (a *AuthBoundApp) BrowserProfileDelete(profileId string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileDelete")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1050,7 +1258,9 @@ func (a *AuthBoundApp) BrowserProfileDelete(profileId string, generation uint64)
 }
 
 func (a *AuthBoundApp) BrowserProfileExtensionGet(profileID string, generation uint64) (r0 BrowserProfileExtensionSettings, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileExtensionGet")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1060,7 +1270,9 @@ func (a *AuthBoundApp) BrowserProfileExtensionGet(profileID string, generation u
 }
 
 func (a *AuthBoundApp) BrowserProfileExtensionSave(profileID string, extensionIDs []string, configured bool, generation uint64) (r0 BrowserProfileExtensionSettings, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileExtensionSave")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1070,7 +1282,9 @@ func (a *AuthBoundApp) BrowserProfileExtensionSave(profileID string, extensionID
 }
 
 func (a *AuthBoundApp) BrowserProfileFingerprintCheck(profileId string, generation uint64) (r0 *BrowserFingerprintCheckResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileFingerprintCheck")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1080,7 +1294,9 @@ func (a *AuthBoundApp) BrowserProfileFingerprintCheck(profileId string, generati
 }
 
 func (a *AuthBoundApp) BrowserProfileFingerprintMatrix(profileId string, coreId string, fingerprintArgs []string, generation uint64) (r0 BrowserFingerprintCapabilityReport, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileFingerprintMatrix")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1090,7 +1306,9 @@ func (a *AuthBoundApp) BrowserProfileFingerprintMatrix(profileId string, coreId 
 }
 
 func (a *AuthBoundApp) BrowserProfileGetCode(profileId string, generation uint64) (r0 string, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileGetCode")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1100,7 +1318,9 @@ func (a *AuthBoundApp) BrowserProfileGetCode(profileId string, generation uint64
 }
 
 func (a *AuthBoundApp) BrowserProfileList(generation uint64) (r0 []BrowserProfile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileList")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1110,7 +1330,9 @@ func (a *AuthBoundApp) BrowserProfileList(generation uint64) (r0 []BrowserProfil
 }
 
 func (a *AuthBoundApp) BrowserProfileListByTag(tag string, generation uint64) (r0 []BrowserProfile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileListByTag")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1120,7 +1342,9 @@ func (a *AuthBoundApp) BrowserProfileListByTag(tag string, generation uint64) (r
 }
 
 func (a *AuthBoundApp) BrowserProfilePackageExport(profileIds []string, generation uint64) (r0 ProfilePackageExportResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfilePackageExport")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1130,7 +1354,9 @@ func (a *AuthBoundApp) BrowserProfilePackageExport(profileIds []string, generati
 }
 
 func (a *AuthBoundApp) BrowserProfilePackageImport(generation uint64) (r0 ProfilePackageImportResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfilePackageImport")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1140,7 +1366,9 @@ func (a *AuthBoundApp) BrowserProfilePackageImport(generation uint64) (r0 Profil
 }
 
 func (a *AuthBoundApp) BrowserProfilePackageImportWithOptions(zipPath string, options ProfilePackageImportOptions, generation uint64) (r0 ProfilePackageImportResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfilePackageImportWithOptions")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1153,7 +1381,9 @@ func (a *AuthBoundApp) BrowserProfilePackageImportWithOptions(zipPath string, op
 }
 
 func (a *AuthBoundApp) BrowserProfilePackagePrepareImport(generation uint64) (r0 ProfilePackageImportPreview, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfilePackagePrepareImport")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1163,7 +1393,9 @@ func (a *AuthBoundApp) BrowserProfilePackagePrepareImport(generation uint64) (r0
 }
 
 func (a *AuthBoundApp) BrowserProfilePackagePrepareImportFromPath(zipPath string, generation uint64) (r0 ProfilePackageImportPreview, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfilePackagePrepareImportFromPath")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1173,7 +1405,9 @@ func (a *AuthBoundApp) BrowserProfilePackagePrepareImportFromPath(zipPath string
 }
 
 func (a *AuthBoundApp) BrowserProfilePermanentlyDelete(profileId string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfilePermanentlyDelete")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1183,7 +1417,9 @@ func (a *AuthBoundApp) BrowserProfilePermanentlyDelete(profileId string, generat
 }
 
 func (a *AuthBoundApp) BrowserProfileRegenerateCode(profileId string, generation uint64) (r0 string, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileRegenerateCode")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1193,7 +1429,9 @@ func (a *AuthBoundApp) BrowserProfileRegenerateCode(profileId string, generation
 }
 
 func (a *AuthBoundApp) BrowserProfileRestore(profileId string, generation uint64) (r0 *BrowserProfile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileRestore")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1203,7 +1441,9 @@ func (a *AuthBoundApp) BrowserProfileRestore(profileId string, generation uint64
 }
 
 func (a *AuthBoundApp) BrowserProfileSetCode(profileId string, code string, generation uint64) (r0 string, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileSetCode")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1213,7 +1453,9 @@ func (a *AuthBoundApp) BrowserProfileSetCode(profileId string, code string, gene
 }
 
 func (a *AuthBoundApp) BrowserProfileSetKeywords(profileId string, keywords []string, generation uint64) (r0 *BrowserProfile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileSetKeywords")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1223,7 +1465,9 @@ func (a *AuthBoundApp) BrowserProfileSetKeywords(profileId string, keywords []st
 }
 
 func (a *AuthBoundApp) BrowserProfileTrashCleanup(generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileTrashCleanup")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1233,7 +1477,9 @@ func (a *AuthBoundApp) BrowserProfileTrashCleanup(generation uint64) (r0 error) 
 }
 
 func (a *AuthBoundApp) BrowserProfileTrashList(generation uint64) (r0 []BrowserProfile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileTrashList")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1243,7 +1489,9 @@ func (a *AuthBoundApp) BrowserProfileTrashList(generation uint64) (r0 []BrowserP
 }
 
 func (a *AuthBoundApp) BrowserProfileUpdate(profileId string, input BrowserProfileInput, generation uint64) (r0 *BrowserProfile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProfileUpdate")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1253,7 +1501,9 @@ func (a *AuthBoundApp) BrowserProfileUpdate(profileId string, input BrowserProfi
 }
 
 func (a *AuthBoundApp) BrowserProxyBatchCheckIPHealth(proxyIds []string, concurrency int, generation uint64) (r0 []ProxyIPHealthResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyBatchCheckIPHealth")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1263,7 +1513,9 @@ func (a *AuthBoundApp) BrowserProxyBatchCheckIPHealth(proxyIds []string, concurr
 }
 
 func (a *AuthBoundApp) BrowserProxyBatchTestSpeed(proxyIds []string, concurrency int, generation uint64) (r0 []ProxyTestResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyBatchTestSpeed")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1273,7 +1525,9 @@ func (a *AuthBoundApp) BrowserProxyBatchTestSpeed(proxyIds []string, concurrency
 }
 
 func (a *AuthBoundApp) BrowserProxyBatchWarmupBridge(proxyIds []string, concurrency int, generation uint64) (r0 []ProxyBridgeWarmupResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyBatchWarmupBridge")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1283,7 +1537,9 @@ func (a *AuthBoundApp) BrowserProxyBatchWarmupBridge(proxyIds []string, concurre
 }
 
 func (a *AuthBoundApp) BrowserProxyBuildDiagnostic(proxyId string, proxyConfig string, generation uint64) (r0 ProxyBuildDiagnostic, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyBuildDiagnostic")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1293,7 +1549,9 @@ func (a *AuthBoundApp) BrowserProxyBuildDiagnostic(proxyId string, proxyConfig s
 }
 
 func (a *AuthBoundApp) BrowserProxyCheckIPHealth(proxyId string, generation uint64) (r0 ProxyIPHealthResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyCheckIPHealth")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1303,7 +1561,9 @@ func (a *AuthBoundApp) BrowserProxyCheckIPHealth(proxyId string, generation uint
 }
 
 func (a *AuthBoundApp) BrowserProxyCoreDownload(input ProxyCoreDownloadRequest, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyCoreDownload")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1313,7 +1573,9 @@ func (a *AuthBoundApp) BrowserProxyCoreDownload(input ProxyCoreDownloadRequest, 
 }
 
 func (a *AuthBoundApp) BrowserProxyCoreDownloadInfo(input ProxyCoreDownloadRequest, generation uint64) (r0 ProxyCoreDownloadInfoResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyCoreDownloadInfo")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1323,7 +1585,9 @@ func (a *AuthBoundApp) BrowserProxyCoreDownloadInfo(input ProxyCoreDownloadReque
 }
 
 func (a *AuthBoundApp) BrowserProxyCoreOpenLocal(input ProxyCoreDownloadRequest, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyCoreOpenLocal")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1333,7 +1597,9 @@ func (a *AuthBoundApp) BrowserProxyCoreOpenLocal(input ProxyCoreDownloadRequest,
 }
 
 func (a *AuthBoundApp) BrowserProxyCoreStatus(input ProxyCoreDownloadRequest, generation uint64) (r0 ProxyCoreStatusResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyCoreStatus")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1343,7 +1609,9 @@ func (a *AuthBoundApp) BrowserProxyCoreStatus(input ProxyCoreDownloadRequest, ge
 }
 
 func (a *AuthBoundApp) BrowserProxyFetchClashByURL(rawURL string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyFetchClashByURL")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1353,7 +1621,9 @@ func (a *AuthBoundApp) BrowserProxyFetchClashByURL(rawURL string, generation uin
 }
 
 func (a *AuthBoundApp) BrowserProxyFetchClashByURLWithProxy(rawURL string, proxyID string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyFetchClashByURLWithProxy")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1363,7 +1633,9 @@ func (a *AuthBoundApp) BrowserProxyFetchClashByURLWithProxy(rawURL string, proxy
 }
 
 func (a *AuthBoundApp) BrowserProxyList(generation uint64) (r0 []BrowserProxy, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyList")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1373,7 +1645,9 @@ func (a *AuthBoundApp) BrowserProxyList(generation uint64) (r0 []BrowserProxy, r
 }
 
 func (a *AuthBoundApp) BrowserProxyListByGroup(groupName string, generation uint64) (r0 []BrowserProxy, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyListByGroup")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1383,7 +1657,9 @@ func (a *AuthBoundApp) BrowserProxyListByGroup(groupName string, generation uint
 }
 
 func (a *AuthBoundApp) BrowserProxyListGroups(generation uint64) (r0 []string, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyListGroups")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1393,7 +1669,9 @@ func (a *AuthBoundApp) BrowserProxyListGroups(generation uint64) (r0 []string, r
 }
 
 func (a *AuthBoundApp) BrowserProxyProbeBrowserPage(request ProxyBrowserProbeRequest, generation uint64) (r0 ProxyBrowserProbeResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyProbeBrowserPage")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1403,7 +1681,9 @@ func (a *AuthBoundApp) BrowserProxyProbeBrowserPage(request ProxyBrowserProbeReq
 }
 
 func (a *AuthBoundApp) BrowserProxyResolveLocation(proxyId string, generation uint64) (r0 ProxyLocationResolveResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyResolveLocation")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1413,7 +1693,9 @@ func (a *AuthBoundApp) BrowserProxyResolveLocation(proxyId string, generation ui
 }
 
 func (a *AuthBoundApp) BrowserProxyTestSpeed(proxyId string, generation uint64) (r0 ProxyTestResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyTestSpeed")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1423,7 +1705,9 @@ func (a *AuthBoundApp) BrowserProxyTestSpeed(proxyId string, generation uint64) 
 }
 
 func (a *AuthBoundApp) BrowserProxyWarmupBridge(proxyId string, generation uint64) (r0 ProxyBridgeWarmupResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyWarmupBridge")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1433,7 +1717,9 @@ func (a *AuthBoundApp) BrowserProxyWarmupBridge(proxyId string, generation uint6
 }
 
 func (a *AuthBoundApp) BrowserProxyWarmupBridgeWithConfig(proxyId string, proxyConfig string, generation uint64) (r0 ProxyBridgeWarmupResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserProxyWarmupBridgeWithConfig")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1443,7 +1729,9 @@ func (a *AuthBoundApp) BrowserProxyWarmupBridgeWithConfig(proxyId string, proxyC
 }
 
 func (a *AuthBoundApp) BrowserRenameTag(oldName string, newName string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserRenameTag")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1453,7 +1741,9 @@ func (a *AuthBoundApp) BrowserRenameTag(oldName string, newName string, generati
 }
 
 func (a *AuthBoundApp) BrowserSnapshotCreate(profileId string, name string, generation uint64) (r0 SnapshotInfo, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserSnapshotCreate")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1463,7 +1753,9 @@ func (a *AuthBoundApp) BrowserSnapshotCreate(profileId string, name string, gene
 }
 
 func (a *AuthBoundApp) BrowserSnapshotDelete(profileId string, snapshotId string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserSnapshotDelete")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1473,7 +1765,9 @@ func (a *AuthBoundApp) BrowserSnapshotDelete(profileId string, snapshotId string
 }
 
 func (a *AuthBoundApp) BrowserSnapshotList(profileId string, generation uint64) (r0 []SnapshotInfo, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserSnapshotList")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1483,7 +1777,9 @@ func (a *AuthBoundApp) BrowserSnapshotList(profileId string, generation uint64) 
 }
 
 func (a *AuthBoundApp) BrowserSnapshotRestore(profileId string, snapshotId string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "BrowserSnapshotRestore")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1493,7 +1789,9 @@ func (a *AuthBoundApp) BrowserSnapshotRestore(profileId string, snapshotId strin
 }
 
 func (a *AuthBoundApp) ClearAppLogs(generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "ClearAppLogs")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1503,7 +1801,9 @@ func (a *AuthBoundApp) ClearAppLogs(generation uint64) (r0 error) {
 }
 
 func (a *AuthBoundApp) CreateGroup(input BrowserGroupInput, generation uint64) (r0 *BrowserGroup, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "CreateGroup")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1513,7 +1813,9 @@ func (a *AuthBoundApp) CreateGroup(input BrowserGroupInput, generation uint64) (
 }
 
 func (a *AuthBoundApp) DeleteGroup(groupId string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "DeleteGroup")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1523,7 +1825,9 @@ func (a *AuthBoundApp) DeleteGroup(groupId string, generation uint64) (r0 error)
 }
 
 func (a *AuthBoundApp) FetchRemoteAuthorProfile(rawURL string, timeoutMs int, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "FetchRemoteAuthorProfile")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1533,7 +1837,9 @@ func (a *AuthBoundApp) FetchRemoteAuthorProfile(rawURL string, timeoutMs int, ge
 }
 
 func (a *AuthBoundApp) ForceQuit(generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "ForceQuit")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1543,7 +1849,9 @@ func (a *AuthBoundApp) ForceQuit(generation uint64) (r0 error) {
 }
 
 func (a *AuthBoundApp) FrontendOperationLog(level string, method string, success bool, durationMs int64, message string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "FrontendOperationLog")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1553,7 +1861,9 @@ func (a *AuthBoundApp) FrontendOperationLog(level string, method string, success
 }
 
 func (a *AuthBoundApp) GetAppConfig(generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "GetAppConfig")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1563,7 +1873,9 @@ func (a *AuthBoundApp) GetAppConfig(generation uint64) (r0 map[string]interface{
 }
 
 func (a *AuthBoundApp) GetAppLogs(generation uint64) (r0 []logger.MemoryLogEntry, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "GetAppLogs")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1573,7 +1885,9 @@ func (a *AuthBoundApp) GetAppLogs(generation uint64) (r0 []logger.MemoryLogEntry
 }
 
 func (a *AuthBoundApp) GetAutomationState(generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "GetAutomationState")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1583,7 +1897,9 @@ func (a *AuthBoundApp) GetAutomationState(generation uint64) (r0 map[string]inte
 }
 
 func (a *AuthBoundApp) GetBackupFileInfo(backupPath string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "GetBackupFileInfo")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1593,7 +1909,9 @@ func (a *AuthBoundApp) GetBackupFileInfo(backupPath string, generation uint64) (
 }
 
 func (a *AuthBoundApp) GetBrowserSettings(generation uint64) (r0 BrowserSettings, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "GetBrowserSettings")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1603,7 +1921,9 @@ func (a *AuthBoundApp) GetBrowserSettings(generation uint64) (r0 BrowserSettings
 }
 
 func (a *AuthBoundApp) GetDashboardStats(generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "GetDashboardStats")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1613,7 +1933,9 @@ func (a *AuthBoundApp) GetDashboardStats(generation uint64) (r0 map[string]inter
 }
 
 func (a *AuthBoundApp) GetLaunchServerInfo(generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "GetLaunchServerInfo")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1623,7 +1945,9 @@ func (a *AuthBoundApp) GetLaunchServerInfo(generation uint64) (r0 map[string]int
 }
 
 func (a *AuthBoundApp) GetLogLevel(generation uint64) (r0 string, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "GetLogLevel")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1633,7 +1957,9 @@ func (a *AuthBoundApp) GetLogLevel(generation uint64) (r0 string, r1 error) {
 }
 
 func (a *AuthBoundApp) GetMemoryStats(generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "GetMemoryStats")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1643,7 +1969,9 @@ func (a *AuthBoundApp) GetMemoryStats(generation uint64) (r0 map[string]interfac
 }
 
 func (a *AuthBoundApp) GetProxyCheckSettings(generation uint64) (r0 ProxyCheckSettings, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "GetProxyCheckSettings")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1653,7 +1981,9 @@ func (a *AuthBoundApp) GetProxyCheckSettings(generation uint64) (r0 ProxyCheckSe
 }
 
 func (a *AuthBoundApp) GetRunningInstances(generation uint64) (r0 []BrowserProfile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "GetRunningInstances")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1663,7 +1993,9 @@ func (a *AuthBoundApp) GetRunningInstances(generation uint64) (r0 []BrowserProfi
 }
 
 func (a *AuthBoundApp) InstallAutomationRuntime(generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "InstallAutomationRuntime")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1673,7 +2005,9 @@ func (a *AuthBoundApp) InstallAutomationRuntime(generation uint64) (r0 map[strin
 }
 
 func (a *AuthBoundApp) ListGroups(generation uint64) (r0 []BrowserGroupWithCount, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "ListGroups")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1683,7 +2017,9 @@ func (a *AuthBoundApp) ListGroups(generation uint64) (r0 []BrowserGroupWithCount
 }
 
 func (a *AuthBoundApp) MoveInstancesToGroup(profileIds []string, groupId string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "MoveInstancesToGroup")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1693,7 +2029,9 @@ func (a *AuthBoundApp) MoveInstancesToGroup(profileIds []string, groupId string,
 }
 
 func (a *AuthBoundApp) OpenBackupPath(backupPath string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "OpenBackupPath")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1703,7 +2041,9 @@ func (a *AuthBoundApp) OpenBackupPath(backupPath string, generation uint64) (r0 
 }
 
 func (a *AuthBoundApp) OpenCorePath(corePath string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "OpenCorePath")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1713,7 +2053,9 @@ func (a *AuthBoundApp) OpenCorePath(corePath string, generation uint64) (r0 erro
 }
 
 func (a *AuthBoundApp) OpenProjectRoot(generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "OpenProjectRoot")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1723,7 +2065,9 @@ func (a *AuthBoundApp) OpenProjectRoot(generation uint64) (r0 error) {
 }
 
 func (a *AuthBoundApp) OpenUserDataDir(userDataDir string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "OpenUserDataDir")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1733,7 +2077,9 @@ func (a *AuthBoundApp) OpenUserDataDir(userDataDir string, generation uint64) (r
 }
 
 func (a *AuthBoundApp) OpenUserDataRoot(generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "OpenUserDataRoot")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1743,7 +2089,9 @@ func (a *AuthBoundApp) OpenUserDataRoot(generation uint64) (r0 error) {
 }
 
 func (a *AuthBoundApp) ReloadConfig(generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "ReloadConfig")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1753,7 +2101,9 @@ func (a *AuthBoundApp) ReloadConfig(generation uint64) (r0 error) {
 }
 
 func (a *AuthBoundApp) ResetManagedSettings(generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "ResetManagedSettings")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1763,7 +2113,9 @@ func (a *AuthBoundApp) ResetManagedSettings(generation uint64) (r0 error) {
 }
 
 func (a *AuthBoundApp) SaveAutomationRuntimeSettings(nodeSource string, systemNodePath string, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "SaveAutomationRuntimeSettings")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1773,7 +2125,9 @@ func (a *AuthBoundApp) SaveAutomationRuntimeSettings(nodeSource string, systemNo
 }
 
 func (a *AuthBoundApp) SaveAutomationScriptPackageSettings(allowTypeScriptBuild bool, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "SaveAutomationScriptPackageSettings")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1783,7 +2137,9 @@ func (a *AuthBoundApp) SaveAutomationScriptPackageSettings(allowTypeScriptBuild 
 }
 
 func (a *AuthBoundApp) SaveAutomationSettings(enabled bool, headlessDefault bool, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "SaveAutomationSettings")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1793,7 +2149,9 @@ func (a *AuthBoundApp) SaveAutomationSettings(enabled bool, headlessDefault bool
 }
 
 func (a *AuthBoundApp) SaveBrowserProxies(proxies []BrowserProxy, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "SaveBrowserProxies")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1803,7 +2161,9 @@ func (a *AuthBoundApp) SaveBrowserProxies(proxies []BrowserProxy, generation uin
 }
 
 func (a *AuthBoundApp) SaveBrowserSettings(settings BrowserSettings, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "SaveBrowserSettings")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1813,7 +2173,9 @@ func (a *AuthBoundApp) SaveBrowserSettings(settings BrowserSettings, generation 
 }
 
 func (a *AuthBoundApp) SaveLaunchServerSettings(port int, generation uint64) (r0 map[string]interface{}, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "SaveLaunchServerSettings")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1823,7 +2185,9 @@ func (a *AuthBoundApp) SaveLaunchServerSettings(port int, generation uint64) (r0
 }
 
 func (a *AuthBoundApp) SaveProxyCheckSettings(settings ProxyCheckSettings, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "SaveProxyCheckSettings")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1833,7 +2197,9 @@ func (a *AuthBoundApp) SaveProxyCheckSettings(settings ProxyCheckSettings, gener
 }
 
 func (a *AuthBoundApp) SetLogLevel(level string, generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "SetLogLevel")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1843,7 +2209,9 @@ func (a *AuthBoundApp) SetLogLevel(level string, generation uint64) (r0 error) {
 }
 
 func (a *AuthBoundApp) StartInstance(profileId string, generation uint64) (r0 *browser.Profile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "StartInstance")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1853,7 +2221,9 @@ func (a *AuthBoundApp) StartInstance(profileId string, generation uint64) (r0 *b
 }
 
 func (a *AuthBoundApp) StartInstanceWithParams(profileId string, params launchcode.LaunchRequestParams, generation uint64) (r0 *browser.Profile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "StartInstanceWithParams")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1863,7 +2233,9 @@ func (a *AuthBoundApp) StartInstanceWithParams(profileId string, params launchco
 }
 
 func (a *AuthBoundApp) StatusInstance(profileId string, generation uint64) (r0 *browser.Profile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "StatusInstance")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1873,7 +2245,9 @@ func (a *AuthBoundApp) StatusInstance(profileId string, generation uint64) (r0 *
 }
 
 func (a *AuthBoundApp) StopInstance(profileId string, generation uint64) (r0 *browser.Profile, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "StopInstance")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1882,8 +2256,120 @@ func (a *AuthBoundApp) StopInstance(profileId string, generation uint64) (r0 *br
 	return
 }
 
+func (a *AuthBoundApp) StoreAuditList(storeID string, raw string, revision uint64, generation uint64) (r0 string, r1 error) {
+	core, authErr := a.scopedStore(generation)
+	if authErr != nil {
+		r1 = authErr
+		return
+	}
+	r0, r1 = core.StoreAuditList(storeID, raw, revision)
+	return
+}
+
+func (a *AuthBoundApp) StoreEnvironmentClose(storeID string, revision uint64, generation uint64) (r0 string, r1 error) {
+	core, authErr := a.scopedStore(generation)
+	if authErr != nil {
+		r1 = authErr
+		return
+	}
+	r0, r1 = core.StoreEnvironmentClose(storeID, revision)
+	return
+}
+
+func (a *AuthBoundApp) StoreEnvironmentGet(storeID string, revision uint64, generation uint64) (r0 string, r1 error) {
+	core, authErr := a.scopedStore(generation)
+	if authErr != nil {
+		r1 = authErr
+		return
+	}
+	r0, r1 = core.StoreEnvironmentGet(storeID, revision)
+	return
+}
+
+func (a *AuthBoundApp) StoreEnvironmentOpen(storeID string, expectedVersion string, revision uint64, generation uint64) (r0 string, r1 error) {
+	core, authErr := a.scopedStore(generation)
+	if authErr != nil {
+		r1 = authErr
+		return
+	}
+	r0, r1 = core.StoreEnvironmentOpen(storeID, expectedVersion, revision)
+	return
+}
+
+func (a *AuthBoundApp) StoreEnvironmentOptions(storeID string, revision uint64, generation uint64) (r0 string, r1 error) {
+	core, authErr := a.scopedStore(generation)
+	if authErr != nil {
+		r1 = authErr
+		return
+	}
+	r0, r1 = core.StoreEnvironmentOptions(storeID, revision)
+	return
+}
+
+func (a *AuthBoundApp) StoreEnvironmentSave(storeID string, expectedVersion string, raw string, revision uint64, generation uint64) (r0 string, r1 error) {
+	core, authErr := a.scopedStore(generation)
+	if authErr != nil {
+		r1 = authErr
+		return
+	}
+	r0, r1 = core.StoreEnvironmentSave(storeID, expectedVersion, raw, revision)
+	return
+}
+
+func (a *AuthBoundApp) StoreOperationGet(storeID string, key string, revision uint64, generation uint64) (r0 string, r1 error) {
+	core, authErr := a.scopedStore(generation)
+	if authErr != nil {
+		r1 = authErr
+		return
+	}
+	r0, r1 = core.StoreOperationGet(storeID, key, revision)
+	return
+}
+
+func (a *AuthBoundApp) StoreWorkbenchContext(generation uint64) (r0 string, r1 error) {
+	core, authErr := a.scopedStore(generation)
+	if authErr != nil {
+		r1 = authErr
+		return
+	}
+	r0, r1 = core.StoreWorkbenchContext()
+	return
+}
+
+func (a *AuthBoundApp) StoreWorkbenchGet(storeID string, revision uint64, generation uint64) (r0 string, r1 error) {
+	core, authErr := a.scopedStore(generation)
+	if authErr != nil {
+		r1 = authErr
+		return
+	}
+	r0, r1 = core.StoreWorkbenchGet(storeID, revision)
+	return
+}
+
+func (a *AuthBoundApp) StoreWorkbenchList(search string, platform string, page int, revision uint64, generation uint64) (r0 string, r1 error) {
+	core, authErr := a.scopedStore(generation)
+	if authErr != nil {
+		r1 = authErr
+		return
+	}
+	r0, r1 = core.StoreWorkbenchList(search, platform, page, revision)
+	return
+}
+
+func (a *AuthBoundApp) StoreWorkbenchSelectOrganization(org string, revision uint64, generation uint64) (r0 string, r1 error) {
+	core, authErr := a.scopedStore(generation)
+	if authErr != nil {
+		r1 = authErr
+		return
+	}
+	r0, r1 = core.StoreWorkbenchSelectOrganization(org, revision)
+	return
+}
+
 func (a *AuthBoundApp) TestProxyConnectivity(proxyId string, proxyConfig string, generation uint64) (r0 ProxyTestResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "TestProxyConnectivity")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1893,7 +2379,9 @@ func (a *AuthBoundApp) TestProxyConnectivity(proxyId string, proxyConfig string,
 }
 
 func (a *AuthBoundApp) TestProxyRealConnectivity(proxyId string, generation uint64) (r0 ProxyTestResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "TestProxyRealConnectivity")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1903,7 +2391,9 @@ func (a *AuthBoundApp) TestProxyRealConnectivity(proxyId string, generation uint
 }
 
 func (a *AuthBoundApp) TriggerGC(generation uint64) (r0 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "TriggerGC")
 	if authErr != nil {
 		r0 = authErr
 		return
@@ -1913,7 +2403,9 @@ func (a *AuthBoundApp) TriggerGC(generation uint64) (r0 error) {
 }
 
 func (a *AuthBoundApp) UpdateGroup(groupId string, input BrowserGroupInput, generation uint64) (r0 *BrowserGroup, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "UpdateGroup")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1923,7 +2415,9 @@ func (a *AuthBoundApp) UpdateGroup(groupId string, input BrowserGroupInput, gene
 }
 
 func (a *AuthBoundApp) ValidateProxyConfig(proxyConfig string, proxyId string, generation uint64) (r0 ProxyValidationResult, r1 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "ValidateProxyConfig")
 	if authErr != nil {
 		r1 = authErr
 		return
@@ -1933,7 +2427,9 @@ func (a *AuthBoundApp) ValidateProxyConfig(proxyConfig string, proxyId string, g
 }
 
 func (a *AuthBoundApp) WaitInstanceDebugReady(profileId string, debugPort int, timeout time.Duration, generation uint64) (r0 *browser.Profile, r1 bool, r2 error) {
-	core, authErr := a.scoped(generation)
+	a.core.storeGeneralMu.RLock()
+	defer a.core.storeGeneralMu.RUnlock()
+	core, authErr := a.scopedMethod(generation, "WaitInstanceDebugReady")
 	if authErr != nil {
 		r2 = authErr
 		return

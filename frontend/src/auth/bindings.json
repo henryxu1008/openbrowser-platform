@@ -775,6 +775,50 @@
     "arguments": 2,
     "policy": "protected"
   },
+  "StoreAuditList": {
+    "arguments": 4,
+    "policy": "protected"
+  },
+  "StoreEnvironmentClose": {
+    "arguments": 3,
+    "policy": "protected"
+  },
+  "StoreEnvironmentGet": {
+    "arguments": 3,
+    "policy": "protected"
+  },
+  "StoreEnvironmentOpen": {
+    "arguments": 4,
+    "policy": "protected"
+  },
+  "StoreEnvironmentOptions": {
+    "arguments": 3,
+    "policy": "protected"
+  },
+  "StoreEnvironmentSave": {
+    "arguments": 5,
+    "policy": "protected"
+  },
+  "StoreOperationGet": {
+    "arguments": 4,
+    "policy": "protected"
+  },
+  "StoreWorkbenchContext": {
+    "arguments": 1,
+    "policy": "protected"
+  },
+  "StoreWorkbenchGet": {
+    "arguments": 3,
+    "policy": "protected"
+  },
+  "StoreWorkbenchList": {
+    "arguments": 5,
+    "policy": "protected"
+  },
+  "StoreWorkbenchSelectOrganization": {
+    "arguments": 3,
+    "policy": "protected"
+  },
   "TestProxyConnectivity": {
     "arguments": 3,
     "policy": "protected"

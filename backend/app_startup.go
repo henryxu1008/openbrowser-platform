@@ -71,8 +71,17 @@ func (a *App) startupBusiness(ctx context.Context, check func() error) error {
 		log.Error("数据库迁移失败", logger.F("error", err))
 		return err
 	}
-	if err := a.startupRepairInstalledExtensionPaths(check); err != nil {
-		return fmt.Errorf("迁移已安装插件路径失败: %w", err)
+	storeDAO, err := browser.NewStoreDAO(db.GetConn())
+	if err != nil {
+		return err
+	}
+	a.store.mu.Lock()
+	a.store.dao = storeDAO
+	a.store.mu.Unlock()
+	if !a.hasStoreData() {
+		if err := a.startupRepairInstalledExtensionPaths(check); err != nil {
+			return fmt.Errorf("迁移已安装插件路径失败: %w", err)
+		}
 	}
 
 	if err := a.startupInitManagers(cfg, db, check); err != nil {
@@ -185,6 +194,13 @@ func (a *App) startupInitManagers(cfg *config.Config, db *database.DB, check fun
 
 	conn := db.GetConn()
 	a.browserMgr.ProfileDAO = browser.NewSQLiteProfileDAO(conn)
+	storeDAO, err := browser.NewStoreDAO(conn)
+	if err != nil {
+		return err
+	}
+	a.store.mu.Lock()
+	a.store.dao = storeDAO
+	a.store.mu.Unlock()
 	a.browserMgr.ProxyDAO = browser.NewSQLiteProxyDAO(conn)
 	a.browserMgr.CoreDAO = browser.NewSQLiteCoreDAO(conn)
 	a.browserMgr.BookmarkDAO = browser.NewSQLiteBookmarkDAO(conn)
@@ -194,14 +210,18 @@ func (a *App) startupInitManagers(cfg *config.Config, db *database.DB, check fun
 	if err := check(); err != nil {
 		return err
 	}
-	a.migrateToSQLite()
+	if !a.hasStoreData() {
+		a.migrateToSQLite()
+	}
 
 	a.browserMgr.InitData()
 	if err := check(); err != nil {
 		return err
 	}
-	if err := a.browserMgr.CleanupExpiredTrash(); err != nil {
-		logger.New("Browser").Error("启动清理回收站失败", logger.F("error", err))
+	if !a.hasStoreData() {
+		if err := a.browserMgr.CleanupExpiredTrash(); err != nil {
+			logger.New("Browser").Error("启动清理回收站失败", logger.F("error", err))
+		}
 	}
 	if err := check(); err != nil {
 		return err
@@ -224,7 +244,7 @@ func (a *App) startupInitLaunchCode(log *logger.Logger) {
 func (a *App) startupInitLaunchServer(log *logger.Logger) error {
 	port := a.config.LaunchServer.Port
 	a.launchServer = launchcode.NewLaunchServer(a.launchCodeSvc, a, a.browserMgr, port)
-	a.launchServer.SetIdentityAuthority(a.identity, a.scopedHTTP)
+	a.launchServer.SetIdentityAuthority(storeGuardedAPI{a}, a.scopedHTTP)
 	a.launchServer.SetAPIAuthConfig(launchcode.APIAuthConfig{
 		Enabled: a.config.LaunchServer.Auth.Enabled,
 		APIKey:  a.config.LaunchServer.Auth.APIKey,

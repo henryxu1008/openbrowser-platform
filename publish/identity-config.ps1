@@ -1,23 +1,29 @@
 #requires -Version 7.0
 # Publisher-only helpers. End users launch the installed application shortcut.
 function Read-PublicIdentityConfig {
-    param([Parameter(Mandatory)][string]$Path)
+    param([Parameter(Mandatory)][string]$Path, [switch]$RequireAPIProject)
     $ErrorActionPreference = 'Stop'
     $file = Get-Item -LiteralPath $Path -ErrorAction Stop
     if ($file.PSIsContainer -or $file.Length -gt 4096) { throw 'Provide a public identity JSON file of at most 4096 bytes.' }
     $document = $null
+    $apiProjectId = $null
     try {
         $document = [System.Text.Json.JsonDocument]::Parse([IO.File]::ReadAllText($file.FullName))
         if ($document.RootElement.ValueKind -ne [System.Text.Json.JsonValueKind]::Object) { throw 'shape' }
         $properties = @($document.RootElement.EnumerateObject())
-        if ($properties.Count -ne 2 -or
+        $hasProject = @($properties | Where-Object Name -CEQ 'apiProjectId').Count -eq 1
+        if (($properties.Count -ne 2 -and -not ($properties.Count -eq 3 -and $hasProject)) -or
             @($properties | Where-Object Name -CEQ 'issuer').Count -ne 1 -or
             @($properties | Where-Object Name -CEQ 'clientId').Count -ne 1 -or
             @($properties | Where-Object { $_.Value.ValueKind -ne [System.Text.Json.JsonValueKind]::String }).Count) { throw 'shape' }
         $issuer = $document.RootElement.GetProperty('issuer').GetString()
         $clientId = $document.RootElement.GetProperty('clientId').GetString()
+        if ($hasProject) {
+            $apiProjectId = $document.RootElement.GetProperty('apiProjectId').GetString()
+            if ($apiProjectId -cnotmatch '\A[A-Za-z0-9_-]{1,128}\z') { throw 'shape' }
+        }
     } catch {
-        throw 'Identity JSON must contain only one string issuer and one string clientId, without credentials.'
+        throw 'Identity JSON requires issuer/clientId and permits only a bounded public apiProjectId, without credentials.'
     } finally {
         if ($null -ne $document) { $document.Dispose() }
     }
@@ -30,7 +36,8 @@ function Read-PublicIdentityConfig {
         [Text.Encoding]::UTF8.GetByteCount($clientId) -gt 256 -or $clientId -match '[\x00-\x1f\x7f-\x9f]') {
         throw 'Use the verified distribution instance HTTPS issuer and public Native clientId; local trial endpoints are not distributable.'
     }
-    return [pscustomobject]@{ issuer = $issuer; clientId = $clientId }
+    if ($RequireAPIProject -and [string]::IsNullOrEmpty($apiProjectId)) { throw 'Store distribution requires the existing public API project ID.' }
+    return [pscustomobject]@{ issuer = $issuer; clientId = $clientId; apiProjectId = $apiProjectId }
 }
 
 function Copy-PublicIdentityConfig {
@@ -38,7 +45,38 @@ function Copy-PublicIdentityConfig {
     $ErrorActionPreference = 'Stop'
     $public = Read-PublicIdentityConfig -Path $Path
     # Canonical UTF-8 without BOM is accepted by the native strict JSON reader.
-    $json = [ordered]@{ issuer = $public.issuer; clientId = $public.clientId } | ConvertTo-Json
+    $fields = [ordered]@{ issuer = $public.issuer; clientId = $public.clientId }
+    if ($public.apiProjectId) { $fields['apiProjectId'] = $public.apiProjectId }
+    $json = $fields | ConvertTo-Json
     if ([Text.Encoding]::UTF8.GetByteCount($json) -gt 4096) { throw 'Canonical public configuration exceeds the native size limit.' }
     [IO.File]::WriteAllText((Join-Path $StagingDir 'oidc-public.json'), $json, [Text.UTF8Encoding]::new($false))
+}
+
+function Read-PublicStoreConfig {
+    param([Parameter(Mandatory)][string]$Path)
+    $ErrorActionPreference = 'Stop'
+    $file = Get-Item -LiteralPath $Path -ErrorAction Stop
+    if ($file.PSIsContainer -or $file.Length -gt 4096) { throw 'Provide public Store JSON of at most 4096 bytes.' }
+    $document = $null
+    try {
+        $document = [System.Text.Json.JsonDocument]::Parse([IO.File]::ReadAllText($file.FullName))
+        if ($document.RootElement.ValueKind -ne [System.Text.Json.JsonValueKind]::Object) { throw 'shape' }
+        $properties = @($document.RootElement.EnumerateObject())
+        if ($properties.Count -ne 1 -or $properties[0].Name -cne 'apiOrigin' -or $properties[0].Value.ValueKind -ne [System.Text.Json.JsonValueKind]::String) { throw 'shape' }
+        $origin = $properties[0].Value.GetString()
+    } catch { throw 'Store JSON must contain only one public apiOrigin string.' }
+    finally { if ($null -ne $document) { $document.Dispose() } }
+    $uri = $null
+    if (-not [Uri]::TryCreate($origin,[UriKind]::Absolute,[ref]$uri) -or $uri.Scheme -cne 'https' -or
+        $uri.UserInfo -or $uri.Query -or $uri.Fragment -or $uri.AbsolutePath -cne '/' -or
+        $origin.TrimEnd('/') -cne $origin -or $origin -match '[\x00-\x20\x7f-\x9f]' -or
+        $uri.IsLoopback -or $uri.Host -in @('0.0.0.0','[::]') -or $uri.Host.EndsWith('.localhost')) { throw 'Use a verified distribution HTTPS Store origin without path or credentials.' }
+    return [pscustomobject]@{apiOrigin=$origin}
+}
+function Copy-PublicStoreConfig {
+    param([Parameter(Mandatory)][string]$Path,[Parameter(Mandatory)][string]$StagingDir)
+    [void](Read-PublicIdentityConfig -Path (Join-Path $StagingDir 'oidc-public.json') -RequireAPIProject)
+    $public = Read-PublicStoreConfig -Path $Path
+    $json = [ordered]@{apiOrigin=$public.apiOrigin} | ConvertTo-Json
+    [IO.File]::WriteAllText((Join-Path $StagingDir 'shuomi-public.json'),$json,[Text.UTF8Encoding]::new($false))
 }

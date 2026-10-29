@@ -106,7 +106,13 @@ func (d *SQLiteProfileDAO) GetById(profileId string) (*Profile, error) {
 }
 
 // Upsert 新增或更新实例配置
-func (d *SQLiteProfileDAO) Upsert(profile *Profile) error {
+func (d *SQLiteProfileDAO) Upsert(profile *Profile) error { return upsertProfile(d.db, profile) }
+
+type profileSQLExecutor interface {
+	Exec(string, ...any) (sql.Result, error)
+}
+
+func upsertProfile(executor profileSQLExecutor, profile *Profile) error {
 	fingerprintArgs, _ := json.Marshal(profile.FingerprintArgs)
 	launchArgs, _ := json.Marshal(profile.LaunchArgs)
 	tags, _ := json.Marshal(profile.Tags)
@@ -120,7 +126,7 @@ func (d *SQLiteProfileDAO) Upsert(profile *Profile) error {
 		profile.UpdatedAt = now
 	}
 
-	_, err := d.db.Exec(`
+	_, err := executor.Exec(`
 		INSERT INTO browser_profiles
 		  (profile_id, profile_name, user_data_dir, core_id, fingerprint_args,
 		   proxy_id, proxy_config, proxy_bind_source_id, proxy_bind_source_url, proxy_bind_name, proxy_bind_updated_at,

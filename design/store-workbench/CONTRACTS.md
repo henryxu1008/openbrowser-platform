@@ -6,9 +6,9 @@
 
 ### 1. 调用与身份来源
 
-- 桌面继续使用原 PKCE 会话。当前实现保留内存 access token，但授权请求只有 `openid profile`；未证明该 Native client 的 token 可调用目标硕米 API。不得通过转发 ID token、Web secret、renderer bearer 或新建客户端来绕过此缺口。
+- 桌面继续使用原 PKCE 会话和内存 access token。基础身份登录保留 `openid profile`；Store 配套从安装目录原 `oidc-public.json` 的可选公开 `apiProjectId` 请求 `urn:zitadel:iam:user:resourceowner`、该现有 API 项目的 `:aud` 和 `urn:zitadel:iam:org:project:id:zitadel:aud`。项目 ID 只接受 1–128 位 ASCII 字母、数字、`_`、`-`，不得从 renderer 接收任意 scope，不请求 offline_access、管理员角色或强制企业。真实 token/API 接受仍待单独验收，不以离线合同测试代替。不得转发 ID token、Web secret 或新建客户端绕过此缺口。
 - 新增 Go 内部 API client，从原会话在不可变 generation 下执行受限请求；不新增“取 token”Wails 方法。请求结束及副作用前再检查原 generation；不能等待后换用新账号的 token。
-- 新增独立、严格校验的安装目录公开配置 `shuomi-public.json`，仅包含 `apiOrigin`；原 `oidc-public.json` 的两字段合同保持原样。发行时两者由维护者核对目标实例，本轮不创建配置。缺失/非法时店铺功能不可用，不退回匿名或其他实例；原独立功能仍按原门禁。
+- 独立安装目录公开配置 `shuomi-public.json` 继续仅包含 `apiOrigin`。原 `oidc-public.json` 的 issuer/clientId 两字段继续用于基础身份登录；Store 配套额外要求上述公开 apiProjectId。发布复制、原维护者试用入口和生产组合读取同一字段，缺资源 ID 时不能创建 Store API client 或打包为 Store 配套；基础登录保持可用。维护者复用现有项目 ID 核对同一目标实例，不猜 ID、不改 IAM；缺失/非法时店铺不可用，不退回匿名或其他实例。
 - apiOrigin 仅 HTTPS origin，无 userinfo、query、fragment 或额外路径；仅由受信任安装配置读取。renderer 不能传任意主机、路径、headers。API client 拒绝重定向，不将 token 发往代理探测、下载或商家主机。超时最多 15 秒；沿用现有 Store 响应上限 2 MiB；新增命令体不超过 16 KiB。
 - 硕米服务器复用当前验证器、workbenchcontext 与 authz。主体取 verified `UserID`，成员取 `EffectiveMemberID`；issuer 取与该验证器绑定的服务端配置，不从请求 body/header 接受。现有 AuthenticatedIdentity 没有 issuer 字段，不为本版扩大全局身份 DTO。
 - `X-Requested-Organization-ID` 只是待选企业，绝不作为权限证明；拒绝/忽略客户端 user、member、role、admin 与 tenant 声明。home organization 不是实际业务企业。DTO 必须返回已验证的 user/organization，桌面在原 generation/企业不匹配时丢弃迟到结果。

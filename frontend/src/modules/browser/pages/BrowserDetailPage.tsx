@@ -40,7 +40,45 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'snapshot', label: '快照管理' },
 ]
 
-export function BrowserDetailPage() {
+export interface ManagedBrowserDetail {
+  name: string
+  running: boolean
+  known: boolean
+  core: string
+  proxy: string
+  observedAt: string
+  evidence?: string
+  pending: boolean
+  canUse: boolean
+  onEdit: () => void
+  onOpen: () => void
+  onClose: () => void
+}
+// The managed adapter renders before any standalone hook can mount. Its
+// operations and return path belong to the selected Store controller.
+export function BrowserDetailPage({ managed }: { managed?: ManagedBrowserDetail } = {}) {
+  if (managed) return <ManagedEnvironmentOverview value={managed} />
+  return <StandaloneBrowserDetailPage />
+}
+function ManagedEnvironmentOverview({ value }: { value: ManagedBrowserDetail }) {
+  return <Card title="店铺环境" actions={<div className="flex gap-2">
+    <Button variant="secondary" disabled={value.pending || value.running || !value.canUse} onClick={value.onEdit}>环境配置</Button>
+    <Button disabled={value.pending || !value.known || !value.core || !value.canUse || value.running} onClick={value.onOpen}><Play className="w-4 h-4" />打开环境</Button>
+    <Button variant="secondary" disabled={value.pending || !value.running} onClick={value.onClose}><Square className="w-4 h-4" />正常关闭</Button>
+  </div>}>
+    <dl className="grid grid-cols-2 gap-4 text-sm">
+      <div><dt>配置名称</dt><dd>{value.name || '尚未配置'}</dd></div>
+      <div><dt>本机运行状态</dt><dd><Badge variant={value.known ? value.running ? 'success' : 'default' : 'error'}>{value.known ? value.running ? '运行中' : '已停止' : '结果待核对'}</Badge></dd></div>
+      <div><dt>内核</dt><dd>{value.core || '尚未配置'}</dd></div>
+      <div><dt>代理</dt><dd>{value.proxy || '直连'}</dd></div>
+      <div><dt>观测时间</dt><dd>{formatTime(value.observedAt)}</dd></div>
+    </dl>
+    {value.evidence && <p className="mt-4 text-sm break-all" role="status">{value.evidence}</p>}
+    {!value.known&&<p role="status" className="mt-3 text-sm">请先正常关闭可能仍打开的原窗口，再只读刷新；核对前不会启动新窗口。</p>}
+  </Card>
+}
+
+function StandaloneBrowserDetailPage() {
   const { id } = useParams()
   const [profile, setProfile] = useState<BrowserProfile | null>(null)
   const [tabs, setTabs] = useState<BrowserTab[]>([])

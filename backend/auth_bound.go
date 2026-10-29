@@ -47,6 +47,33 @@ func (a *AuthBoundApp) AuthStatus() (desktopauth.Status, error) {
 }
 
 func (a *AuthBoundApp) scoped(generation uint64) (*App, error) {
+	return a.scopedMethod(generation, "")
+}
+
+func (a *AuthBoundApp) scopedMethod(generation uint64, method string) (*App, error) {
+	if err := a.admit(generation); err != nil {
+		return nil, err
+	}
+	core, err := a.core.scoped(generation)
+	if err != nil {
+		return nil, err
+	}
+	base := core.admission
+	check := func() error {
+		if err := base(); err != nil {
+			return err
+		}
+		return core.guardStoreGeneral(method)
+	}
+	if err := check(); err != nil {
+		return nil, err
+	}
+	core.admission = check
+	core.ctx = automation.WithAdmission(a.core.ctx, check)
+	return core, nil
+}
+
+func (a *AuthBoundApp) scopedStore(generation uint64) (*App, error) {
 	if err := a.admit(generation); err != nil {
 		return nil, err
 	}
@@ -71,6 +98,9 @@ func (a *App) scopedHTTP(generation uint64) (launchcode.BrowserStarter, error) {
 		current, err := a.identity.CheckAPI()
 		if err != nil || current != generation {
 			return desktopauth.ErrUnauthenticated
+		}
+		if err := a.guardStoreGeneral(""); err != nil {
+			return err
 		}
 		return a.identity.Check(generation)
 	}
@@ -141,7 +171,12 @@ func (a *App) currentAdmission() (func() error, error) {
 		return a.admission, a.admission()
 	}
 	generation := a.identity.Status().Generation
-	check := func() error { return a.identity.Check(generation) }
+	check := func() error {
+		if err := a.identity.Check(generation); err != nil {
+			return err
+		}
+		return a.guardStoreGeneral("")
+	}
 	return check, check()
 }
 
@@ -154,7 +189,7 @@ func (a *App) checkScopedAdmission() error {
 	if a.admission != nil {
 		return a.admission()
 	}
-	return nil
+	return a.guardStoreGeneral("")
 }
 
 func (a *App) rememberImportPreview(path string, generation uint64) error {

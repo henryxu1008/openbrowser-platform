@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ChevronDown, ChevronUp, FolderOpen, HelpCircle, Layers, ShieldCheck } from 'lucide-react'
 import { Button, Card, ConfirmModal, FormItem, Input, Modal, Select, Textarea, toast } from '../../../shared/components'
@@ -234,7 +234,14 @@ function resolvePoolProxySelection(
   return { mode: 'pool', proxyId: directProxy?.proxyId || '', proxyConfig: '' }
 }
 
-export function BrowserEditPage() {
+export interface ManagedBrowserEditor {
+  title: string
+  load: () => Promise<{ input: BrowserProfileInput; cores: BrowserCore[] }>
+  save: (input: BrowserProfileInput) => Promise<void>
+  back: () => void
+  onDirtyChange?: (dirty: boolean) => void
+}
+export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } = {}) {
   const { id } = useParams()
   const navigate = useNavigate()
   const isCreate = id === 'new'
@@ -259,11 +266,14 @@ export function BrowserEditPage() {
   const [launchArgsText, setLaunchArgsText] = useState('')
   const [allTags, setAllTags] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
   const [proxyPickerOpen, setProxyPickerOpen] = useState(false)
   const [proxyMode, setProxyMode] = useState<ProxySourceMode>('pool')
   const [isDirty, setIsDirty] = useState(false)
   const [leaveConfirm, setLeaveConfirm] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [saveBlocked,setSaveBlocked] = useState(false)
+  const [leaveTarget,setLeaveTarget] = useState('')
   const [locationResolving, setLocationResolving] = useState(false)
   const [locationResult, setLocationResult] = useState<ProxyLocationResolveResult | null>(null)
   const [fingerprintChecking, setFingerprintChecking] = useState(false)
@@ -275,8 +285,34 @@ export function BrowserEditPage() {
   const [launchArgsOpen, setLaunchArgsOpen] = useState(false)
   const [launchArgsHelpOpen, setLaunchArgsHelpOpen] = useState(false)
 
+  useEffect(()=>{managed?.onDirtyChange?.(isDirty)},[isDirty,managed])
+  useEffect(()=>()=>{managed?.onDirtyChange?.(false)},[managed])
+  useEffect(()=>{
+    if(!managed||!isDirty||typeof document==='undefined')return
+    const unload=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue=''}
+    const click=(event:MouseEvent)=>{
+      if(event.defaultPrevented||event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return
+      const anchor=(event.target as Element)?.closest?.('a[href]') as HTMLAnchorElement|null
+      if(!anchor||anchor.target==='_blank'||anchor.origin!==window.location.origin)return
+      const target=anchor.pathname+anchor.search+anchor.hash
+      if(target===window.location.pathname+window.location.search+window.location.hash)return
+      event.preventDefault();event.stopPropagation();setLeaveTarget(target);setLeaveConfirm(true)
+    }
+    window.addEventListener('beforeunload',unload);document.addEventListener('click',click,true)
+    return()=>{window.removeEventListener('beforeunload',unload);document.removeEventListener('click',click,true)}
+  },[managed,isDirty])
+
   useEffect(() => {
+    let active = true
     const loadData = async () => {
+      if (managed) {
+        const result = await managed.load()
+        if (!active) return
+        setCores(result.cores)
+        setFormData({ ...result.input, userDataDir: '', launchArgs: [], tags: [], keywords: [], groupId: '', proxyId: '' })
+        setProxyMode('local')
+        return
+      }
       const [coreList, proxyList, tagList, groupList, settings] = await Promise.all([
         fetchBrowserCores(),
         fetchBrowserProxies(),
@@ -329,12 +365,14 @@ export function BrowserEditPage() {
       })
       setLaunchArgsText(currentLaunchArgs.join('\n'))
     }
-    loadData()
-  }, [id, isCreate])
+    void loadData().catch(error => { if (active) setSaveError(String(error)) })
+    return () => {active=false}
+  }, [id, isCreate, managed])
 
   const fingerprintArgsKey = formData.fingerprintArgs.join('\n')
 
   useEffect(() => {
+    if (managed) return
     let cancelled = false
     const loadMatrix = async () => {
       try {
@@ -346,7 +384,7 @@ export function BrowserEditPage() {
     }
     loadMatrix()
     return () => { cancelled = true }
-  }, [id, isCreate, formData.coreId, fingerprintArgsKey])
+  }, [id, isCreate, formData.coreId, fingerprintArgsKey, managed])
 
   const handleChange = (field: keyof BrowserProfileInput, value: string | string[] | number) => {
     setIsDirty(true)
@@ -376,9 +414,10 @@ export function BrowserEditPage() {
   }
 
   const handleSave = async () => {
+    if (savingRef.current || saveBlocked) return
     const resolvedProxyId = proxyMode === 'pool' ? (formData.proxyId || '').trim() : ''
     const resolvedProxyConfig = proxyMode === 'local' ? (formData.proxyConfig || '').trim() : ''
-    if (proxyMode === 'local' && !resolvedProxyConfig) {
+    if (!managed && proxyMode === 'local' && !resolvedProxyConfig) {
       setSaveError('请输入本地代理地址')
       return
     }
@@ -407,8 +446,15 @@ export function BrowserEditPage() {
       payload.proxyConfig = ''
     }
 
+    savingRef.current=true
     setSaving(true)
     try {
+      if (managed) {
+        await managed.save({ ...payload, userDataDir: '', launchArgs: [], tags: [], keywords: [], groupId: '', proxyId: '' })
+        setIsDirty(false)
+        managed.back()
+        return
+      }
       const validation = await validateProxyConfig(payload.proxyConfig, payload.proxyId)
       if (!validation.supported) {
         setSaveError(validation.errorMsg || '代理配置无效')
@@ -424,14 +470,16 @@ export function BrowserEditPage() {
       setIsDirty(false)
       navigate('/browser/list')
     } catch (error: any) {
+      if(managed&&(String(error).includes('unknown')||String(error).includes('结果待核对')))setSaveBlocked(true)
       setSaveError(typeof error === 'string' ? error : error?.message || '保存失败')
     } finally {
+      savingRef.current=false
       setSaving(false)
     }
   }
 
   const handleBack = () => {
-    if (isDirty) { setLeaveConfirm(true) } else { navigate('/browser/list') }
+    if (isDirty) { setLeaveConfirm(true) } else if (managed) { managed.back() } else { navigate('/browser/list') }
   }
 
   const handleApplyProxyLocation = async () => {
@@ -540,10 +588,10 @@ export function BrowserEditPage() {
     <div className="space-y-4 animate-fade-in">
       <Card padding="none" className="shadow-[var(--shadow-sm)]">
         <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">{isCreate ? '新建配置' : '编辑配置'}</h1>
+          <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">{managed?.title || (isCreate ? '新建配置' : '编辑配置')}</h1>
           <div className="flex flex-wrap gap-2 sm:justify-end">
-            <Button variant="secondary" size="sm" onClick={handleBack}>返回列表</Button>
-            <Button size="sm" onClick={handleSave} loading={saving}>保存配置</Button>
+            <Button variant="secondary" size="sm" onClick={handleBack}>{managed ? '返回店铺' : '返回列表'}</Button>
+            <Button size="sm" onClick={handleSave} loading={saving} disabled={saveBlocked}>保存配置</Button>
           </div>
         </div>
       </Card>
@@ -551,9 +599,9 @@ export function BrowserEditPage() {
       <Card title="基础配置">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormItem label="配置名称" required>
-            <Input value={formData.profileName} onChange={e => handleChange('profileName', e.target.value)} placeholder="请输入配置名称" />
+            <Input aria-label="配置名称" value={formData.profileName} onChange={e => handleChange('profileName', e.target.value)} placeholder="请输入配置名称" />
           </FormItem>
-          <FormItem label="用户数据目录（留空自动生成）">
+          {!managed && <FormItem label="用户数据目录（留空自动生成）">
             <div className="flex gap-2">
               <Input
                 value={formData.userDataDir}
@@ -565,9 +613,10 @@ export function BrowserEditPage() {
                 <FolderOpen className="w-4 h-4" />
               </Button>
             </div>
-          </FormItem>
+          </FormItem>}
           <FormItem label="内核">
             <Select
+              aria-label="内核"
               value={formData.coreId}
               onChange={e => handleChange('coreId', e.target.value)}
               options={
@@ -582,6 +631,7 @@ export function BrowserEditPage() {
           </FormItem>
           <FormItem label="历史标签">
             <Select
+              aria-label="历史标签"
               value={formData.restoreLastSession || ''}
               onChange={e => handleChange('restoreLastSession', e.target.value)}
               options={RESTORE_LAST_SESSION_OPTIONS}
@@ -589,6 +639,7 @@ export function BrowserEditPage() {
           </FormItem>
           <FormItem label="最大内存 MB">
             <Input
+              aria-label="最大内存 MB"
               type="number"
               min="0"
               step="128"
@@ -597,15 +648,15 @@ export function BrowserEditPage() {
               placeholder="0 表示不限制"
             />
           </FormItem>
-          <FormItem label="标签">
+          {!managed && <FormItem label="标签">
             <TagInput
               value={formData.tags}
               onChange={tags => handleChange('tags', tags)}
               suggestions={allTags}
               placeholder="输入标签后按回车，支持从已有标签选择"
             />
-          </FormItem>
-          <FormItem label="分组">
+          </FormItem>}
+          {!managed && <FormItem label="分组">
             <GroupSelector
               groups={groups}
               value={formData.groupId || ''}
@@ -613,13 +664,13 @@ export function BrowserEditPage() {
               placeholder="未分组"
               className="w-full"
             />
-          </FormItem>
+          </FormItem>}
         </div>
       </Card>
 
       <Card title="代理与定位">
         <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-4 items-start">
-          <FormItem label="代理来源">
+          {!managed && <FormItem label="代理来源">
             <Select
               value={proxyMode}
               onChange={e => handleProxyModeChange(e.target.value as ProxySourceMode)}
@@ -628,7 +679,7 @@ export function BrowserEditPage() {
                 { value: 'local', label: '本地代理' },
               ]}
             />
-          </FormItem>
+          </FormItem>}
           {proxyMode === 'pool' ? (
             <FormItem label="代理地址选择">
               <div className="flex flex-col sm:flex-row gap-2">
@@ -665,8 +716,9 @@ export function BrowserEditPage() {
               )}
             </FormItem>
           ) : (
-            <FormItem label="本地代理地址" hint="支持 http://、https://、socks5://">
+            <FormItem label="本地代理地址" hint={managed ? '留空为直连；仅保存到当前店铺环境，支持现有连接栈协议。' : '支持 http://、https://、socks5://'}>
               <Input
+                aria-label="本地代理地址"
                 value={formData.proxyConfig}
                 onChange={e => handleChange('proxyConfig', e.target.value)}
                 placeholder="http://127.0.0.1:7890"
@@ -681,18 +733,18 @@ export function BrowserEditPage() {
         </p>
       </Card>
 
-      <ProxyPickerModal
+      {!managed && <ProxyPickerModal
         open={proxyPickerOpen}
         currentProxyId={formData.proxyId}
         onSelect={proxy => { handleChange('proxyId', proxy.proxyId); setLocationResult(null) }}
         onProxyListUpdated={handleProxyListUpdated}
         onProxyDeleted={handleProxyDeleted}
         onClose={() => setProxyPickerOpen(false)}
-      />
+      />}
 
       <Card
         title="指纹配置"
-        actions={(
+        actions={!managed && (
           <>
             <Button
               type="button"
@@ -732,7 +784,7 @@ export function BrowserEditPage() {
         />
       </Card>
 
-      <Card padding="none">
+      {!managed && <Card padding="none">
         <button
           type="button"
           className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[var(--color-bg-hover)] transition-colors"
@@ -783,7 +835,7 @@ export function BrowserEditPage() {
             )}
           </div>
         )}
-      </Card>
+      </Card>}
 
       <Modal
         open={launchArgsHelpOpen}
@@ -820,7 +872,7 @@ export function BrowserEditPage() {
       <ConfirmModal
         open={leaveConfirm}
         onClose={() => setLeaveConfirm(false)}
-        onConfirm={() => navigate('/browser/list')}
+        onConfirm={() => {setIsDirty(false);if(leaveTarget)navigate(leaveTarget);else if(managed)managed.back();else navigate('/browser/list')}}
         title="放弃未保存的更改？"
         content="当前页面有未保存的修改，离开后将丢失这些更改。"
         confirmText="放弃并离开"

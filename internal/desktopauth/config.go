@@ -19,8 +19,9 @@ var (
 
 // Config contains public client metadata only. No secret or skip-login flag exists.
 type Config struct {
-	Issuer   string
-	ClientID string
+	Issuer       string
+	ClientID     string
+	APIProjectID string
 }
 
 func (c Config) valid() bool { return len(c.ConfigurationIssues()) == 0 }
@@ -38,7 +39,29 @@ func (c Config) ConfigurationIssues() []string {
 	} else if len(c.ClientID) > 256 || strings.TrimSpace(c.ClientID) != c.ClientID || strings.ContainsFunc(c.ClientID, unicode.IsControl) {
 		issues = append(issues, "identity_client_id_invalid")
 	}
+	if c.APIProjectID != "" && !validAPIProjectID(c.APIProjectID) {
+		issues = append(issues, "identity_api_project_id_invalid")
+	}
 	return issues
+}
+
+func validAPIProjectID(value string) bool {
+	if len(value) == 0 || len(value) > 128 {
+		return false
+	}
+	for _, char := range value {
+		if !(char >= 'a' && char <= 'z' || char >= 'A' && char <= 'Z' || char >= '0' && char <= '9' || char == '_' || char == '-') {
+			return false
+		}
+	}
+	return true
+}
+
+func (c Config) authorizationScopes() string {
+	if c.APIProjectID == "" {
+		return "openid profile"
+	}
+	return "openid profile urn:zitadel:iam:user:resourceowner urn:zitadel:iam:org:project:id:" + c.APIProjectID + ":aud urn:zitadel:iam:org:project:id:zitadel:aud"
 }
 
 func secureURL(raw string) bool {

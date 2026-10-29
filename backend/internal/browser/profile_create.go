@@ -15,8 +15,37 @@ func (m *Manager) Create(input ProfileInput) (*Profile, error) {
 	m.Mutex.Lock()
 	defer m.Mutex.Unlock()
 
-	now := time.Now().Format(time.RFC3339)
 	profileId := uuid.NewString()
+	profile, err := m.buildProfileLocked(input, profileId)
+	if err != nil {
+		return nil, err
+	}
+	m.Profiles[profileId] = profile
+	log.Info("浏览器配置创建", logger.F("profile_id", profileId), logger.F("profile_name", input.ProfileName))
+	if err := m.SaveProfiles(); err != nil {
+		return nil, err
+	}
+	m.ensureProfileLaunchCode(profile)
+	return profile, nil
+}
+
+func (m *Manager) ensureProfileLaunchCode(profile *Profile) {
+	if m.CodeProvider == nil || profile == nil {
+		return
+	}
+	if code, err := m.CodeProvider.EnsureCode(profile.ProfileId); err == nil {
+		profile.LaunchCode = code
+	}
+}
+
+func buildProfileGroupID(value string) string {
+	return strings.TrimSpace(value)
+}
+
+// buildProfileLocked shares the original normalization without publishing a profile.
+func (m *Manager) buildProfileLocked(input ProfileInput, profileId string) (*Profile, error) {
+	log := logger.New("Browser")
+	now := time.Now().Format(time.RFC3339)
 	userDataDir := strings.TrimSpace(input.UserDataDir)
 	if userDataDir == "" {
 		userDataDir = profileId
@@ -68,24 +97,5 @@ func (m *Manager) Create(input ProfileInput) (*Profile, error) {
 			logger.F("proxy_id", strings.TrimSpace(input.ProxyId)),
 		)
 	}
-	m.Profiles[profileId] = profile
-	log.Info("浏览器配置创建", logger.F("profile_id", profileId), logger.F("profile_name", input.ProfileName))
-	if err := m.SaveProfiles(); err != nil {
-		return nil, err
-	}
-	m.ensureProfileLaunchCode(profile)
 	return profile, nil
-}
-
-func (m *Manager) ensureProfileLaunchCode(profile *Profile) {
-	if m.CodeProvider == nil || profile == nil {
-		return
-	}
-	if code, err := m.CodeProvider.EnsureCode(profile.ProfileId); err == nil {
-		profile.LaunchCode = code
-	}
-}
-
-func buildProfileGroupID(value string) string {
-	return strings.TrimSpace(value)
 }

@@ -3,7 +3,8 @@
     [string]$Version,
     [ValidateSet("INSTALLER", "PORTABLE", "BOTH")]
     [string]$WindowsFormat,
-    [string]$PublicIdentityConfig
+    [string]$PublicIdentityConfig,
+    [string]$PublicStoreConfig
 )
 
 Set-StrictMode -Version Latest
@@ -535,7 +536,8 @@ function Assert-WindowsStagingPrivacy {
     }
 
     Assert-ReleaseConfigPrivacy -ConfigPath (Join-Path $StagingDir 'config.yaml')
-    [void](Read-PublicIdentityConfig -Path (Join-Path $StagingDir 'oidc-public.json'))
+    [void](Read-PublicIdentityConfig -Path (Join-Path $StagingDir 'oidc-public.json') -RequireAPIProject)
+    [void](Read-PublicStoreConfig -Path (Join-Path $StagingDir 'shuomi-public.json'))
 }
 
 function New-WindowsStaging {
@@ -565,6 +567,7 @@ function New-WindowsStaging {
     Copy-Item -LiteralPath $releaseConfig -Destination (Join-Path $stagingDir "config.yaml") -Force
     Write-Host "✓ 复制发布配置模板 publish\config.init.yaml -> config.yaml"
     Copy-PublicIdentityConfig -Path $PublicIdentityConfig -StagingDir $stagingDir
+    Copy-PublicStoreConfig -Path $PublicStoreConfig -StagingDir $stagingDir
     Write-Host "✓ 随包提供公开登录配置（不含 secret）"
 
     $stagingBinDir = Join-Path $stagingDir "bin"
@@ -752,7 +755,9 @@ function Publish-Windows {
     if ([string]::IsNullOrWhiteSpace($PublicIdentityConfig)) {
         throw 'Windows distribution requires -PublicIdentityConfig from the existing Shuomi identity instance. Never ship the local trial configuration.'
     }
-    [void](Read-PublicIdentityConfig -Path $PublicIdentityConfig)
+    [void](Read-PublicIdentityConfig -Path $PublicIdentityConfig -RequireAPIProject)
+    if ([string]::IsNullOrWhiteSpace($PublicStoreConfig)) { throw 'Windows Store distribution requires -PublicStoreConfig from the confirmed Shuomi instance.' }
+    [void](Read-PublicStoreConfig -Path $PublicStoreConfig)
 
     $makensisPath = $null
     if ($Format -in @("INSTALLER", "BOTH")) {

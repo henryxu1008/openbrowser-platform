@@ -13,6 +13,9 @@ func (a *App) reconcileProfileProxyBindings() {
 	if a == nil || a.browserMgr == nil {
 		return
 	}
+	if a.hasStoreData() {
+		return
+	}
 
 	log := logger.New("Browser")
 	a.browserMgr.Mutex.Lock()

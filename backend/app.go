@@ -27,10 +27,13 @@ type App struct {
 	ctx            context.Context
 	admission      func() error
 	authGeneration uint64
+	storeProfileID string // immutable, private per-call Store execution scope
 }
 
 // Scoped receivers share original native state; managers and mutexes are never copied.
 type appState struct {
+	storeGeneralMu          sync.RWMutex
+	store                   storeWorkspaceState
 	businessInitAttempted   bool
 	businessInitErr         error
 	ownedBrowsers           ownedBrowserReceipts
@@ -91,7 +94,7 @@ func NewApp(appRoot string, appVersion ...string) *App {
 		// Keep the existing unconfigured login shell; never admit business work.
 		identityConfig = desktopauth.Config{}
 	}
-	return &App{appState: &appState{
+	app := &App{appState: &appState{
 		identity:               desktopauth.NewManager(identityConfig),
 		appRoot:                strings.TrimSpace(appRoot),
 		version:                version,
@@ -101,6 +104,8 @@ func NewApp(appRoot string, appVersion ...string) *App {
 		profileWindowMarkers:   make(map[string]*profileWindowMarker),
 		browserProcessMonitors: make(map[string]*browserProcessMonitor),
 	}}
+	app.configureStoreClient(identityConfig)
+	return app
 }
 
 func (a *App) appName() string {

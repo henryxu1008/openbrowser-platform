@@ -8,6 +8,10 @@ param(
     [switch]$CreateDesktopShortcut
 )
 
+if (-not ('Shuomi.ShortcutFile' -as [type])) {
+    Add-Type -Path (Join-Path $PSScriptRoot 'shell-link.cs')
+}
+
 function Invoke-BrowserShortcutMaintenance {
     [CmdletBinding()]
     param(
@@ -33,7 +37,6 @@ function Invoke-BrowserShortcutMaintenance {
     $programs = @($ProgramsRoots | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
     $desktops = @($DesktopRoots | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
     if (-not $programs.Count -or -not $desktops.Count) { throw 'Shortcut directories are required.' }
-    $shell = New-Object -ComObject WScript.Shell
 
     function Test-NormalShortcutPath([string]$Path) {
         foreach ($entry in @($Path, [IO.Path]::GetDirectoryName($Path))) {
@@ -45,9 +48,8 @@ function Invoke-BrowserShortcutMaintenance {
 
     function Get-OwnedShortcut([string]$Path, [string]$Target) {
         if (-not [IO.File]::Exists($Path) -or -not (Test-NormalShortcutPath $Path)) { return $null }
-        $link = $null
         try {
-            $link = $shell.CreateShortcut($Path)
+            $link = [Shuomi.ShortcutFile]::Read($Path)
             if ([string]::IsNullOrWhiteSpace($link.TargetPath)) { return $null }
             $resolvedTarget = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($link.TargetPath))
             if (-not $resolvedTarget.Equals($Target, [StringComparison]::OrdinalIgnoreCase)) { return $null }
@@ -55,8 +57,6 @@ function Invoke-BrowserShortcutMaintenance {
         } catch {
             Write-Warning "Keeping unreadable shortcut: $Path"
             return $null
-        } finally {
-            if ($link) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($link) }
         }
     }
 
@@ -67,16 +67,7 @@ function Invoke-BrowserShortcutMaintenance {
             return
         }
         [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($Path))
-        $link = $null
-        try {
-            $link = $shell.CreateShortcut($Path)
-            $link.TargetPath = $Target
-            $link.WorkingDirectory = $installRoot
-            $link.IconLocation = (Join-Path $installRoot 'AntBrowser.ico') + ',0'
-            $link.Save()
-        } finally {
-            if ($link) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($link) }
-        }
+        [Shuomi.ShortcutFile]::Write($Path, $Target, '', $installRoot, (Join-Path $installRoot 'AntBrowser.ico'))
         if (-not (Get-OwnedShortcut $Path $Target)) { throw "Could not create shortcut: $Path" }
     }
 
@@ -111,47 +102,43 @@ function Invoke-BrowserShortcutMaintenance {
         }
     }
 
-    try {
-        foreach ($root in $programs) {
-            $legacyGroup = Join-Path $root $LegacyProductName
-            $newGroup = Join-Path $root $ProductName
-            if ($Mode -eq 'Install') {
-                Move-OwnedShortcut (Join-Path $legacyGroup "$LegacyProductName.lnk") (Join-Path $newGroup "$ProductName.lnk") $appTarget
-                Move-OwnedShortcut (Join-Path $legacyGroup 'Uninstall.lnk') (Join-Path $newGroup 'Uninstall.lnk') $uninstallTarget
-            } else {
-                foreach ($name in @($ProductName, $LegacyProductName) | Select-Object -Unique) {
-                    $group = Join-Path $root $name
-                    Remove-OwnedShortcut (Join-Path $group "$name.lnk") $appTarget
-                    Remove-OwnedShortcut (Join-Path $group 'Uninstall.lnk') $uninstallTarget
-                    Remove-EmptyShortcutDirectory $group
-                }
-            }
-            Remove-EmptyShortcutDirectory $legacyGroup
-        }
-        foreach ($root in $desktops) {
-            if ($Mode -eq 'Install') {
-                Move-OwnedShortcut (Join-Path $root "$LegacyProductName.lnk") (Join-Path $root "$ProductName.lnk") $appTarget
-            } else {
-                foreach ($name in @($ProductName, $LegacyProductName) | Select-Object -Unique) {
-                    Remove-OwnedShortcut (Join-Path $root "$name.lnk") $appTarget
-                }
-            }
-        }
+    foreach ($root in $programs) {
+        $legacyGroup = Join-Path $root $LegacyProductName
+        $newGroup = Join-Path $root $ProductName
         if ($Mode -eq 'Install') {
-            $ownedGroups = @($programs | Where-Object { Get-OwnedShortcut (Join-Path (Join-Path $_ $ProductName) "$ProductName.lnk") $appTarget })
-            if (-not $ownedGroups.Count) { $ownedGroups = @($programs[0]) }
-            foreach ($root in $ownedGroups) {
-                $group = Join-Path $root $ProductName
-                New-OwnedShortcut (Join-Path $group "$ProductName.lnk") $appTarget
-                New-OwnedShortcut (Join-Path $group 'Uninstall.lnk') $uninstallTarget
-            }
-            if ($CreateDesktopShortcut) {
-                $ownedDesktops = @($desktops | Where-Object { Get-OwnedShortcut (Join-Path $_ "$ProductName.lnk") $appTarget })
-                if (-not $ownedDesktops.Count) { New-OwnedShortcut (Join-Path $desktops[0] "$ProductName.lnk") $appTarget }
+            Move-OwnedShortcut (Join-Path $legacyGroup "$LegacyProductName.lnk") (Join-Path $newGroup "$ProductName.lnk") $appTarget
+            Move-OwnedShortcut (Join-Path $legacyGroup 'Uninstall.lnk') (Join-Path $newGroup 'Uninstall.lnk') $uninstallTarget
+        } else {
+            foreach ($name in @($ProductName, $LegacyProductName) | Select-Object -Unique) {
+                $group = Join-Path $root $name
+                Remove-OwnedShortcut (Join-Path $group "$name.lnk") $appTarget
+                Remove-OwnedShortcut (Join-Path $group 'Uninstall.lnk') $uninstallTarget
+                Remove-EmptyShortcutDirectory $group
             }
         }
-    } finally {
-        [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell)
+        Remove-EmptyShortcutDirectory $legacyGroup
+    }
+    foreach ($root in $desktops) {
+        if ($Mode -eq 'Install') {
+            Move-OwnedShortcut (Join-Path $root "$LegacyProductName.lnk") (Join-Path $root "$ProductName.lnk") $appTarget
+        } else {
+            foreach ($name in @($ProductName, $LegacyProductName) | Select-Object -Unique) {
+                Remove-OwnedShortcut (Join-Path $root "$name.lnk") $appTarget
+            }
+        }
+    }
+    if ($Mode -eq 'Install') {
+        $ownedGroups = @($programs | Where-Object { Get-OwnedShortcut (Join-Path (Join-Path $_ $ProductName) "$ProductName.lnk") $appTarget })
+        if (-not $ownedGroups.Count) { $ownedGroups = @($programs[0]) }
+        foreach ($root in $ownedGroups) {
+            $group = Join-Path $root $ProductName
+            New-OwnedShortcut (Join-Path $group "$ProductName.lnk") $appTarget
+            New-OwnedShortcut (Join-Path $group 'Uninstall.lnk') $uninstallTarget
+        }
+        if ($CreateDesktopShortcut) {
+            $ownedDesktops = @($desktops | Where-Object { Get-OwnedShortcut (Join-Path $_ "$ProductName.lnk") $appTarget })
+            if (-not $ownedDesktops.Count) { New-OwnedShortcut (Join-Path $desktops[0] "$ProductName.lnk") $appTarget }
+        }
     }
 }
 

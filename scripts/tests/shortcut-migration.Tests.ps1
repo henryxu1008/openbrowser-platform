@@ -2,7 +2,6 @@
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '../../publish/shortcut-migration.ps1')
 $testRoot = Join-Path ([IO.Path]::GetTempPath()) ('ant-shortcut-tests-' + [Guid]::NewGuid().ToString('N'))
-$fixtureShell = New-Object -ComObject WScript.Shell
 $script:checks = 0
 
 function Assert-ShortcutCase([bool]$Condition, [string]$Message) {
@@ -12,7 +11,7 @@ function Assert-ShortcutCase([bool]$Condition, [string]$Message) {
 function New-ShortcutCase([string]$Name) {
     $root = Join-Path $testRoot $Name
     $params = @{
-        InstallDir = Join-Path $root 'installed browser'
+        InstallDir = Join-Path $root 'installed browser 硕米'
         ProductName = '硕米指纹浏览器'
         LegacyProductName = 'Ant Browser'
         ProgramsRoots = @((Join-Path $root 'common programs'), (Join-Path $root 'user programs'))
@@ -28,18 +27,10 @@ function New-ShortcutCase([string]$Name) {
 }
 function Write-TestShortcut([string]$Path, [string]$Target, [string]$Arguments = '') {
     [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($Path))
-    $link = $fixtureShell.CreateShortcut($Path)
-    try {
-        $link.TargetPath = $Target
-        $link.Arguments = $Arguments
-        $link.WorkingDirectory = [IO.Path]::GetDirectoryName($Target)
-        $link.Description = 'preserve customized shortcut metadata'
-        $link.Save()
-    } finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($link) }
+    [Shuomi.ShortcutFile]::Write($Path, $Target, $Arguments, [IO.Path]::GetDirectoryName($Target), $Target)
 }
 function Get-TestShortcutTarget([string]$Path) {
-    $link = $fixtureShell.CreateShortcut($Path)
-    try { return $link.TargetPath } finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($link) }
+    return [Shuomi.ShortcutFile]::Read($Path).TargetPath
 }
 
 try {
@@ -162,7 +153,6 @@ try {
 
     Write-Output "Shortcut migration: $script:checks real Shell-link assertions PASS (PowerShell $($PSVersionTable.PSVersion)); all fixtures isolated; product executions 0."
 } finally {
-    [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($fixtureShell)
     $resolved = [IO.Path]::GetFullPath($testRoot)
     $temporary = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\'
     if (-not $resolved.StartsWith($temporary, [StringComparison]::OrdinalIgnoreCase) -or [IO.Path]::GetFileName($resolved) -notmatch '^ant-shortcut-tests-[a-f0-9]{32}$') { throw 'Refusing unexpected shortcut-fixture cleanup path.' }

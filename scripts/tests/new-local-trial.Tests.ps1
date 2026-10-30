@@ -130,7 +130,7 @@ try {
     [IO.File]::WriteAllText($otherApi,'{"apiOrigin":"https://other.example.test"}')
     Assert-Rejected { Open-AntLocalTrial -ExpectedExeSha256 $fixtureHash -PublicConfigPath $resourcePublic -ApiConfigPath $otherApi -TrialRoot $resourceRoot }
     Assert-True ((Get-FileHash -LiteralPath $installedApi -Algorithm SHA256).Hash -eq $apiHash) 'Reopen overwrote API configuration.'
-    $invalidApi=@('{}','{"apiOrigin":"http://api.example.test"}','{"apiOrigin":"https://api.example.test/"}','{"apiOrigin":"https://user@api.example.test"}','{"apiOrigin":"https://@api.example.test"}','{"apiOrigin":"https://api.example.test?"}','{"apiOrigin":"https://api.example.test#"}','{"apiOrigin":"https://api.example.test","apiOrigin":"https://other.example.test"}','{"apiOrigin":"https://api.example.test","secret":"fixture"}','{"apiOrigin":123}',(' '*4097))
+    $invalidApi=@('{}','{"apiOrigin":"https://api.example.test\n"}','{"apiOrigin":"http://api.example.test"}','{"apiOrigin":"https://api.example.test/"}','{"apiOrigin":"https://user@api.example.test"}','{"apiOrigin":"https://@api.example.test"}','{"apiOrigin":"https://api.example.test?"}','{"apiOrigin":"https://api.example.test#"}','{"apiOrigin":"https://api.example.test","apiOrigin":"https://other.example.test"}','{"apiOrigin":"https://api.example.test","secret":"fixture"}','{"apiOrigin":123}',(' '*4097))
     for ($i=0;$i -lt $invalidApi.Count;$i++) {
         $badApi=Join-Path $sourceDirectory "bad-api-$i.json"
         [IO.File]::WriteAllText($badApi,$invalidApi[$i])

@@ -91,7 +91,7 @@ function Read-AntTrialApiConfig {
             $properties[0].Value.ValueKind -ne [System.Text.Json.JsonValueKind]::String) { throw 'shape' }
         $origin = $properties[0].Value.GetString()
         $uri = $null
-        if ($origin -cnotmatch '^https://[^@/?#\\\s]+$' -or
+        if ($origin -cnotmatch '\Ahttps://[^@/?#\\\s]+\z' -or
             -not [Uri]::TryCreate($origin, [UriKind]::Absolute, [ref]$uri) -or
             -not $uri.Host -or $uri.UserInfo -or $uri.Query -or $uri.Fragment) { throw 'origin' }
         return [pscustomobject]@{ APIOrigin = $origin }

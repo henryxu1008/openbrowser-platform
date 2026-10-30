@@ -64,7 +64,13 @@ func (a *App) BrowserCoreList() []BrowserCore {
 	}
 	a.browserMgr.Mutex.Lock()
 	defer a.browserMgr.Mutex.Unlock()
-	return append([]BrowserCore{}, a.browserMgr.ListCores()...)
+	cores := append([]BrowserCore{}, a.browserMgr.ListCores()...)
+	if a.kernels != nil {
+		for i := range cores {
+			cores[i].CorePath = ""
+		}
+	}
+	return cores
 }
 
 func (a *App) BrowserCoreSave(input BrowserCoreInput) error {

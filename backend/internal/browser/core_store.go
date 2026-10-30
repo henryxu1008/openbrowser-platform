@@ -10,6 +10,9 @@ import (
 
 // ListCores 获取所有内核配置
 func (m *Manager) ListCores() []Core {
+	if m.PublishedCores != nil {
+		return m.PublishedCores()
+	}
 	if m.CoreDAO != nil {
 		cores, err := m.CoreDAO.List()
 		if err == nil {

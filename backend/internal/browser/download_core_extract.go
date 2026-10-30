@@ -235,6 +235,11 @@ func detectCommonArchiveRoot(entries []archiveEntryMeta) (string, bool) {
 	for _, entry := range entries {
 		cleanName := normalizeArchiveEntryName(entry.Name)
 		parts := strings.SplitN(cleanName, "/", 2)
+		// A top-level file is payload, never a wrapper directory. In
+		// particular a one-file archive must not be stripped to nothing.
+		if len(parts) < 2 && !strings.HasSuffix(entry.Name, "/") {
+			return "", false
+		}
 		if len(parts) == 0 || parts[0] == "" {
 			continue
 		}

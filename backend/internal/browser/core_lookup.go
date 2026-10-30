@@ -51,6 +51,9 @@ func (m *Manager) GetCore(coreId string) (Core, bool) {
 
 // GetDefaultCore 获取默认内核
 func (m *Manager) GetDefaultCore() (Core, bool) {
+	if m.PublishedCores != nil {
+		return Core{}, false // Published releases require an explicit binding.
+	}
 	cores := m.ListCores()
 	for _, core := range cores {
 		if core.IsDefault {

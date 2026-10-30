@@ -183,6 +183,9 @@ func (a *App) startupInitManagers(cfg *config.Config, db *database.DB, check fun
 		return err
 	}
 	a.browserMgr = browser.NewManager(cfg, a.appRoot)
+	if a.kernels != nil {
+		a.browserMgr.PublishedCores = a.kernels.ReadyCores
+	}
 	a.browserMgr.EventEmitter = a.emitRuntimeEvent
 	a.xrayMgr = proxy.NewXrayManager(cfg, a.appRoot)
 	a.clashMgr = proxy.NewClashManager(cfg, a.appRoot)

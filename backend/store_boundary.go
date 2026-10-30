@@ -75,6 +75,11 @@ func (a *App) hasStoreData() bool {
 // managed evidence exists; store use cases and original owned cleanup have
 // their own narrow authority. Only public kernel metadata remains generic.
 func (a *App) guardStoreGeneral(method string) error {
+	// Retired native capabilities must also reject crafted renderer calls.
+	// NewApp always installs the platform owner, including when unconfigured.
+	if a.kernels != nil && strings.HasPrefix(method, "BrowserCore") && method != "BrowserCoreList" {
+		return errPlatformKernelOnly
+	}
 	if !a.hasStoreData() {
 		return nil
 	}

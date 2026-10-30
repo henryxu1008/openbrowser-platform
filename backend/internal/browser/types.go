@@ -158,6 +158,9 @@ type Manager struct {
 	CodeProvider                  CodeProvider
 	EventEmitter                  RuntimeEventEmitter
 	CoreDownloadHTTPClientFactory CoreDownloadHTTPClientFactory
+	// PublishedCores owns the prepared platform installation view. When set,
+	// legacy config/DAO entries are never adopted as issued releases.
+	PublishedCores func() []Core
 
 	// DAO 层（注入后使用 SQLite 存储，未注入时降级到 config.yaml）
 	ProfileDAO   ProfileDAO

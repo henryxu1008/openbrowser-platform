@@ -122,6 +122,8 @@ func main() {
 		}
 		fmt.Fprintf(&body, "func (a *AuthBoundApp) %s(%s) (%s) {\n", name, strings.Join(params, ", "), strings.Join(outs, ", "))
 		switch name {
+		case "BrowserKernelCatalog", "BrowserKernelPrepare":
+			fmt.Fprintf(&body, "core, authErr := a.scopedKernel(generation); if authErr != nil { r%d = authErr; return }\n", len(rets)-1)
 		case "StoreWorkbenchContext", "StoreWorkbenchSelectOrganization", "StoreWorkbenchList", "StoreWorkbenchGet", "StoreEnvironmentGet", "StoreEnvironmentOptions", "StoreOperationGet", "StoreEnvironmentSave", "StoreEnvironmentOpen", "StoreEnvironmentClose", "StoreAuditList":
 			fmt.Fprintf(&body, "core, authErr := a.scopedStore(generation); if authErr != nil { r%d = authErr; return }\n", len(rets)-1)
 		default:

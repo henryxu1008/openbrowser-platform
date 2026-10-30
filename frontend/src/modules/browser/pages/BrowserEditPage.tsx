@@ -3,12 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ChevronDown, ChevronUp, FolderOpen, HelpCircle, Layers, ShieldCheck } from 'lucide-react'
 import { Button, Card, ConfirmModal, FormItem, Input, Modal, Select, Textarea, toast } from '../../../shared/components'
 import type { BrowserCore, BrowserFingerprintCapabilityReport, BrowserFingerprintCapabilityRow, BrowserFingerprintCheckResult, BrowserProfileInput, BrowserProxy, BrowserGroup, ProxyLocationResolveResult } from '../types'
-import { browserProxyResolveLocation, checkBrowserProfileFingerprint, createBrowserProfile, fetchAllTags, fetchBrowserCores, fetchBrowserProfileFingerprintMatrix, fetchBrowserProfiles, fetchBrowserProxies, fetchBrowserSettings, fetchGroups, openBrowserFingerprintCheck, openUserDataDir, updateBrowserProfile, validateProxyConfig } from '../api'
+import { browserProxyResolveLocation, checkBrowserProfileFingerprint, createBrowserProfile, fetchAllTags, fetchBrowserProfileFingerprintMatrix, fetchBrowserProfiles, fetchBrowserProxies, fetchBrowserSettings, fetchGroups, openBrowserFingerprintCheck, openUserDataDir, updateBrowserProfile, validateProxyConfig } from '../api'
 import { FingerprintPanel } from '../components/FingerprintPanel'
 import { applyLocaleToFingerprintArgs, validateFingerprintArgs, withAdaptiveDefaultWindowSize } from '../utils/fingerprintSerializer'
 import { TagInput } from '../components/TagInput'
 import { GroupSelector } from '../components/GroupSelector'
 import { ProxyPickerModal } from '../components/ProxyPickerModal'
+import { KernelVersionPicker } from '../components/KernelVersionPicker'
 
 const fallbackLowLaunchArgs = ['--disable-sync', '--no-first-run']
 const directProxyID = '__direct__'
@@ -260,7 +261,8 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
     keywords: [],
     groupId: '',
   })
-  const [cores, setCores] = useState<BrowserCore[]>([])
+  const [kernelBusy, setKernelBusy] = useState(false)
+  const kernelBusyRef = useRef(false)
   const [proxies, setProxies] = useState<BrowserProxy[]>([])
   const [groups, setGroups] = useState<BrowserGroup[]>([])
   const [launchArgsText, setLaunchArgsText] = useState('')
@@ -308,20 +310,17 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
       if (managed) {
         const result = await managed.load()
         if (!active) return
-        setCores(result.cores)
         setFormData({ ...result.input, userDataDir: '', launchArgs: [], tags: [], keywords: [], groupId: '', proxyId: '' })
         setProxyMode('local')
         return
       }
-      const [coreList, proxyList, tagList, groupList, settings] = await Promise.all([
-        fetchBrowserCores(),
+      const [proxyList, tagList, groupList, settings] = await Promise.all([
         fetchBrowserProxies(),
         fetchAllTags(),
         fetchGroups(),
         fetchBrowserSettings(),
       ])
       const resolvedDefaultLaunchArgs = resolveDefaultLaunchArgs(settings.defaultLaunchArgs || [])
-      setCores(coreList)
       setProxies(proxyList)
       setAllTags(tagList)
       setGroups(groupList)
@@ -414,7 +413,8 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
   }
 
   const handleSave = async () => {
-    if (savingRef.current || saveBlocked) return
+    if (savingRef.current || saveBlocked || kernelBusyRef.current) return
+    if (!formData.coreId) { setSaveError('请选择平台发行的内核版本'); return }
     const resolvedProxyId = proxyMode === 'pool' ? (formData.proxyId || '').trim() : ''
     const resolvedProxyConfig = proxyMode === 'local' ? (formData.proxyConfig || '').trim() : ''
     if (!managed && proxyMode === 'local' && !resolvedProxyConfig) {
@@ -550,7 +550,6 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
     }
   }
 
-  const defaultCore = cores.find(c => c.isDefault)
   const selectedPoolProxy = proxies.find((proxy) => proxy.proxyId === formData.proxyId)
 
   const handleOpenUserDataDir = async () => {
@@ -591,7 +590,7 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
           <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">{managed?.title || (isCreate ? '新建配置' : '编辑配置')}</h1>
           <div className="flex flex-wrap gap-2 sm:justify-end">
             <Button variant="secondary" size="sm" onClick={handleBack}>{managed ? '返回店铺' : '返回列表'}</Button>
-            <Button size="sm" onClick={handleSave} loading={saving} disabled={saveBlocked}>保存配置</Button>
+            <Button size="sm" onClick={handleSave} loading={saving} disabled={saveBlocked || kernelBusy}>保存配置</Button>
           </div>
         </div>
       </Card>
@@ -614,19 +613,13 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
               </Button>
             </div>
           </FormItem>}
-          <FormItem label="内核">
-            <Select
-              aria-label="内核"
+          <FormItem label="内核版本" required>
+            <KernelVersionPicker
+              scopeKey={`${id || 'managed'}:${managed?.title || 'profile'}`}
               value={formData.coreId}
-              onChange={e => handleChange('coreId', e.target.value)}
-              options={
-                cores.length > 0 ? [
-                  { value: '', label: defaultCore ? `使用默认 (${defaultCore.coreName})` : '使用默认内核' },
-                  ...cores.map(c => ({ value: c.coreId, label: c.coreName })),
-                ] : [
-                  { value: '', label: '暂无内核，请添加内核' }
-                ]
-              }
+              disabled={saving || saveBlocked}
+              onChange={releaseId => handleChange('coreId', releaseId)}
+              onBusyChange={busy => { kernelBusyRef.current = busy; setKernelBusy(busy) }}
             />
           </FormItem>
           <FormItem label="历史标签">

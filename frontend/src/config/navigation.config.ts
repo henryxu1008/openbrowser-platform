@@ -16,7 +16,7 @@ export const navigationConfig: NavSection[] = [
     items: [
       { name: '实例列表', path: '/browser/list', icon: 'Monitor' },
       { name: '自动化脚本', path: '/browser/automation', icon: 'Bot' },
-      { name: '内核管理', path: '/browser/cores', icon: 'Cpu' },
+      { name: '内核版本', path: '/browser/cores', icon: 'Cpu' },
       { name: '插件包管理', path: '/browser/extensions', icon: 'Puzzle' },
       { name: '代理池配置', path: '/browser/proxy-pool', icon: 'Globe' },
       { name: '默认书签', path: '/browser/bookmarks', icon: 'Bookmark' },

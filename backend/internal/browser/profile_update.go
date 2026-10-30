@@ -9,10 +9,20 @@ import (
 
 // Update 更新配置
 func (m *Manager) Update(profileId string, input ProfileInput) (*Profile, error) {
+	return m.UpdateChecked(profileId, input, nil)
+}
+
+// UpdateChecked rechecks the caller's selection ticket under the profile lock.
+func (m *Manager) UpdateChecked(profileId string, input ProfileInput, check func() error) (*Profile, error) {
 	log := logger.New("Browser")
 	m.InitData()
 	m.Mutex.Lock()
 	defer m.Mutex.Unlock()
+	if check != nil {
+		if err := check(); err != nil {
+			return nil, err
+		}
+	}
 
 	profile, exists := m.Profiles[profileId]
 	if !exists {

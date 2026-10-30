@@ -407,6 +407,14 @@
     "arguments": 2,
     "policy": "protected"
   },
+  "BrowserKernelCatalog": {
+    "arguments": 1,
+    "policy": "protected"
+  },
+  "BrowserKernelPrepare": {
+    "arguments": 2,
+    "policy": "protected"
+  },
   "BrowserProfileBatchRemoveTags": {
     "arguments": 3,
     "policy": "protected"

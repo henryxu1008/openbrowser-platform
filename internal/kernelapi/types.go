@@ -2,6 +2,8 @@
 package kernelapi
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"strings"
@@ -38,15 +40,16 @@ type Release struct {
 // Artifact remains native-only even if accidentally serialized by a caller.
 type Artifact struct {
 	Release
-	ArchiveFormat string `json:"-"`
-	Size          int64  `json:"-"`
-	SHA256        string `json:"-"`
-	DownloadURL   string `json:"-"`
+	ArchiveFormat   string   `json:"-"`
+	Size            int64    `json:"-"`
+	SHA256          string   `json:"-"`
+	DownloadURL     string   `json:"-"`
+	DownloadOrigins []string `json:"-"`
 }
 
 func ValidReleaseID(value string) bool {
 	parsed, err := uuid.Parse(value)
-	return err == nil && parsed != uuid.Nil && parsed.String() == value
+	return err == nil && parsed.String() == value
 }
 
 func validClientVersion(value string) bool {
@@ -54,8 +57,8 @@ func validClientVersion(value string) bool {
 	return len(value) <= 64 && len(strings.Split(base, ".")) == 3 && semver.IsValid("v"+value)
 }
 
-func (r Release) compatible(osName, arch, clientVersion string) bool {
-	if !ValidReleaseID(r.ReleaseID) || r.OS != osName || r.Arch != arch || r.Version == "" || len(r.Version) > 64 || strings.TrimSpace(r.Version) != r.Version {
+func (r Release) Compatible(osName, arch, clientVersion string) bool {
+	if !validClientVersion(clientVersion) || !ValidReleaseID(r.ReleaseID) || r.OS != osName || r.Arch != arch || r.Version == "" || len(r.Version) > 64 || strings.TrimSpace(r.Version) != r.Version {
 		return false
 	}
 	for _, char := range r.Version {
@@ -70,4 +73,12 @@ func (r Release) compatible(osName, arch, clientVersion string) bool {
 		return validClientVersion(r.MaxClientVersionExclusive) && semver.Compare("v"+r.MinClientVersion, "v"+r.MaxClientVersionExclusive) < 0 && semver.Compare("v"+clientVersion, "v"+r.MaxClientVersionExclusive) < 0
 	}
 	return true
+}
+
+func (a Artifact) ValidPayload() bool {
+	if a.Size <= 0 || a.Size > MaxArtifactBytes || (a.ArchiveFormat != "zip" && a.ArchiveFormat != "tar.gz" && a.ArchiveFormat != "tar.xz") || len(a.SHA256) != sha256.Size*2 || a.SHA256 != strings.ToLower(a.SHA256) {
+		return false
+	}
+	_, err := hex.DecodeString(a.SHA256)
+	return err == nil
 }

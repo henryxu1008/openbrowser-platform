@@ -20,6 +20,8 @@ type Client struct {
 	http                          *http.Client
 }
 
+func (c *Client) Origin() string { return c.origin }
+
 func New(config apiconfig.Config, auth Auth, clientVersion string) (*Client, error) {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	return newClient(config, auth, clientVersion, runtime.GOOS, runtime.GOARCH, &http.Client{Transport: transport})
@@ -97,7 +99,7 @@ func (c *Client) Catalog(ctx context.Context, generation uint64) ([]Release, err
 			return nil, ErrUnavailable
 		}
 		for _, release := range releases {
-			if !release.compatible(c.osName, c.arch, c.version) || release.ReleaseID <= cursor || release.ReleaseID <= previous || next != "" && release.ReleaseID > next {
+			if !release.Compatible(c.osName, c.arch, c.version) || release.ReleaseID <= cursor || release.ReleaseID <= previous || next != "" && release.ReleaseID > next {
 				return nil, ErrUnavailable
 			}
 			previous = release.ReleaseID
@@ -126,7 +128,7 @@ func (c *Client) Artifact(ctx context.Context, generation uint64, releaseID stri
 		return Artifact{}, err
 	}
 	artifact, err := decodeArtifact(data)
-	if err != nil || artifact.ReleaseID != releaseID || !artifact.Release.compatible(c.osName, c.arch, c.version) {
+	if err != nil || artifact.ReleaseID != releaseID || !artifact.Release.Compatible(c.osName, c.arch, c.version) {
 		return Artifact{}, ErrUnavailable
 	}
 	if err := c.auth.Check(generation); err != nil {

@@ -121,7 +121,9 @@ func (a *App) emitRuntimeEventWithContext(ctx context.Context, eventName string,
 	if a == nil {
 		return
 	}
-	if a.hasStoreData() && eventName != "app:ready" && eventName != "app:request-close" {
+	// Platform preparation emits only a release/generation-bound safe DTO.
+	// Store data still suppresses every legacy business event.
+	if a.hasStoreData() && eventName != "app:ready" && eventName != "app:request-close" && eventName != "browser.kernel.progress" {
 		return
 	}
 	if eventName != "app:ready" && eventName != "app:request-close" && a.identity != nil && a.identity.Status().State != "signed_in" {

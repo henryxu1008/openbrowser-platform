@@ -49,11 +49,36 @@ func (a *App) BrowserProfileSetKeywords(profileId string, keywords []string) (*B
 }
 
 func (a *App) BrowserProfileCreate(input BrowserProfileInput) (*BrowserProfile, error) {
-	return a.browserMgr.Create(input)
+	if err := a.requireKernelSelection(input.CoreId, ""); err != nil {
+		return nil, err
+	}
+	return a.browserMgr.CreateChecked(input, a.captureAdmission())
 }
 
 func (a *App) BrowserProfileUpdate(profileId string, input BrowserProfileInput) (*BrowserProfile, error) {
-	return a.browserMgr.Update(profileId, input)
+	a.browserMgr.Mutex.Lock()
+	previous := ""
+	if p := a.browserMgr.Profiles[profileId]; p != nil {
+		previous = p.CoreId
+	}
+	a.browserMgr.Mutex.Unlock()
+	if err := a.requireKernelSelection(input.CoreId, previous); err != nil {
+		return nil, err
+	}
+	check := a.captureAdmission()
+	return a.browserMgr.UpdateChecked(profileId, input, func() error {
+		if err := check(); err != nil {
+			return err
+		}
+		// The unchanged-binding withdrawal exception belongs to the observed
+		// profile, and cannot survive an intervening kernel change.
+		if a.kernels != nil {
+			if p := a.browserMgr.Profiles[profileId]; p == nil || p.CoreId != previous {
+				return errPlatformKernelOnly
+			}
+		}
+		return nil
+	})
 }
 
 func (a *App) BrowserProfileDelete(profileId string) error { return a.browserMgr.Delete(profileId) }
@@ -94,16 +119,18 @@ func (a *App) BrowserProfileCopyWithOptions(profileId string, newName string, op
 func (a *App) migrateToSQLite() {
 	log := logger.New("Migration")
 
-	if cores, err := a.browserMgr.CoreDAO.List(); err == nil && len(cores) == 0 {
-		if len(a.config.Browser.Cores) > 0 {
-			for _, c := range a.config.Browser.Cores {
-				if err := a.browserMgr.CoreDAO.Upsert(c); err != nil {
-					log.Error("内核迁移失败", logger.F("core_id", c.CoreId), logger.F("error", err))
+	if a.kernels == nil {
+		if cores, err := a.browserMgr.CoreDAO.List(); err == nil && len(cores) == 0 {
+			if len(a.config.Browser.Cores) > 0 {
+				for _, c := range a.config.Browser.Cores {
+					if err := a.browserMgr.CoreDAO.Upsert(c); err != nil {
+						log.Error("内核迁移失败", logger.F("core_id", c.CoreId), logger.F("error", err))
+					}
 				}
+				log.Info("内核数据已迁移", logger.F("count", len(a.config.Browser.Cores)))
+			} else {
+				log.Info("内核表为空，将通过自动检测初始化")
 			}
-			log.Info("内核数据已迁移", logger.F("count", len(a.config.Browser.Cores)))
-		} else {
-			log.Info("内核表为空，将通过自动检测初始化")
 		}
 	}
 

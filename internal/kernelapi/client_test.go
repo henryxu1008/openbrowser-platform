@@ -60,7 +60,7 @@ func pageFixture(releases []Release, next string) string {
 	return string(data)
 }
 func artifactFixture() map[string]any {
-	return map[string]any{"releaseId": secondID, "version": "150.0.7871.186", "os": "windows", "arch": "amd64", "minClientVersion": "1.8.0", "maxClientVersionExclusive": "1.9.0", "recommended": true, "archiveFormat": "zip", "size": 1024, "sha256": strings.Repeat("a", 64), "downloadUrl": "https://assets.example.test/v150/windows-amd64.zip"}
+	return map[string]any{"releaseId": secondID, "version": "150.0.7871.186", "os": "windows", "arch": "amd64", "minClientVersion": "1.8.0", "maxClientVersionExclusive": "1.9.0", "recommended": true, "archiveFormat": "zip", "size": 1024, "sha256": strings.Repeat("a", 64), "downloadUrl": "https://assets.example.test/v150/windows-amd64.zip", "downloadOrigins": []string{"https://assets.example.test", "https://cdn.example.test"}}
 }
 
 func TestCatalogContinuesEmptyCompatibilityPageAndPinsNativeQuery(t *testing.T) {
@@ -129,6 +129,13 @@ func TestArtifactRejectsSubstitutedOrAmbiguousMetadata(t *testing.T) {
 		{"http-asset", func(m map[string]any) { m["downloadUrl"] = "http://assets.example.test/v150.zip" }},
 		{"asset-userinfo", func(m map[string]any) { m["downloadUrl"] = "https://user:fixture-secret@assets.example.test/v150.zip" }},
 		{"asset-query", func(m map[string]any) { m["downloadUrl"] = "https://assets.example.test/v150.zip?secret=fixture" }},
+		{"asset-empty-fragment", func(m map[string]any) { m["downloadUrl"] = "https://assets.example.test/v150.zip#" }},
+		{"asset-outside-origin", func(m map[string]any) { m["downloadUrl"] = "https://foreign.example.test/v150.zip" }},
+		{"empty-origins", func(m map[string]any) { m["downloadOrigins"] = []string{} }},
+		{"duplicate-origins", func(m map[string]any) {
+			m["downloadOrigins"] = []string{"https://assets.example.test", "https://assets.example.test"}
+		}},
+		{"noncanonical-origin", func(m map[string]any) { m["downloadOrigins"] = []string{"https://assets.example.test:443"} }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			m := artifactFixture()
@@ -237,9 +244,30 @@ func TestMetadataRejectsRevokedGenerationAtPublication(t *testing.T) {
 	}
 	calls := 0
 	c := fixtureClient(t, &fixtureAuth{}, func(r *http.Request) (*http.Response, error) { calls++; return response(r, 200, "{}"), nil })
-	for _, id := range []string{"../other", strings.ToUpper(secondID), "00000000-0000-0000-0000-000000000000"} {
+	for _, id := range []string{"../other", strings.ToUpper(secondID), ""} {
 		if _, err := c.Artifact(context.Background(), 7, id); !errors.Is(err, ErrNotFound) || calls != 0 {
 			t.Fatal("noncanonical release input reached the API")
+		}
+	}
+}
+
+func TestDownloadOriginsAllowOnlyBoundedHTTPSContract(t *testing.T) {
+	origins := []string{"https://assets.example.test", "https://cdn.example.test"}
+	for _, tc := range []struct {
+		url               string
+		redirect, allowed bool
+	}{
+		{"https://assets.example.test/v150.zip", false, true},
+		{"https://cdn.example.test/v150.zip?signature=fixture", true, true},
+		{"https://cdn.example.test/v150.zip?signature=fixture", false, false},
+		{"https://cdn.example.test.evil.invalid/v150.zip", true, false},
+		{"https://cdn.example.test:443/v150.zip", true, false},
+		{"http://cdn.example.test/v150.zip", true, false},
+		{"https://user:fixture@cdn.example.test/v150.zip", true, false},
+		{"https://cdn.example.test/v150.zip#", true, false},
+	} {
+		if AllowsDownloadURL(tc.url, origins, tc.redirect) != tc.allowed {
+			t.Fatal("artifact download origin boundary mismatch")
 		}
 	}
 }

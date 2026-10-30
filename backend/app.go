@@ -5,6 +5,7 @@ import (
 	"ant-chrome/backend/internal/browser"
 	"ant-chrome/backend/internal/config"
 	"ant-chrome/backend/internal/database"
+	"ant-chrome/backend/internal/kernelcache"
 	"ant-chrome/backend/internal/launchcode"
 	"ant-chrome/backend/internal/logger"
 	"ant-chrome/backend/internal/proxy"
@@ -41,6 +42,7 @@ type appState struct {
 	importPreviewPath       string
 	importPreviewGeneration uint64
 	identity                sessionAuthority
+	kernels                 *kernelcache.Manager
 	businessInitMu          sync.Mutex
 	businessReady           bool
 	config                  *config.Config
@@ -105,6 +107,7 @@ func NewApp(appRoot string, appVersion ...string) *App {
 		browserProcessMonitors: make(map[string]*browserProcessMonitor),
 	}}
 	app.configureStoreClient(identityConfig)
+	app.configureKernelClient(identityConfig)
 	return app
 }
 

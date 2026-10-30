@@ -2,12 +2,8 @@ package kernelapi
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"io"
-	"net/url"
-	"strings"
 	"unicode/utf8"
 )
 
@@ -103,7 +99,7 @@ func decodePage(data []byte) ([]Release, string, error) {
 }
 
 func decodeArtifact(data []byte) (Artifact, error) {
-	fields, err := object(data, append(append([]string{}, summaryKeys...), "archiveFormat", "size", "sha256", "downloadUrl"))
+	fields, err := object(data, append(append([]string{}, summaryKeys...), "archiveFormat", "size", "sha256", "downloadUrl", "downloadOrigins"))
 	if err != nil {
 		return Artifact{}, err
 	}
@@ -123,14 +119,10 @@ func decodeArtifact(data []byte) (Artifact, error) {
 		return Artifact{}, ErrUnavailable
 	}
 	a.Size = *size
-	if a.ArchiveFormat != "zip" && a.ArchiveFormat != "tar.gz" && a.ArchiveFormat != "tar.xz" || len(a.SHA256) != sha256.Size*2 || a.SHA256 != strings.ToLower(a.SHA256) {
+	if !a.ValidPayload() {
 		return Artifact{}, ErrUnavailable
 	}
-	if _, err := hex.DecodeString(a.SHA256); err != nil {
-		return Artifact{}, ErrUnavailable
-	}
-	u, err := url.Parse(a.DownloadURL)
-	if err != nil || len(a.DownloadURL) > 2048 || u.Scheme != "https" || u.Host == "" || u.User != nil || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || u.Opaque != "" || strings.TrimSpace(a.DownloadURL) != a.DownloadURL {
+	if json.Unmarshal(fields["downloadOrigins"], &a.DownloadOrigins) != nil || !AllowsDownloadURL(a.DownloadURL, a.DownloadOrigins, false) {
 		return Artifact{}, ErrUnavailable
 	}
 	return a, nil

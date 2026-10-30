@@ -4,11 +4,14 @@ import (
 	"ant-chrome/backend/internal/apppath"
 	"ant-chrome/backend/internal/fsutil"
 	"ant-chrome/backend/internal/logger"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 )
+
+var ErrPublishedCoreSelection = errors.New("platform_kernel_selection_required")
 
 // ResolveCoreDirectory keeps legacy installation-relative imports readable after
 // state detachment. Writable state wins; this fallback is limited to core lookup

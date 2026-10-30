@@ -230,6 +230,9 @@ func TestBackupRestoreProfilePackageRequiresConflictChoice(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.Browser.UserDataRoot = filepath.Join(root, "user-data")
 	app := NewApp(root)
+	// This protocol-only fixture has no platform catalog; configured native
+	// package selection/overwrite is covered by kernel_package_ingress_test.
+	app.kernels = nil
 	app.config = cfg
 	app.db = db
 	app.browserMgr = browser.NewManager(cfg, root)

@@ -14,6 +14,9 @@ func (m *Manager) Update(profileId string, input ProfileInput) (*Profile, error)
 
 // UpdateChecked rechecks the caller's selection ticket under the profile lock.
 func (m *Manager) UpdateChecked(profileId string, input ProfileInput, check func() error) (*Profile, error) {
+	if m.PublishedCores != nil && check == nil {
+		return nil, ErrPublishedCoreSelection
+	}
 	log := logger.New("Browser")
 	m.InitData()
 	m.Mutex.Lock()

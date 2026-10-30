@@ -18,7 +18,7 @@ func TestProfilePackageDatabaseRoundTripSelectedProfile(t *testing.T) {
 	sourceDB := newProfilePackageDatabase(t, sourceRoot)
 	sourceCfg := config.DefaultConfig()
 	sourceCfg.Browser.UserDataRoot = filepath.Join(sourceRoot, "user-data")
-	sourceApp := NewApp(sourceRoot)
+	sourceApp := legacyProfilePackageTestApp(sourceRoot)
 	sourceApp.config = sourceCfg
 	sourceApp.db = sourceDB
 	sourceApp.browserMgr = browser.NewManager(sourceCfg, sourceRoot)
@@ -65,7 +65,7 @@ func TestProfilePackageDatabaseRoundTripSelectedProfile(t *testing.T) {
 	targetDB := newProfilePackageDatabase(t, targetRoot)
 	targetCfg := config.DefaultConfig()
 	targetCfg.Browser.UserDataRoot = filepath.Join(targetRoot, "user-data")
-	targetApp := NewApp(targetRoot)
+	targetApp := legacyProfilePackageTestApp(targetRoot)
 	targetApp.config = targetCfg
 	targetApp.db = targetDB
 	targetApp.browserMgr = browser.NewManager(targetCfg, targetRoot)
@@ -149,7 +149,7 @@ func TestProfilePackageDatabaseOverwriteMovesTargetToTrash(t *testing.T) {
 	sourceDB := newProfilePackageDatabase(t, sourceRoot)
 	sourceCfg := config.DefaultConfig()
 	sourceCfg.Browser.UserDataRoot = filepath.Join(sourceRoot, "user-data")
-	sourceApp := NewApp(sourceRoot)
+	sourceApp := legacyProfilePackageTestApp(sourceRoot)
 	sourceApp.config = sourceCfg
 	sourceApp.db = sourceDB
 	sourceApp.browserMgr = browser.NewManager(sourceCfg, sourceRoot)
@@ -183,7 +183,7 @@ func TestProfilePackageDatabaseOverwriteMovesTargetToTrash(t *testing.T) {
 	targetDB := newProfilePackageDatabase(t, targetRoot)
 	targetCfg := config.DefaultConfig()
 	targetCfg.Browser.UserDataRoot = filepath.Join(targetRoot, "user-data")
-	targetApp := NewApp(targetRoot)
+	targetApp := legacyProfilePackageTestApp(targetRoot)
 	targetApp.config = targetCfg
 	targetApp.db = targetDB
 	targetApp.browserMgr = browser.NewManager(targetCfg, targetRoot)
@@ -281,7 +281,7 @@ func TestProfilePackageV1OverwriteMovesTargetToTrash(t *testing.T) {
 	db := newProfilePackageDatabase(t, root)
 	cfg := config.DefaultConfig()
 	cfg.Browser.UserDataRoot = filepath.Join(root, "user-data")
-	app := NewApp(root)
+	app := legacyProfilePackageTestApp(root)
 	app.config = cfg
 	app.db = db
 	app.browserMgr = browser.NewManager(cfg, root)

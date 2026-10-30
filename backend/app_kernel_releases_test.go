@@ -18,6 +18,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -25,6 +26,7 @@ import (
 type kernelSourceFixture struct {
 	started, release                 chan struct{}
 	artifactStarted, artifactRelease chan struct{}
+	artifactGateOnce                 sync.Once
 	artifact                         kernelapi.Artifact
 	err                              error
 }
@@ -39,8 +41,7 @@ func (s *kernelSourceFixture) Catalog(context.Context, uint64) ([]kernelapi.Rele
 }
 func (s *kernelSourceFixture) Artifact(context.Context, uint64, string) (kernelapi.Artifact, error) {
 	if s.artifactStarted != nil {
-		close(s.artifactStarted)
-		<-s.artifactRelease
+		s.artifactGateOnce.Do(func() { close(s.artifactStarted); <-s.artifactRelease })
 	}
 	if s.err != nil {
 		return kernelapi.Artifact{}, s.err
@@ -192,7 +193,7 @@ func TestKernelSaveRejectsIdentityOrBindingChangeDuringMetadataRead(t *testing.T
 	for _, mode := range []string{"identity", "binding"} {
 		t.Run(mode, func(t *testing.T) {
 			a, b, auth, s, id := preparedKernelAppFixture(t)
-			previous, err := a.browserMgr.Create(BrowserProfileInput{ProfileName: "before", CoreId: "previous-binding"})
+			previous, err := a.browserMgr.CreateChecked(BrowserProfileInput{ProfileName: "before", CoreId: "previous-binding"}, func() error { return nil })
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -213,7 +214,7 @@ func TestKernelSaveRejectsIdentityOrBindingChangeDuringMetadataRead(t *testing.T
 			if mode == "identity" {
 				auth.replace()
 			} else {
-				if _, err = a.browserMgr.Update(previous.ProfileId, BrowserProfileInput{ProfileName: "intervening", CoreId: "other-binding"}); err != nil {
+				if _, err = a.browserMgr.UpdateChecked(previous.ProfileId, BrowserProfileInput{ProfileName: "intervening", CoreId: "other-binding"}, func() error { return nil }); err != nil {
 					t.Fatal(err)
 				}
 			}

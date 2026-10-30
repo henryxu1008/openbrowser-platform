@@ -105,7 +105,7 @@ func TestProfilePackageImportOverwriteMovesTargetToTrash(t *testing.T) {
 	db := newProfilePackageDatabase(t, root)
 	cfg := config.DefaultConfig()
 	cfg.Browser.UserDataRoot = filepath.Join(root, "user-data")
-	app := NewApp(root)
+	app := legacyProfilePackageTestApp(root)
 	app.config = cfg
 	app.db = db
 	app.browserMgr = browser.NewManager(cfg, root)
@@ -182,7 +182,7 @@ func TestProfilePackageImportRepeatedOverwriteIgnoresTrashedTargets(t *testing.T
 	db := newProfilePackageDatabase(t, root)
 	cfg := config.DefaultConfig()
 	cfg.Browser.UserDataRoot = filepath.Join(root, "user-data")
-	app := NewApp(root)
+	app := legacyProfilePackageTestApp(root)
 	app.config = cfg
 	app.db = db
 	app.browserMgr = browser.NewManager(cfg, root)
@@ -460,7 +460,7 @@ func TestProfilePackageImportAppliesPerProfileActions(t *testing.T) {
 	db := newProfilePackageDatabase(t, root)
 	cfg := config.DefaultConfig()
 	cfg.Browser.UserDataRoot = filepath.Join(root, "user-data")
-	app := NewApp(root)
+	app := legacyProfilePackageTestApp(root)
 	app.config = cfg
 	app.db = db
 	app.browserMgr = browser.NewManager(cfg, root)
@@ -540,7 +540,7 @@ func newProfilePackageImportTestApp(t *testing.T, profiles []browser.Profile, us
 	root := t.TempDir()
 	cfg := config.DefaultConfig()
 	cfg.Browser.UserDataRoot = filepath.Join(root, "user-data")
-	app := NewApp(root)
+	app := legacyProfilePackageTestApp(root)
 	app.config = cfg
 	app.browserMgr = browser.NewManager(cfg, root)
 	app.browserMgr.InitData()
@@ -584,4 +584,13 @@ func writeJSONToZip(t *testing.T, zipWriter *zip.Writer, name string, value any)
 	if err := json.NewEncoder(writer).Encode(value); err != nil {
 		t.Fatalf("encode json failed: %v", err)
 	}
+}
+
+// Pure legacy restore fixtures retain their original protocol checks. NewApp
+// production always owns platform selection; configured native ingress has
+// separate real-facade coverage in kernel_package_ingress_test.go.
+func legacyProfilePackageTestApp(root string) *App {
+	app := NewApp(root)
+	app.kernels = nil
+	return app
 }

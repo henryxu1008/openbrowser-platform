@@ -2,18 +2,18 @@ package backend
 
 import (
 	"ant-chrome/backend/internal/apppath"
+	"ant-chrome/backend/internal/browser"
 	"ant-chrome/backend/internal/kernelcache"
 	"ant-chrome/internal/apiconfig"
 	"ant-chrome/internal/desktopauth"
 	"ant-chrome/internal/kernelapi"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"path/filepath"
 	"time"
 )
 
-var errPlatformKernelOnly = errors.New("platform_kernel_selection_required")
+var errPlatformKernelOnly = browser.ErrPublishedCoreSelection
 
 func (a *App) configureKernelClient(identityConfig desktopauth.Config) {
 	authority, _ := a.identity.(kernelcache.Authority)
@@ -77,4 +77,40 @@ func (a *App) requireKernelSelection(id, previous string) error {
 		return errPlatformKernelOnly
 	}
 	return a.kernels.RequireSelection(a.ctx, a.authGeneration, id, id == previous)
+}
+
+// All copy consumers, including automation templates, create a new binding.
+// Fetch publication outside the manager lock, then pin the source at commit.
+func (a *App) copyBrowserProfile(profileID, name string, options *BrowserProfileCopyOptions) (*BrowserProfile, error) {
+	check := a.captureAdmission()
+	if err := check(); err != nil {
+		return nil, err
+	}
+	a.browserMgr.InitData()
+	a.browserMgr.Mutex.Lock()
+	source := a.browserMgr.Profiles[profileID]
+	coreID := ""
+	if source != nil {
+		coreID = source.CoreId
+	}
+	a.browserMgr.Mutex.Unlock()
+	if source == nil {
+		return nil, errPlatformKernelOnly
+	}
+	if err := a.requireKernelSelection(coreID, ""); err != nil {
+		return nil, err
+	}
+	commitCheck := func(source *browser.Profile) error {
+		if err := check(); err != nil {
+			return err
+		}
+		if source.CoreId != coreID {
+			return errPlatformKernelOnly
+		}
+		return nil
+	}
+	if options == nil {
+		return a.browserMgr.CopyChecked(profileID, name, commitCheck)
+	}
+	return a.browserMgr.CopyWithOptionsChecked(profileID, name, *options, commitCheck)
 }

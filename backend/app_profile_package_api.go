@@ -114,6 +114,7 @@ const (
 )
 
 type preparedProfilePackageImport struct {
+	ExpectedTarget    *browser.Profile
 	Profile           browser.Profile
 	OldProfileID      string
 	ReplacedProfileID string
@@ -661,6 +662,17 @@ func (a *App) importProfilePackageFromPathWithModeAndActions(zipPath string, mod
 			return ProfilePackageImportResult{}, fmt.Errorf("检测到实例同名或 ID 冲突，请先在冲突提示中选择覆盖原有或创建新的")
 		}
 	}
+	// Every import, including overwrite, receives a new UUID/binding. The
+	// package's local paths never constitute a platform installation fact.
+	selectedCores := map[string]struct{}{}
+	for index := range contents.Profiles {
+		selectedCores[contents.Profiles[index].CoreId] = struct{}{}
+	}
+	for id := range selectedCores {
+		if err := a.requireKernelSelection(id, ""); err != nil {
+			return ProfilePackageImportResult{}, err
+		}
+	}
 	now := time.Now().Format(time.RFC3339)
 	mappings := make(map[string]string, len(contents.Profiles))
 	warnings := make([]string, 0)
@@ -686,25 +698,31 @@ func (a *App) importProfilePackageFromPathWithModeAndActions(zipPath string, mod
 	swaps := make([]profilePackageDirectorySwap, 0, len(contents.Profiles))
 	originalProfiles := make(map[string]*browser.Profile, len(contents.Profiles))
 	committed := false
+	commitLocked := false
 	defer func() {
-		_ = os.RemoveAll(stagingRoot)
-		if committed {
-			return
-		}
-		rollbackProfilePackageDirectorySwaps(swaps)
-		if len(originalProfiles) == 0 {
-			return
-		}
-		a.browserMgr.Mutex.Lock()
-		for profileID, original := range originalProfiles {
-			if original == nil {
-				delete(a.browserMgr.Profiles, profileID)
-				continue
+		if !committed {
+			rollbackProfilePackageDirectorySwaps(swaps)
+			if len(originalProfiles) > 0 {
+				if !commitLocked {
+					a.browserMgr.Mutex.Lock()
+				}
+				for profileID, original := range originalProfiles {
+					if original == nil {
+						delete(a.browserMgr.Profiles, profileID)
+					} else {
+						copyProfile := *original
+						a.browserMgr.Profiles[profileID] = &copyProfile
+					}
+				}
+				if !commitLocked {
+					a.browserMgr.Mutex.Unlock()
+				}
 			}
-			copyProfile := *original
-			a.browserMgr.Profiles[profileID] = &copyProfile
 		}
-		a.browserMgr.Mutex.Unlock()
+		if commitLocked {
+			a.browserMgr.Mutex.Unlock()
+		}
+		_ = os.RemoveAll(stagingRoot)
 	}()
 
 	seenSourceIDs := make(map[string]struct{}, len(contents.Profiles))
@@ -831,6 +849,7 @@ func (a *App) importProfilePackageFromPathWithModeAndActions(zipPath string, mod
 			replacedProfileID = strings.TrimSpace(match.Target.ProfileId)
 		}
 		prepared = append(prepared, preparedProfilePackageImport{
+			ExpectedTarget:    match.Target,
 			Profile:           profile,
 			OldProfileID:      oldID,
 			ReplacedProfileID: replacedProfileID,
@@ -843,8 +862,28 @@ func (a *App) importProfilePackageFromPathWithModeAndActions(zipPath string, mod
 		mappings[oldID] = newID
 	}
 
+	// Revalidate publication after long extraction, outside the manager lock.
+	for id := range selectedCores {
+		if err := a.requireKernelSelection(id, ""); err != nil {
+			return ProfilePackageImportResult{}, err
+		}
+	}
+	a.browserMgr.Mutex.Lock()
+	commitLocked = true
+	if err := a.checkScopedAdmission(); err != nil {
+		return ProfilePackageImportResult{}, err
+	}
 	for _, item := range prepared {
-		a.browserMgr.Mutex.Lock()
+		if !item.Overwrite || item.ExpectedTarget == nil {
+			continue
+		}
+		current := a.browserMgr.Profiles[item.ReplacedProfileID]
+		expected := item.ExpectedTarget
+		if current == nil || current.CoreId != expected.CoreId || current.UserDataDir != expected.UserDataDir || current.ProfileName != expected.ProfileName || current.UpdatedAt != expected.UpdatedAt || current.DeletedAt != expected.DeletedAt || current.Running || current.Pid > 0 {
+			return ProfilePackageImportResult{}, fmt.Errorf("目标实例已变化，请重新预览后再导入")
+		}
+	}
+	for _, item := range prepared {
 		for _, profileID := range []string{item.Profile.ProfileId, item.ReplacedProfileID} {
 			profileID = strings.TrimSpace(profileID)
 			if profileID == "" {
@@ -857,7 +896,6 @@ func (a *App) importProfilePackageFromPathWithModeAndActions(zipPath string, mod
 				originalProfiles[profileID] = nil
 			}
 		}
-		a.browserMgr.Mutex.Unlock()
 	}
 	for _, item := range prepared {
 		if !item.HasUserData {
@@ -879,7 +917,6 @@ func (a *App) importProfilePackageFromPathWithModeAndActions(zipPath string, mod
 			return ProfilePackageImportResult{}, err
 		}
 	}
-	a.browserMgr.Mutex.Lock()
 	for i := range prepared {
 		profile := &prepared[i].Profile
 		if replacedID := strings.TrimSpace(prepared[i].ReplacedProfileID); replacedID != "" {
@@ -892,7 +929,6 @@ func (a *App) importProfilePackageFromPathWithModeAndActions(zipPath string, mod
 			}
 		}
 	}
-	a.browserMgr.Mutex.Unlock()
 	if contents.DatabaseSnapshot == nil && !legacyDatabaseRestore {
 		if err := a.browserMgr.SaveProfiles(); err != nil {
 			return ProfilePackageImportResult{}, err

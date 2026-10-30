@@ -157,7 +157,7 @@ func (a *App) resolveAutomationScriptTarget(script automation.ScriptRecord) (map
 			return nil, "", err
 		}
 		createdName := buildAutomationCreatedProfileName(script.TargetConfig.CreateNameTemplate, script, templateProfile)
-		createdProfile, err := a.browserMgr.Copy(templateProfile.ProfileId, createdName)
+		createdProfile, err := a.BrowserProfileCopy(templateProfile.ProfileId, createdName)
 		if err != nil {
 			return nil, "", fmt.Errorf("按模板新建实例失败: %w", err)
 		}

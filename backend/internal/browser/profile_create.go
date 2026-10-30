@@ -15,6 +15,9 @@ func (m *Manager) Create(input ProfileInput) (*Profile, error) {
 
 // CreateChecked rechecks admission after waiting for the profile lock.
 func (m *Manager) CreateChecked(input ProfileInput, check func() error) (*Profile, error) {
+	if m.PublishedCores != nil && check == nil {
+		return nil, ErrPublishedCoreSelection
+	}
 	log := logger.New("Browser")
 	m.InitData()
 	m.Mutex.Lock()

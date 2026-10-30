@@ -22,3 +22,18 @@ func TestPublishedCoreLookupNeverFallsBackToLegacyOrImplicitDefault(t *testing.T
 		}
 	}
 }
+
+func TestPublishedManagerCannotCreateBindingsWithoutSelectionAdmission(t *testing.T) {
+	m := NewManager(config.DefaultConfig(), t.TempDir())
+	m.PublishedCores = func() []Core { return nil }
+	for _, write := range []func() error{
+		func() error { _, err := m.Create(ProfileInput{ProfileName: "bypass", CoreId: "raw"}); return err },
+		func() error { _, err := m.Update("source", ProfileInput{CoreId: "raw"}); return err },
+		func() error { _, err := m.Copy("source", "bypass"); return err },
+		func() error { _, err := m.CopyWithOptions("source", "bypass", ProfileCopyOptions{}); return err },
+	} {
+		if err := write(); err != ErrPublishedCoreSelection {
+			t.Fatalf("unscoped manager write delegated: %v", err)
+		}
+	}
+}

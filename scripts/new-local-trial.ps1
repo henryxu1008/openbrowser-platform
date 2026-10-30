@@ -8,6 +8,7 @@ param(
     [string]$ExePath,
     [string]$ExpectedExeSha256,
     [string]$PublicConfigPath,
+    [string]$ApiConfigPath,
     [string]$TrialRoot
 )
 
@@ -73,13 +74,48 @@ function Read-AntTrialPublicConfig {
     return [pscustomobject]@{ Issuer = $issuer; ClientId = $clientId; APIProjectId = $apiProjectId }
 }
 
+# Same public contract as internal/apiconfig: one bounded JSON apiOrigin,
+# HTTPS origin only; never credentials, a path, query, fragment or a default service.
+function Read-AntTrialApiConfig {
+    param([string]$Path)
+    $file = Get-AntTrialLocalPath $Path
+    if (-not (Test-Path -LiteralPath $file -PathType Leaf) -or (Get-Item -LiteralPath $file).Length -gt 4096) {
+        throw 'Public API configuration is missing or exceeds 4096 bytes.'
+    }
+    $document = $null
+    try {
+        $document = [System.Text.Json.JsonDocument]::Parse([IO.File]::ReadAllText($file))
+        if ($document.RootElement.ValueKind -ne [System.Text.Json.JsonValueKind]::Object) { throw 'shape' }
+        $properties = @($document.RootElement.EnumerateObject())
+        if ($properties.Count -ne 1 -or $properties[0].Name -cne 'apiOrigin' -or
+            $properties[0].Value.ValueKind -ne [System.Text.Json.JsonValueKind]::String) { throw 'shape' }
+        $origin = $properties[0].Value.GetString()
+        $uri = $null
+        if ($origin -cnotmatch '^https://[^@/?#\\\s]+$' -or
+            -not [Uri]::TryCreate($origin, [UriKind]::Absolute, [ref]$uri) -or
+            -not $uri.Host -or $uri.UserInfo -or $uri.Query -or $uri.Fragment) { throw 'origin' }
+        return [pscustomobject]@{ APIOrigin = $origin }
+    } catch {
+        throw 'Public API JSON requires only apiOrigin: an HTTPS origin without credentials, path, query or fragment.'
+    } finally {
+        if ($null -ne $document) { $document.Dispose() }
+    }
+}
+
 function Start-AntTrialAtRoot {
-    param([string]$Root, [string]$ExpectedHash, [object]$PublicConfig)
-    if ($PublicConfig.APIProjectId) {
-        $installed = Read-AntTrialPublicConfig -Path (Join-Path $Root 'oidc-public.json')
+    param([string]$Root, [string]$ExpectedHash, [object]$PublicConfig, [object]$ApiConfig)
+    $installedIdentity = Join-Path $Root 'oidc-public.json'
+    $installed = if (Test-Path -LiteralPath $installedIdentity -PathType Leaf) { Read-AntTrialPublicConfig -Path $installedIdentity } else { $null }
+    if ($PublicConfig.APIProjectId -or $installed.APIProjectId) {
         if ($installed.Issuer -cne $PublicConfig.Issuer -or $installed.ClientId -cne $PublicConfig.ClientId -or $installed.APIProjectId -cne $PublicConfig.APIProjectId) {
             throw 'Existing trial identity/resource differs; do not adopt or overwrite it.'
         }
+    }
+    $installedApiPath = Join-Path $Root 'shuomi-public.json'
+    if ($PublicConfig.APIProjectId -or $ApiConfig -or (Test-Path -LiteralPath $installedApiPath)) {
+        if (-not $ApiConfig) { throw 'Explicit API configuration is required for this Store trial; nothing was changed.' }
+        $installedApi = Read-AntTrialApiConfig $installedApiPath
+        if ($installedApi.APIOrigin -cne $ApiConfig.APIOrigin) { throw 'Existing trial API origin differs; do not adopt or overwrite it.' }
     }
     $copiedExe = Join-Path $Root 'ant-chrome.exe'
     [void](Get-AntTrialLocalPath $copiedExe)
@@ -118,6 +154,7 @@ function Open-AntLocalTrial {
     param(
         [Parameter(Mandatory)][ValidatePattern('^[A-Fa-f0-9]{64}$')][string]$ExpectedExeSha256,
         [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string]$PublicConfigPath,
+        [string]$ApiConfigPath,
         [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string]$TrialRoot
     )
     $ErrorActionPreference = 'Stop'
@@ -125,7 +162,9 @@ function Open-AntLocalTrial {
     $root = Get-AntTrialLocalPath $TrialRoot
     if (-not (Test-Path -LiteralPath $root -PathType Container)) { throw 'Select an existing trial root explicitly.' }
     $public = Read-AntTrialPublicConfig $PublicConfigPath
-    Start-AntTrialAtRoot -Root $root -ExpectedHash $ExpectedExeSha256.ToLowerInvariant() -PublicConfig $public
+    if ($public.APIProjectId -and -not $ApiConfigPath) { throw 'Store trial requires explicit ApiConfigPath.' }
+    $api = if ($ApiConfigPath) { Read-AntTrialApiConfig $ApiConfigPath } else { $null }
+    Start-AntTrialAtRoot -Root $root -ExpectedHash $ExpectedExeSha256.ToLowerInvariant() -PublicConfig $public -ApiConfig $api
 }
 
 
@@ -135,6 +174,7 @@ function New-AntLocalTrial {
         [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string]$ExePath,
         [Parameter(Mandatory)][ValidatePattern('^[A-Fa-f0-9]{64}$')][string]$ExpectedExeSha256,
         [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string]$PublicConfigPath,
+        [string]$ApiConfigPath,
         [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string]$TrialRoot
     )
     $ErrorActionPreference = 'Stop'
@@ -162,6 +202,14 @@ function New-AntLocalTrial {
         throw 'EXE SHA256 mismatch; no trial directory or process was created.'
     }
     $public = Read-AntTrialPublicConfig $publicFile
+    if ($public.APIProjectId -and -not $ApiConfigPath) { throw 'Store trial requires explicit ApiConfigPath.' }
+    $api = if ($ApiConfigPath) { Read-AntTrialApiConfig $ApiConfigPath } else { $null }
+    if ($ApiConfigPath) {
+        $apiDirectory = [IO.Path]::GetDirectoryName((Get-AntTrialLocalPath $ApiConfigPath))
+        if ($root.StartsWith($apiDirectory.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'Choose a new trial root outside the API configuration directory.'
+        }
+    }
     # Production main.go uses the EXE directory as appRoot, regardless of CWD.
     New-Item -ItemType Directory -Path $root -ErrorAction Stop | Out-Null
     [void](Get-AntTrialLocalPath $root)
@@ -169,10 +217,13 @@ function New-AntLocalTrial {
     $metadata = [ordered]@{ issuer = $public.Issuer; clientId = $public.ClientId }
     if ($public.APIProjectId) { $metadata['apiProjectId'] = $public.APIProjectId }
     [IO.File]::WriteAllText((Join-Path $root 'oidc-public.json'), ($metadata | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
+    if ($api) {
+        [IO.File]::WriteAllText((Join-Path $root 'shuomi-public.json'), (@{ apiOrigin = $api.APIOrigin } | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
+    }
     foreach ($relative in @('user', 'user\Roaming', 'user\Local', 'temp')) {
         New-Item -ItemType Directory -Path (Join-Path $root $relative) -ErrorAction Stop | Out-Null
     }
-    Start-AntTrialAtRoot -Root $root -ExpectedHash $expected -PublicConfig $public
+    Start-AntTrialAtRoot -Root $root -ExpectedHash $expected -PublicConfig $public -ApiConfig $api
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

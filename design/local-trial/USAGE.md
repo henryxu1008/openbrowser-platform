@@ -11,13 +11,14 @@
 以下变量必须来自**同一次受控构建及已确认目标实例**，不从旧试用目录或历史示例猜填。`Get-FileHash` 仅记录产物身份，不独立证明产物可信；须核对构建来源与预期记录。命令会启动产品，只能在另行取得运行授权后执行：
 
 ```powershell
-# $CandidateExe、$CandidatePublicIdentity、$NewTrialRoot 由维护者按当前构建记录填写。
+# $CandidateExe、$CandidatePublicIdentity、$CandidatePublicApi、$NewTrialRoot 由维护者按当前构建记录填写。
 # $ExpectedCandidateSha256 为该次构建记录中的完整 SHA256，不是历史常量。
 Get-FileHash -LiteralPath $CandidateExe -Algorithm SHA256
 .\scripts\new-local-trial.ps1 `
   -ExePath $CandidateExe `
   -ExpectedExeSha256 $ExpectedCandidateSha256 `
   -PublicConfigPath $CandidatePublicIdentity `
+  -ApiConfigPath $CandidatePublicApi `
   -TrialRoot $NewTrialRoot
 ```
 
@@ -27,13 +28,15 @@ Get-FileHash -LiteralPath $CandidateExe -Algorithm SHA256
 
 ### Store / 平台内核试用的额外准入
 
-当前 `new-local-trial.ps1` **不是完整 Store 首启准备器**：它只复制 EXE 和身份公开 JSON，不复制 `shuomi-public.json`，随后立即启动；`open-local-trial.ps1` 也不补建业务配置。Store 与平台内核 API 均要求 EXE 根内已有严格格式的 `shuomi-public.json`：仅 `apiOrigin` 一个 HTTPS origin 字段，无路径、账号、查询或 secret。缺失时 fail closed，不能用环境变量、临时直连或其他实例替代。
+Store 与平台内核 API 共同使用 EXE 根内的 `shuomi-public.json`：仅 `apiOrigin` 一个 HTTPS origin 字段，无路径、账号、查询或 secret，文件最多 4096 字节。`-ApiConfigPath $CandidatePublicApi` 必须来自已核对的目标实例公开配置，无默认 URL；脚本不会探测服务或验证部署是否正确。
 
-因此不能直接用上面的首次身份试用命令宣称 Store 已可验收。Store 运行前须由维护者在单独授权的受控准备流程中核对两份公开配置、准确 EXE、目标实例及隔离根；不要改写已有用户根或为补配置先启动产品。本工具目前没有“只准备不启动”参数。具体 Store 代码与边界见 [Store 交付说明](../store-workbench/DELIVERY.md)、[当前准备体验范围](../store-workbench/ISSUE21-CANDIDATE.md)。
+身份配置含 `apiProjectId` 时，首次创建与重开都必须显式提供 `ApiConfigPath`。新建在创建目录前验证公开配置，再写入两份 JSON，最后调用原进程启动边界；输入无效不创建目录、不启动。复制/写入失败不启动、不重试，部分新根保留。重开只核对该根已有 API origin 与显式配置完全相同，不覆盖、不补建、不改绑定；缺失、不一致或尝试用两字段身份配置打开已有 Store 根都拒绝。
+
+仅基础身份试用可省略 `ApiConfigPath`（以及身份 JSON 中的 `apiProjectId`），保留旧调用兼容；这不证明 Store 可用。两份公开配置与真实身份、Store、内核及网络运行必须分别取得执行授权。具体代码边界见 [Store 交付说明](../store-workbench/DELIVERY.md)、[当前准备体验范围](../store-workbench/ISSUE21-CANDIDATE.md)。
 
 ## 启动绑定和数据
 
-生产 `main.go` 使用 EXE 目录作为 appRoot，单改 WorkingDirectory 不会隔离数据。因此入口校验源 SHA256，**仅复制这个 EXE**到新根，再核对复制后的 SHA；不复制旧 config、SQLite、profile、WebView 或备份。新根须位于源 EXE/公开配置目录之外，父目录须存在；重解析路径和已存在的根会拒绝。
+生产 `main.go` 使用 EXE 目录作为 appRoot，单改 WorkingDirectory 不会隔离数据。因此入口校验源 SHA256，**仅复制这个 EXE 并写入已校验的公开配置**到新根，再核对复制后的 SHA；不复制旧 config、SQLite、profile、WebView 或备份。新根须位于源 EXE/公开配置目录之外，父目录须存在；重解析路径和已存在的根会拒绝。
 
 通过 `ProcessStartInfo` 启动，`UseShellExecute=false`，工作目录与 EXE 目录均为新根。环境先 Clear，仅保留系统六项 `SystemRoot/WINDIR/SystemDrive/ComSpec/PATH/PATHEXT`，再设置：
 
@@ -57,6 +60,7 @@ Get-FileHash -LiteralPath $CandidateExe -Algorithm SHA256
 .\scripts\open-local-trial.ps1 `
   -ExpectedExeSha256 $ExpectedCandidateSha256 `
   -PublicConfigPath $CandidatePublicIdentity `
+  -ApiConfigPath $CandidatePublicApi `
   -TrialRoot $NewTrialRoot
 ```
 
@@ -77,4 +81,4 @@ Get-FileHash -LiteralPath $CandidateExe -Algorithm SHA256
 .\scripts\tests\new-local-trial.Tests.ps1
 ```
 
-测试只用自建文本 EXE fixture 与临时公开配置，替换进程启动边界；检查首次创建、同根重开、配置/SQLite fixture 哈希保持和错误输入拒绝，不执行目标 EXE，不联系 IdP、启动内核或容器。两个新入口的真实产品启动及持久化重开验收仍为 NOT_RUN，不能移用旧手动场景 PASS。
+测试只用自建文本 EXE fixture 与临时公开配置，替换进程启动边界；检查首次创建、同根重开、配置/SQLite fixture 哈希保持、Store API 配置先于启动落盘、缺失或不一致拒绝及错误输入零启动，不执行目标 EXE，不联系 IdP、启动内核或容器。两个新入口的真实产品启动及持久化重开验收仍为 NOT_RUN，不能移用旧手动场景 PASS。

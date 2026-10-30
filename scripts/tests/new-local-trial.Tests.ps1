@@ -119,12 +119,18 @@ try {
     $installedApi=Join-Path $resourceRoot 'shuomi-public.json'
     Assert-True ((Get-Content -LiteralPath $installedApi -Raw | ConvertFrom-Json).apiOrigin -ceq 'https://api.example.test:8443') 'API origin was not copied before launch.'
     $apiHash=(Get-FileHash -LiteralPath $installedApi -Algorithm SHA256).Hash
+    $keptApi=[IO.File]::ReadAllText($installedApi)
+    Remove-Item -LiteralPath $installedApi
+    Assert-Rejected { Open-AntLocalTrial -ExpectedExeSha256 $fixtureHash -PublicConfigPath $resourcePublic -ApiConfigPath $apiFile -TrialRoot $resourceRoot }
+    Assert-True (-not (Test-Path -LiteralPath $installedApi)) 'Reopen silently repaired missing API configuration.'
+    [IO.File]::WriteAllText($installedApi,$keptApi,[Text.UTF8Encoding]::new($false))
+
     Assert-Rejected { Open-AntLocalTrial -ExpectedExeSha256 $fixtureHash -PublicConfigPath $resourcePublic -TrialRoot $resourceRoot }
     $otherApi=Join-Path $sourceDirectory 'other-api.json'
     [IO.File]::WriteAllText($otherApi,'{"apiOrigin":"https://other.example.test"}')
     Assert-Rejected { Open-AntLocalTrial -ExpectedExeSha256 $fixtureHash -PublicConfigPath $resourcePublic -ApiConfigPath $otherApi -TrialRoot $resourceRoot }
     Assert-True ((Get-FileHash -LiteralPath $installedApi -Algorithm SHA256).Hash -eq $apiHash) 'Reopen overwrote API configuration.'
-    $invalidApi=@('{}','{"apiOrigin":"http://api.example.test"}','{"apiOrigin":"https://api.example.test/"}','{"apiOrigin":"https://user@api.example.test"}','{"apiOrigin":"https://api.example.test?"}','{"apiOrigin":"https://api.example.test#"}','{"apiOrigin":"https://api.example.test","apiOrigin":"https://other.example.test"}','{"apiOrigin":"https://api.example.test","secret":"fixture"}','{"apiOrigin":123}',(' '*4097))
+    $invalidApi=@('{}','{"apiOrigin":"http://api.example.test"}','{"apiOrigin":"https://api.example.test/"}','{"apiOrigin":"https://user@api.example.test"}','{"apiOrigin":"https://@api.example.test"}','{"apiOrigin":"https://api.example.test?"}','{"apiOrigin":"https://api.example.test#"}','{"apiOrigin":"https://api.example.test","apiOrigin":"https://other.example.test"}','{"apiOrigin":"https://api.example.test","secret":"fixture"}','{"apiOrigin":123}',(' '*4097))
     for ($i=0;$i -lt $invalidApi.Count;$i++) {
         $badApi=Join-Path $sourceDirectory "bad-api-$i.json"
         [IO.File]::WriteAllText($badApi,$invalidApi[$i])

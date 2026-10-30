@@ -431,7 +431,14 @@ func executableDigest(filePath string) (int64, string, error) {
 func samePath(left, right string) bool {
 	left, right = filepath.Clean(left), filepath.Clean(right)
 	if runtime.GOOS == "windows" {
-		return strings.EqualFold(left, right)
+		if strings.EqualFold(left, right) {
+			return true
+		}
+		// EvalSymlinks also expands Windows 8.3 spelling. Expand spelling on
+		// both sides without adopting a reparse target as the configured root.
+		longLeft, leftOK := longPathSpelling(left)
+		longRight, rightOK := longPathSpelling(right)
+		return leftOK && rightOK && strings.EqualFold(longLeft, longRight)
 	}
 	return left == right
 }

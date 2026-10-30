@@ -34,6 +34,8 @@
 
 安装目录不可覆盖。文件缺失或损坏时另建安装目录，旧目录保留；失败只清理本次专属暂存目录。原本的任意本地目录、config/DAO 内核和环境迁移不自动登记成平台发行版本。没有明确绑定或版本不可用时，运行解析失败，不回退到默认或第一个版本。
 
+Windows 路径比较使用已有 Win32 GetLongPathName 规范短文件名拼写，并处理长路径；各路径分量仍显式拒绝符号链接和目录 junction。短名称别名不再被误判为目录逃逸，也不会借规范化采用链接目标。API 行为见 [Microsoft GetLongPathNameW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getlongpathnamew)。合成并发夹具会在准备提前失败时直接报错，避免等不到下载起点而挂住。
+
 新保存必须仍在发行并已准备；保留同一个已有就绪绑定可在撤回后继续保存其他字段。普通实例保存会在锁内再次核对身份和原绑定，避免网络读取期间的绑定替换。店铺仍执行原权限、CAS、操作回执和启动校验。刷新目录不会改绑定、覆盖运行文件或自动切换版本。
 
 制品下载使用现有 HTTP client factory 的直连分支，不增加用户代理参数，不切换 Xray/sing-box 与 Mihomo 连接栈。

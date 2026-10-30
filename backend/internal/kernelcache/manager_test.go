@@ -17,6 +17,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"testing/iotest"
+	"time"
 
 	"ant-chrome/backend/internal/browser"
 	"ant-chrome/internal/desktopauth"
@@ -206,6 +207,9 @@ func TestPreparationFailureNeverPublishes(t *testing.T) {
 func TestPrepareSingleFlightAndGenerationBoundary(t *testing.T) {
 	m, s, a, _, data := fixture(t)
 	started, release := make(chan struct{}), make(chan struct{})
+	var releaseOnce sync.Once
+	finish := func() { releaseOnce.Do(func() { close(release) }) }
+	defer finish()
 	var calls atomic.Int32
 	m.httpClient = func() (*http.Client, error) {
 		return &http.Client{Transport: transportFunc(func(r *http.Request) (*http.Response, error) {
@@ -217,18 +221,28 @@ func TestPrepareSingleFlightAndGenerationBoundary(t *testing.T) {
 	}
 	err1 := make(chan error, 1)
 	go func() { _, err := m.Prepare(context.Background(), 1, s.artifact.ReleaseID, nil); err1 <- err }()
-	<-started
+	select {
+	case <-started:
+	case err := <-err1:
+		t.Fatalf("preparation failed before transport: %v", err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("preparation did not reach transport")
+	}
 	err2 := make(chan error, 1)
 	go func() { _, err := m.Prepare(context.Background(), 1, s.artifact.ReleaseID, nil); err2 <- err }()
 	// The second artifact lookup happens before joining the immutable flight.
+	deadline := time.Now().Add(5 * time.Second)
 	for s.calls.Load() < 2 {
+		if time.Now().After(deadline) {
+			t.Fatal("second request did not reach metadata source")
+		}
 		runtime.Gosched()
 	}
 	a.revoke()
 	if _, err := m.Prepare(context.Background(), 2, s.artifact.ReleaseID, nil); !errors.Is(err, ErrBusy) {
 		t.Fatalf("new identity joined old flight: %v", err)
 	}
-	close(release)
+	finish()
 	if <-err1 == nil || <-err2 == nil || calls.Load() != 1 || len(m.ReadyCores()) != 0 {
 		t.Fatal("flight crossed identity or duplicated download")
 	}

@@ -19,6 +19,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 type kernelSourceFixture struct {
@@ -106,7 +107,13 @@ func TestPlatformKernelCatalogIsStoreIndependentAndDoesNotHoldGeneralLock(t *tes
 	}
 	result := make(chan error, 1)
 	go func() { _, err := b.BrowserKernelCatalog(7); result <- err }()
-	<-s.started
+	select {
+	case <-s.started:
+	case err := <-result:
+		t.Fatalf("catalog failed before source: %v", err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("catalog did not reach source")
+	}
 	if !a.storeGeneralMu.TryLock() {
 		close(s.release)
 		<-result
@@ -196,7 +203,13 @@ func TestKernelSaveRejectsIdentityOrBindingChangeDuringMetadataRead(t *testing.T
 				_, err := b.BrowserProfileUpdate(previous.ProfileId, BrowserProfileInput{ProfileName: "late write", CoreId: id}, 7)
 				result <- err
 			}()
-			<-s.artifactStarted
+			select {
+			case <-s.artifactStarted:
+			case err := <-result:
+				t.Fatalf("save failed before metadata read: %v", err)
+			case <-time.After(5 * time.Second):
+				t.Fatal("save did not reach metadata source")
+			}
 			if mode == "identity" {
 				auth.replace()
 			} else {

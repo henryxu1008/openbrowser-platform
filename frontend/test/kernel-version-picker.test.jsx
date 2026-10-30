@@ -53,6 +53,16 @@ it('keeps the previous binding after preparation failure and allows retry', asyn
   expect(props.onChange).toHaveBeenCalledExactlyOnceWith(release.releaseId)
 })
 
+it('can prepare a missing cache for an already selected version', async () => {
+  props.value = release.releaseId
+  await mount()
+  const retry = tree.root.findAllByType('button').find(node => node.children.join('') === '准备此版本')
+  expect(retry).toBeDefined()
+  await act(async () => { retry.props.onClick(); await Promise.resolve() })
+  expect(api.prepare).toHaveBeenCalledExactlyOnceWith(release.releaseId)
+  expect(props.onChange).toHaveBeenCalledExactlyOnceWith(release.releaseId)
+})
+
 it('ignores foreign progress and discards an older catalog response', async () => {
   const old = deferred(), current = deferred(); api.fetch.mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise)
   await mount()

@@ -10,6 +10,7 @@ import { TagInput } from '../components/TagInput'
 import { GroupSelector } from '../components/GroupSelector'
 import { ProxyPickerModal } from '../components/ProxyPickerModal'
 import { KernelVersionPicker } from '../components/KernelVersionPicker'
+import { kernelError } from '../api/kernelReleases'
 
 const fallbackLowLaunchArgs = ['--disable-sync', '--no-first-run']
 const directProxyID = '__direct__'
@@ -471,7 +472,7 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
       navigate('/browser/list')
     } catch (error: any) {
       if(managed&&(String(error).includes('unknown')||String(error).includes('结果待核对')))setSaveBlocked(true)
-      setSaveError(typeof error === 'string' ? error : error?.message || '保存失败')
+      setSaveError(String(error).includes('kernel_') ? kernelError(error) : typeof error === 'string' ? error : error?.message || '保存失败')
     } finally {
       savingRef.current=false
       setSaving(false)

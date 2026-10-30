@@ -123,6 +123,9 @@ func (m *Manager) ResolveChromeBinary(profile *Profile) (string, error) {
 		core, found = m.GetDefaultCore()
 	}
 	if !found {
+		if m.PublishedCores != nil {
+			return "", fmt.Errorf("所选内核版本尚未就绪，请在配置中选择并准备平台发行的版本")
+		}
 		return "", fmt.Errorf("未配置可用浏览器内核。请先在“内核管理”中添加内核并设置默认内核")
 	}
 

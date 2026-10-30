@@ -29,6 +29,8 @@ export async function prepareKernelRelease(releaseId: string): Promise<void> {
 
 export function kernelError(error: unknown): string {
   const code = String(error)
+  if (code.includes('platform_kernel_selection_required')) return '请选择已就绪的平台内核版本。配置已变化时，请重新载入后再保存。'
+  if (code.includes('kernel_cache_unavailable')) return '所选版本尚未就绪，请在版本选择处准备后再保存。'
   if (code.includes('configuration')) return '内核版本服务尚未配置，请联系平台管理员。'
   if (code.includes('not_found')) return '此版本已撤回或不适用于当前客户端，请刷新版本列表。'
   if (code.includes('identity_changed')) return '此版本的发行信息不一致，请联系平台管理员。'

@@ -13,6 +13,9 @@ export interface AuthStatus {
 
 let status: AuthStatus = { generation: 0, state: 'loading', configured: false };
 let epoch = 0;
+// Retain validity at the last notification: an unchanged native snapshot can
+// cross its expiry between polls and must still invalidate mounted consumers.
+let publishedSignedIn = false;
 const listeners = new Set<() => void>();
 export const authSnapshot = () => status;
 export const authEpoch = () => epoch;
@@ -22,6 +25,7 @@ const publish = () => { for (const listener of listeners) listener(); };
 export function beginAuthAction() {
   epoch += 1;
   status = { ...status, state: 'transitioning' };
+  publishedSignedIn = false;
   publish();
   return epoch;
 }
@@ -29,13 +33,21 @@ export function beginAuthAction() {
 export function acceptAuth(next: AuthStatus, expectedEpoch: number) {
   if (expectedEpoch !== epoch || next.generation < status.generation) return false;
   if (next.generation === status.generation && status.state === 'signed_in' && next.state === 'signing_in') return false;
-  status = next;
+  const nextSignedIn = isSignedIn(next);
+  const fields: (keyof AuthStatus)[] = ['generation', 'state', 'configured', 'subject', 'issuer', 'expiresAt', 'errorCode', 'apiGranted'];
+  if (nextSignedIn === publishedSignedIn && fields.every(key => next[key] === status[key])) return true;
+  status = { ...next };
+  publishedSignedIn = nextSignedIn;
   publish();
   return true;
 }
 
 export function signedIn() {
-  return status.state === 'signed_in' && !!status.expiresAt && Date.parse(status.expiresAt) > Date.now();
+  return isSignedIn(status);
+}
+
+function isSignedIn(value: AuthStatus) {
+  return value.state === 'signed_in' && !!value.expiresAt && Date.parse(value.expiresAt) > Date.now();
 }
 
 export class AuthContextChanged extends Error {

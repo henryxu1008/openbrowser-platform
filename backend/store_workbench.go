@@ -3,6 +3,7 @@ package backend
 import (
 	"ant-chrome/backend/internal/automation"
 	"ant-chrome/backend/internal/browser"
+	"ant-chrome/backend/internal/proxy"
 	"ant-chrome/internal/shuomiapi"
 	"bytes"
 	"context"
@@ -189,7 +190,9 @@ func (a *App) storeEnvironmentState(scope browser.StoreScope, dao *browser.Store
 			result.Running = p.Running
 			result.RuntimeKnown = p.Running && a.browserMgr.BrowserProcesses[binding.ProfileID] != nil
 			result.ProxySummary = "直连"
-			if p.ProxyConfig != "" || p.ProxyId != "" && p.ProxyId != "__direct__" {
+			// Managed profiles have no pool binding. Keep legacy IDs conservative
+			// without consulting a proxy catalog that carries no Store ownership.
+			if p.ProxyId != "" && p.ProxyId != "__direct__" || proxy.DetectProxyProtocol(p.ProxyConfig) != "direct" {
 				result.ProxySummary = "本机代理"
 			}
 		}

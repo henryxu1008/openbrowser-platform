@@ -19,6 +19,10 @@ function Invoke-AntTrialProcess {
     param([Diagnostics.ProcessStartInfo]$StartInfo)
     $script:StartCalls++
     $script:CapturedStartInfo = $StartInfo
+    $identity=Get-Content -LiteralPath (Join-Path $StartInfo.WorkingDirectory 'oidc-public.json') -Raw | ConvertFrom-Json
+    if ($identity.apiProjectId) {
+        Assert-True (Test-Path -LiteralPath (Join-Path $StartInfo.WorkingDirectory 'shuomi-public.json') -PathType Leaf) 'Store process reached launch without API configuration.'
+    }
     return [pscustomobject]@{ Id = 123456 }
 }
 function Assert-True {
@@ -100,14 +104,37 @@ try {
     $missingExisting = Join-Path $testRoot 'missing-existing'
     $resourcePublic=Join-Path $sourceDirectory 'resource-public.json'
     [IO.File]::WriteAllText($resourcePublic,'{"issuer":"https://identity.example.test","clientId":"public-native-fixture","apiProjectId":"existing-api-project"}')
+    $missingApiRoot=Join-Path $testRoot 'resource-missing-api'
+    Assert-Rejected { New-AntLocalTrial -ExePath $fixtureExe -ExpectedExeSha256 $fixtureHash -PublicConfigPath $resourcePublic -TrialRoot $missingApiRoot } $missingApiRoot
+    $apiFile=Join-Path $sourceDirectory 'api-public.json'
+    [IO.File]::WriteAllText($apiFile,'{"apiOrigin":"https://api.example.test:8443"}')
     $resourceRoot=Join-Path $testRoot 'resource-trial'
     $beforeResource=$script:StartCalls
-    New-AntLocalTrial -ExePath $fixtureExe -ExpectedExeSha256 $fixtureHash -PublicConfigPath $resourcePublic -TrialRoot $resourceRoot | Out-Null
+    New-AntLocalTrial -ExePath $fixtureExe -ExpectedExeSha256 $fixtureHash -PublicConfigPath $resourcePublic -ApiConfigPath $apiFile -TrialRoot $resourceRoot | Out-Null
     $copiedResource=Get-Content -LiteralPath (Join-Path $resourceRoot 'oidc-public.json') -Raw | ConvertFrom-Json
     Assert-True ($copiedResource.apiProjectId -ceq 'existing-api-project') 'Trial dropped the installed API resource configuration.'
-    Open-AntLocalTrial -ExpectedExeSha256 $fixtureHash -PublicConfigPath $resourcePublic -TrialRoot $resourceRoot | Out-Null
+    Open-AntLocalTrial -ExpectedExeSha256 $fixtureHash -PublicConfigPath $resourcePublic -ApiConfigPath $apiFile -TrialRoot $resourceRoot | Out-Null
     Assert-True ($script:StartCalls -eq $beforeResource+2) 'Resource trial did not use the original mocked launch seam.'
     Assert-Rejected {Open-AntLocalTrial -ExpectedExeSha256 $fixtureHash -PublicConfigPath $resourcePublic -TrialRoot $newRoot}
+    $installedApi=Join-Path $resourceRoot 'shuomi-public.json'
+    Assert-True ((Get-Content -LiteralPath $installedApi -Raw | ConvertFrom-Json).apiOrigin -ceq 'https://api.example.test:8443') 'API origin was not copied before launch.'
+    $apiHash=(Get-FileHash -LiteralPath $installedApi -Algorithm SHA256).Hash
+    Assert-Rejected { Open-AntLocalTrial -ExpectedExeSha256 $fixtureHash -PublicConfigPath $resourcePublic -TrialRoot $resourceRoot }
+    $otherApi=Join-Path $sourceDirectory 'other-api.json'
+    [IO.File]::WriteAllText($otherApi,'{"apiOrigin":"https://other.example.test"}')
+    Assert-Rejected { Open-AntLocalTrial -ExpectedExeSha256 $fixtureHash -PublicConfigPath $resourcePublic -ApiConfigPath $otherApi -TrialRoot $resourceRoot }
+    Assert-True ((Get-FileHash -LiteralPath $installedApi -Algorithm SHA256).Hash -eq $apiHash) 'Reopen overwrote API configuration.'
+    $invalidApi=@('{}','{"apiOrigin":"http://api.example.test"}','{"apiOrigin":"https://api.example.test/"}','{"apiOrigin":"https://user@api.example.test"}','{"apiOrigin":"https://api.example.test?"}','{"apiOrigin":"https://api.example.test#"}','{"apiOrigin":"https://api.example.test","apiOrigin":"https://other.example.test"}','{"apiOrigin":"https://api.example.test","secret":"fixture"}','{"apiOrigin":123}',(' '*4097))
+    for ($i=0;$i -lt $invalidApi.Count;$i++) {
+        $badApi=Join-Path $sourceDirectory "bad-api-$i.json"
+        [IO.File]::WriteAllText($badApi,$invalidApi[$i])
+        $badRoot=Join-Path $testRoot "bad-api-$i"
+        Assert-Rejected { New-AntLocalTrial -ExePath $fixtureExe -ExpectedExeSha256 $fixtureHash -PublicConfigPath $resourcePublic -ApiConfigPath $badApi -TrialRoot $badRoot } $badRoot
+    }
+    # Identity-only calls remain compatible, but cannot bypass an existing Store root's API check.
+    Assert-Rejected { Open-AntLocalTrial -ExpectedExeSha256 $fixtureHash -PublicConfigPath $publicFile -TrialRoot $resourceRoot }
+    Assert-Rejected { New-AntLocalTrial -ExePath $fixtureExe -ExpectedExeSha256 $fixtureHash -PublicConfigPath $resourcePublic -ApiConfigPath $apiFile -TrialRoot $resourceRoot }
+    Assert-True ((Get-FileHash -LiteralPath $installedApi -Algorithm SHA256).Hash -eq $apiHash) 'Rejected reuse changed original API configuration.'
     $script:PassedCases++
     Assert-Rejected { Open-AntLocalTrial -ExpectedExeSha256 $fixtureHash -PublicConfigPath $publicFile -TrialRoot $missingExisting } $missingExisting
     Assert-Rejected { Open-AntLocalTrial -ExpectedExeSha256 ('0' * 64) -PublicConfigPath $publicFile -TrialRoot $newRoot }

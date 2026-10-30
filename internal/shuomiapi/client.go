@@ -10,12 +10,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
+	"ant-chrome/internal/apiconfig"
 	"ant-chrome/internal/desktopauth"
 	"github.com/google/uuid"
 )
@@ -63,49 +61,17 @@ type Auth interface {
 	Status() desktopauth.Status
 	AuthorizeRequest(uint64, *http.Request) error
 }
-type Config struct {
-	APIOrigin string `json:"apiOrigin"`
-}
+type Config apiconfig.Config
 
 func LoadConfig(root string) (Config, error) {
-	file, err := os.Open(filepath.Join(root, "shuomi-public.json"))
+	cfg, err := apiconfig.Load(root)
 	if err != nil {
 		return Config{}, ErrConfiguration
 	}
-	defer file.Close()
-	data, err := io.ReadAll(io.LimitReader(file, 4097))
-	if err != nil || len(data) > 4096 {
-		return Config{}, ErrConfiguration
-	}
-	dec := json.NewDecoder(bytes.NewReader(data))
-	token, err := dec.Token()
-	if err != nil || token != json.Delim('{') {
-		return Config{}, ErrConfiguration
-	}
-	if !dec.More() {
-		return Config{}, ErrConfiguration
-	}
-	name, err := dec.Token()
-	if err != nil || name != "apiOrigin" {
-		return Config{}, ErrConfiguration
-	}
-	var value string
-	if dec.Decode(&value) != nil || dec.More() {
-		return Config{}, ErrConfiguration
-	}
-	token, err = dec.Token()
-	if err != nil || token != json.Delim('}') || dec.Decode(new(any)) != io.EOF {
-		return Config{}, ErrConfiguration
-	}
-	cfg := Config{APIOrigin: value}
-	if !cfg.valid() {
-		return Config{}, ErrConfiguration
-	}
-	return cfg, nil
+	return Config(cfg), nil
 }
 func (c Config) valid() bool {
-	u, err := url.Parse(c.APIOrigin)
-	return err == nil && u.Scheme == "https" && u.Host != "" && u.User == nil && u.Path == "" && u.RawPath == "" && u.RawQuery == "" && !u.ForceQuery && u.Fragment == "" && u.Opaque == "" && strings.TrimSpace(c.APIOrigin) == c.APIOrigin && !strings.ContainsAny(c.APIOrigin, "?#\\")
+	return apiconfig.Config(c).Valid()
 }
 
 type Client struct {

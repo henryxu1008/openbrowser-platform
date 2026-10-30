@@ -2,6 +2,7 @@ package backend
 
 import (
 	"ant-chrome/backend/internal/automation"
+	"ant-chrome/backend/internal/browser"
 	"ant-chrome/backend/internal/launchcode"
 	"ant-chrome/internal/desktopauth"
 	"path/filepath"
@@ -109,7 +110,27 @@ func (a *App) scopedHTTP(generation uint64) (launchcode.BrowserStarter, error) {
 	}
 	scoped.admission = check
 	scoped.ctx = automation.WithAdmission(a.ctx, check)
-	return scoped, nil
+	return &httpProfileWriter{App: scoped}, nil
+}
+
+// The local HTTP port uses its existing writer interface, without exposing
+// additional App/Wails methods or falling through to an unscoped manager.
+type httpProfileWriter struct {
+	*App
+	receipt *httpProfileUpdateReceipt
+}
+
+func (a *httpProfileWriter) CreateProfile(input browser.ProfileInput) (*browser.Profile, error) {
+	return a.BrowserProfileCreate(input)
+}
+func (a *httpProfileWriter) UpdateProfile(id string, input browser.ProfileInput) (*browser.Profile, error) {
+	a.receipt = nil
+	receipt := &httpProfileUpdateReceipt{}
+	profile, err := a.updateBrowserProfile(id, input, receipt)
+	if err == nil {
+		a.receipt = receipt
+	}
+	return profile, err
 }
 
 func (a *AuthBoundApp) AuthLogin(generation uint64) (desktopauth.Status, error) {

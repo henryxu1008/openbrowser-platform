@@ -509,7 +509,19 @@ func (a *App) StoreEnvironmentSave(storeID, expectedVersion, raw string, revisio
 	if err != nil {
 		return "", err
 	}
-	// Static readiness only; the existing kernel installer remains the owner.
+	previousCore := ""
+	if found {
+		a.browserMgr.Mutex.Lock()
+		if old := a.browserMgr.Profiles[b.ProfileID]; old != nil {
+			previousCore = old.CoreId
+		}
+		a.browserMgr.Mutex.Unlock()
+	}
+	// A changed selection must still be published. An unchanged prepared
+	// binding survives withdrawal; no download is triggered by saving.
+	if err = a.requireKernelSelection(p.CoreId, previousCore); err != nil {
+		return "", err
+	}
 	a.browserMgr.Mutex.Lock()
 	core, ok := a.browserMgr.GetCore(p.CoreId)
 	a.browserMgr.Mutex.Unlock()

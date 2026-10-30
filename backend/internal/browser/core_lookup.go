@@ -4,11 +4,14 @@ import (
 	"ant-chrome/backend/internal/apppath"
 	"ant-chrome/backend/internal/fsutil"
 	"ant-chrome/backend/internal/logger"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 )
+
+var ErrPublishedCoreSelection = errors.New("platform_kernel_selection_required")
 
 // ResolveCoreDirectory keeps legacy installation-relative imports readable after
 // state detachment. Writable state wins; this fallback is limited to core lookup
@@ -51,6 +54,9 @@ func (m *Manager) GetCore(coreId string) (Core, bool) {
 
 // GetDefaultCore 获取默认内核
 func (m *Manager) GetDefaultCore() (Core, bool) {
+	if m.PublishedCores != nil {
+		return Core{}, false // Published releases require an explicit binding.
+	}
 	cores := m.ListCores()
 	for _, core := range cores {
 		if core.IsDefault {
@@ -120,6 +126,9 @@ func (m *Manager) ResolveChromeBinary(profile *Profile) (string, error) {
 		core, found = m.GetDefaultCore()
 	}
 	if !found {
+		if m.PublishedCores != nil {
+			return "", fmt.Errorf("所选内核版本尚未就绪，请在配置中选择并准备平台发行的版本")
+		}
 		return "", fmt.Errorf("未配置可用浏览器内核。请先在“内核管理”中添加内核并设置默认内核")
 	}
 

@@ -1,7 +1,7 @@
-﻿import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from '../../../shared/components'
 import type { BrowserProfile, BrowserProfileCopyOptions, BrowserProfilePackageImportAction, BrowserProfilePackageImportPreview, BrowserProxy } from '../types'
-import { BrowserCoreEditorModal, BrowserListHeader, BrowserListSettingsModal } from '../components/BrowserListLayout'
+import { BrowserListHeader, BrowserListSettingsModal } from '../components/BrowserListLayout'
 import { BatchToolbar } from '../components/BrowserListWidgets'
 import { BrowserProfilesPanel } from '../components/BrowserProfilesPanel'
 import { ProxyPickerModal } from '../components/ProxyPickerModal'
@@ -138,21 +138,9 @@ export function BrowserListPage() {
     setStartUrlsText,
     savingSettings,
     cores,
-    coreModalOpen,
-    setCoreModalOpen,
-    coreForm,
-    setCoreForm,
-    coreValidation,
-    setCoreValidation,
-    savingCore,
     loadCores,
     handleOpenSettings,
     handleSaveSettings,
-    handleOpenCoreModal,
-    handleValidateCorePath,
-    handleSaveCore,
-    handleDeleteCore,
-    handleSetDefaultCore,
   } = useBrowserListSettings()
   const {
     profiles,
@@ -669,33 +657,12 @@ export function BrowserListPage() {
         launchText={launchText}
         startUrlsText={startUrlsText}
         savingSettings={savingSettings}
-        cores={cores}
         onClose={() => setSettingsModalOpen(false)}
         onSave={handleSaveSettings}
         onSettingsChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
         onFingerprintTextChange={setFingerprintText}
         onLaunchTextChange={setLaunchText}
         onStartUrlsTextChange={setStartUrlsText}
-        onAddCore={() => handleOpenCoreModal()}
-        onEditCore={handleOpenCoreModal}
-        onDeleteCore={handleDeleteCore}
-        onSetDefaultCore={handleSetDefaultCore}
-      />
-
-      <BrowserCoreEditorModal
-        open={coreModalOpen}
-        coreForm={coreForm}
-        coreValidation={coreValidation}
-        savingCore={savingCore}
-        onClose={() => setCoreModalOpen(false)}
-        onSave={handleSaveCore}
-        onValidate={handleValidateCorePath}
-        onCoreFormChange={(patch) => {
-          setCoreForm((prev) => ({ ...prev, ...patch }))
-          if (Object.prototype.hasOwnProperty.call(patch, 'corePath')) {
-            setCoreValidation(null)
-          }
-        }}
       />
 
       <BrowserListDialogs

@@ -10,10 +10,23 @@ import (
 
 // Create 创建配置
 func (m *Manager) Create(input ProfileInput) (*Profile, error) {
+	return m.CreateChecked(input, nil)
+}
+
+// CreateChecked rechecks admission after waiting for the profile lock.
+func (m *Manager) CreateChecked(input ProfileInput, check func() error) (*Profile, error) {
+	if m.PublishedCores != nil && check == nil {
+		return nil, ErrPublishedCoreSelection
+	}
 	log := logger.New("Browser")
 	m.InitData()
 	m.Mutex.Lock()
 	defer m.Mutex.Unlock()
+	if check != nil {
+		if err := check(); err != nil {
+			return nil, err
+		}
+	}
 
 	profileId := uuid.NewString()
 	profile, err := m.buildProfileLocked(input, profileId)

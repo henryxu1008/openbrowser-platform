@@ -11,6 +11,9 @@ import (
 
 // Profile 浏览器配置文件
 type Profile struct {
+	// Native-only mutation token for one-request recovery. Never persisted,
+	// exported in packages or exposed through JSON/Wails profile data.
+	WriteRevision      uint64   `json:"-"`
 	ProfileId          string   `json:"profileId"`
 	ProfileName        string   `json:"profileName"`
 	UserDataDir        string   `json:"userDataDir"`
@@ -158,6 +161,9 @@ type Manager struct {
 	CodeProvider                  CodeProvider
 	EventEmitter                  RuntimeEventEmitter
 	CoreDownloadHTTPClientFactory CoreDownloadHTTPClientFactory
+	// PublishedCores owns the prepared platform installation view. When set,
+	// legacy config/DAO entries are never adopted as issued releases.
+	PublishedCores func() []Core
 
 	// DAO 层（注入后使用 SQLite 存储，未注入时降级到 config.yaml）
 	ProfileDAO   ProfileDAO

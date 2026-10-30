@@ -1,4 +1,5 @@
 import { captureBridge } from '../../auth/bridge'
+import { kernelError } from '../browser/api/kernelReleases'
 import type { BrowserCore, BrowserProfileInput } from '../browser/types'
 
 export type Store = { id: string; name: string; platform: string; region: string; recordStatus: string; serviceStatus?: string; connectionStatus?: string }
@@ -35,7 +36,8 @@ export function storeError(error: unknown) {
   if (code.includes('store_service_configuration_required')) return '店铺服务尚未配置，请联系安装包维护者。'
   if (code.includes('PERMISSION') || code.includes('NOT_FOUND')) return '当前身份无权访问该店铺或执行此操作。'
   if (code.includes('BINDING_VERSION_CONFLICT')) return '环境已发生变化，请返回店铺核对后再操作。'
-  if (code.includes('store_kernel_required')) return '尚未安装可用内核，请先使用内核管理完成安装。'
+  if (code.includes('store_kernel_required')) return '所选内核版本尚未就绪，请在配置中选择并准备平台发行的版本。'
+  if (code.includes('kernel_')) return kernelError(error)
   if (code.includes('unknown') || code.includes('context_changed')) return `结果待核对，已停止操作。请查看原操作记录，不要重复打开。${storeOperationKey(error) ? ` 操作编号：${storeOperationKey(error)}` : ''}`
   return `店铺服务不可用，操作已停止。${code}`
 }

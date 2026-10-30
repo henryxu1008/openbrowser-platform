@@ -99,6 +99,8 @@ export const BrowserInstanceStartDirect = (...args: Args<typeof Native.BrowserIn
 export const BrowserInstanceStartWithParams = (...args: Args<typeof Native.BrowserInstanceStartWithParams>): ReturnType<typeof Native.BrowserInstanceStartWithParams> => callBusiness(Native.BrowserInstanceStartWithParams, args) as ReturnType<typeof Native.BrowserInstanceStartWithParams>;
 export const BrowserInstanceStatus = (...args: Args<typeof Native.BrowserInstanceStatus>): ReturnType<typeof Native.BrowserInstanceStatus> => callBusiness(Native.BrowserInstanceStatus, args) as ReturnType<typeof Native.BrowserInstanceStatus>;
 export const BrowserInstanceStop = (...args: Args<typeof Native.BrowserInstanceStop>): ReturnType<typeof Native.BrowserInstanceStop> => callBusiness(Native.BrowserInstanceStop, args) as ReturnType<typeof Native.BrowserInstanceStop>;
+export const BrowserKernelCatalog = (...args: Args<typeof Native.BrowserKernelCatalog>): ReturnType<typeof Native.BrowserKernelCatalog> => callBusiness(Native.BrowserKernelCatalog, args) as ReturnType<typeof Native.BrowserKernelCatalog>;
+export const BrowserKernelPrepare = (...args: Args<typeof Native.BrowserKernelPrepare>): ReturnType<typeof Native.BrowserKernelPrepare> => callBusiness(Native.BrowserKernelPrepare, args) as ReturnType<typeof Native.BrowserKernelPrepare>;
 export const BrowserProfileBatchRemoveTags = (...args: Args<typeof Native.BrowserProfileBatchRemoveTags>): ReturnType<typeof Native.BrowserProfileBatchRemoveTags> => callBusiness(Native.BrowserProfileBatchRemoveTags, args) as ReturnType<typeof Native.BrowserProfileBatchRemoveTags>;
 export const BrowserProfileBatchSetTags = (...args: Args<typeof Native.BrowserProfileBatchSetTags>): ReturnType<typeof Native.BrowserProfileBatchSetTags> => callBusiness(Native.BrowserProfileBatchSetTags, args) as ReturnType<typeof Native.BrowserProfileBatchSetTags>;
 export const BrowserProfileCopy = (...args: Args<typeof Native.BrowserProfileCopy>): ReturnType<typeof Native.BrowserProfileCopy> => callBusiness(Native.BrowserProfileCopy, args) as ReturnType<typeof Native.BrowserProfileCopy>;
@@ -306,6 +308,8 @@ const businessBindings = {
   BrowserInstanceStartWithParams,
   BrowserInstanceStatus,
   BrowserInstanceStop,
+  BrowserKernelCatalog,
+  BrowserKernelPrepare,
   BrowserProfileBatchRemoveTags,
   BrowserProfileBatchSetTags,
   BrowserProfileCopy,

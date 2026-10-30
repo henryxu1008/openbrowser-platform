@@ -7,6 +7,19 @@ import { loadBusinessBridge } from '../src/auth/loadBridge';
 
 beforeEach(() => { globalThis.window = {go:{main:{App:{}}}}; });
 afterEach(() => { delete globalThis.window; });
+it('uses the real kernel SDK with only release ID and captured generation; missing native capability fails', async () => {
+  const generation=authSnapshot().generation+1;
+  const epoch=beginAuthAction();acceptAuth({generation,state:'signed_in',configured:true,expiresAt:new Date(Date.now()+60000).toISOString()},epoch);
+  const catalog=vi.fn().mockResolvedValue('[]'),prepare=vi.fn().mockResolvedValue(undefined);
+  window.go.main.App={BrowserKernelCatalog:catalog,BrowserKernelPrepare:prepare};
+  const api=await import('../src/modules/browser/api/kernelReleases');
+  await expect(api.fetchKernelReleases()).resolves.toEqual([]);
+  await api.prepareKernelRelease('release-id');
+  expect(catalog).toHaveBeenCalledExactlyOnceWith(generation);
+  expect(prepare).toHaveBeenCalledExactlyOnceWith('release-id',generation);
+  delete window.go.main.App.BrowserKernelPrepare;
+  await expect(api.prepareKernelRelease('release-id')).rejects.toThrow();
+});
 it('matches every actual SDK arity to the Go facade policy', () => {
   expect(Object.keys(Native).sort()).toEqual(Object.keys(policy).sort());
   for (const [name, entry] of Object.entries(policy)) expect(Native[name].length, name).toBe(entry.arguments);

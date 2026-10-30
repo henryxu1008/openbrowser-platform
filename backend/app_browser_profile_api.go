@@ -49,11 +49,48 @@ func (a *App) BrowserProfileSetKeywords(profileId string, keywords []string) (*B
 }
 
 func (a *App) BrowserProfileCreate(input BrowserProfileInput) (*BrowserProfile, error) {
-	return a.browserMgr.Create(input)
+	if err := a.requireKernelSelection(input.CoreId, ""); err != nil {
+		return nil, err
+	}
+	return a.browserMgr.CreateChecked(input, a.captureAdmission())
 }
 
 func (a *App) BrowserProfileUpdate(profileId string, input BrowserProfileInput) (*BrowserProfile, error) {
-	return a.browserMgr.Update(profileId, input)
+	return a.updateBrowserProfile(profileId, input, nil)
+}
+
+func (a *App) updateBrowserProfile(profileId string, input BrowserProfileInput, receipt *httpProfileUpdateReceipt) (*BrowserProfile, error) {
+	a.browserMgr.Mutex.Lock()
+	previous := ""
+	if p := a.browserMgr.Profiles[profileId]; p != nil {
+		previous = p.CoreId
+	}
+	a.browserMgr.Mutex.Unlock()
+	if err := a.requireKernelSelection(input.CoreId, previous); err != nil {
+		return nil, err
+	}
+	check := a.captureAdmission()
+	return a.browserMgr.UpdateCheckedObserved(profileId, input, func() error {
+		if err := check(); err != nil {
+			return err
+		}
+		// The unchanged-binding withdrawal exception belongs to the observed
+		// profile, and cannot survive an intervening kernel change.
+		if a.kernels != nil {
+			if p := a.browserMgr.Profiles[profileId]; p == nil || p.CoreId != previous {
+				return errPlatformKernelOnly
+			}
+		}
+		if receipt != nil {
+			receipt.before = copyBrowserProfileSnapshot(a.browserMgr.Profiles[profileId])
+		}
+		return nil
+	}, func(profile *browser.Profile) {
+		if receipt != nil {
+			receipt.after = copyBrowserProfileSnapshot(profile)
+			receipt.object = profile
+		}
+	})
 }
 
 func (a *App) BrowserProfileDelete(profileId string) error { return a.browserMgr.Delete(profileId) }
@@ -76,17 +113,17 @@ func (a *App) BrowserProfileTrashCleanup() error { return a.browserMgr.CleanupEx
 
 // BrowserProfileCopy 复制实例配置（除指纹参数外全部复制）
 func (a *App) BrowserProfileCopy(profileId string, newName string) (*BrowserProfile, error) {
-	return a.browserMgr.Copy(profileId, newName)
+	return a.copyBrowserProfile(profileId, newName, nil)
 }
 
 // BrowserProfileCopyWithMode 按模式复制实例配置。
 func (a *App) BrowserProfileCopyWithMode(profileId string, newName string, mode string) (*BrowserProfile, error) {
-	return a.browserMgr.CopyWithMode(profileId, newName, mode)
+	return a.copyBrowserProfile(profileId, newName, &BrowserProfileCopyOptions{Mode: mode})
 }
 
 // BrowserProfileCopyWithOptions 按结构化选项复制实例配置。
 func (a *App) BrowserProfileCopyWithOptions(profileId string, newName string, options BrowserProfileCopyOptions) (*BrowserProfile, error) {
-	return a.browserMgr.CopyWithOptions(profileId, newName, options)
+	return a.copyBrowserProfile(profileId, newName, &options)
 }
 
 // migrateToSQLite 一次性迁移：若 SQLite 表为空则从旧文件导入数据，或初始化默认数据
@@ -94,16 +131,18 @@ func (a *App) BrowserProfileCopyWithOptions(profileId string, newName string, op
 func (a *App) migrateToSQLite() {
 	log := logger.New("Migration")
 
-	if cores, err := a.browserMgr.CoreDAO.List(); err == nil && len(cores) == 0 {
-		if len(a.config.Browser.Cores) > 0 {
-			for _, c := range a.config.Browser.Cores {
-				if err := a.browserMgr.CoreDAO.Upsert(c); err != nil {
-					log.Error("内核迁移失败", logger.F("core_id", c.CoreId), logger.F("error", err))
+	if a.kernels == nil {
+		if cores, err := a.browserMgr.CoreDAO.List(); err == nil && len(cores) == 0 {
+			if len(a.config.Browser.Cores) > 0 {
+				for _, c := range a.config.Browser.Cores {
+					if err := a.browserMgr.CoreDAO.Upsert(c); err != nil {
+						log.Error("内核迁移失败", logger.F("core_id", c.CoreId), logger.F("error", err))
+					}
 				}
+				log.Info("内核数据已迁移", logger.F("count", len(a.config.Browser.Cores)))
+			} else {
+				log.Info("内核表为空，将通过自动检测初始化")
 			}
-			log.Info("内核数据已迁移", logger.F("count", len(a.config.Browser.Cores)))
-		} else {
-			log.Info("内核表为空，将通过自动检测初始化")
 		}
 	}
 

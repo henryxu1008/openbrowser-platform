@@ -1,14 +1,10 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { toast } from '../../../../shared/components'
-import type { BrowserCore, BrowserCoreInput, BrowserSettings } from '../../types'
+import type { BrowserCore, BrowserSettings } from '../../types'
 import {
-  deleteBrowserCore,
   fetchBrowserCores,
   fetchBrowserSettings,
-  saveBrowserCore,
   saveBrowserSettings,
-  setDefaultBrowserCore,
-  validateBrowserCorePath,
 } from '../../api'
 
 const DEFAULT_BROWSER_SETTINGS: BrowserSettings = {
@@ -32,11 +28,6 @@ export function useBrowserListSettings() {
   const [savingSettings, setSavingSettings] = useState(false)
 
   const [cores, setCores] = useState<BrowserCore[]>([])
-  const [coreModalOpen, setCoreModalOpen] = useState(false)
-  const [coreForm, setCoreForm] = useState<BrowserCoreInput>({ coreId: '', coreName: '', corePath: '', isDefault: false })
-  const [coreValidation, setCoreValidation] = useState<{ valid: boolean; message: string } | null>(null)
-  const [savingCore, setSavingCore] = useState(false)
-
   const loadSettings = async () => {
     const data = await fetchBrowserSettings()
     setSettings(data)
@@ -72,59 +63,6 @@ export function useBrowserListSettings() {
     }
   }
 
-  const handleOpenCoreModal = (core?: BrowserCore) => {
-    setCoreForm(core ? { ...core } : { coreId: '', coreName: '', corePath: '', isDefault: false })
-    setCoreValidation(null)
-    setCoreModalOpen(true)
-  }
-
-  const handleValidateCorePath = async () => {
-    if (!coreForm.corePath.trim()) {
-      setCoreValidation({ valid: false, message: '请输入路径' })
-      return
-    }
-    const result = await validateBrowserCorePath(coreForm.corePath)
-    setCoreValidation(result)
-  }
-
-  const handleSaveCore = async () => {
-    if (!coreForm.coreName.trim()) {
-      toast.error('请输入内核名称')
-      return
-    }
-    if (!coreForm.corePath.trim()) {
-      toast.error('请输入内核路径')
-      return
-    }
-    setSavingCore(true)
-    try {
-      await saveBrowserCore(coreForm)
-      toast.success('内核已保存')
-      setCoreModalOpen(false)
-      loadCores()
-    } catch (error: any) {
-      toast.error(error?.message || '保存失败')
-    } finally {
-      setSavingCore(false)
-    }
-  }
-
-  const handleDeleteCore = async (coreId: string) => {
-    if (cores.length <= 1) {
-      toast.error('至少保留一个内核')
-      return
-    }
-    await deleteBrowserCore(coreId)
-    toast.success('内核已删除')
-    loadCores()
-  }
-
-  const handleSetDefaultCore = async (coreId: string) => {
-    await setDefaultBrowserCore(coreId)
-    toast.success('已设为默认')
-    loadCores()
-  }
-
   return {
     settingsModalOpen,
     setSettingsModalOpen,
@@ -138,20 +76,8 @@ export function useBrowserListSettings() {
     setStartUrlsText,
     savingSettings,
     cores,
-    coreModalOpen,
-    setCoreModalOpen,
-    coreForm,
-    setCoreForm,
-    coreValidation,
-    setCoreValidation,
-    savingCore,
     loadCores,
     handleOpenSettings,
     handleSaveSettings,
-    handleOpenCoreModal,
-    handleValidateCorePath,
-    handleSaveCore,
-    handleDeleteCore,
-    handleSetDefaultCore,
   }
 }

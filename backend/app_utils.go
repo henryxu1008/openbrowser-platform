@@ -58,6 +58,9 @@ func nextAvailablePort() (int, error) {
 // ============================================================================
 
 func (a *App) ensureDefaultCores() {
+	if a.kernels != nil {
+		return
+	}
 	log := logger.New("Browser")
 
 	// 扫描 chrome/ 目录，无论配置是否已有内核都执行一次，确保新增子目录被发现
@@ -106,6 +109,9 @@ func (a *App) ensureDefaultCores() {
 }
 
 func (a *App) autoDetectCores() {
+	if a.kernels != nil {
+		return
+	}
 	log := logger.New("Browser")
 	cores := a.scanAndRegisterCores()
 	// SQLite 模式下以内核表为准，避免与 config.yaml 历史条目不一致。

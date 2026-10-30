@@ -32,9 +32,13 @@ var profileCopyNameSuffixPattern = regexp.MustCompile(`[[:space:]]*(?:\([[:space
 
 // Copy 复制实例配置（除指纹参数外全部复制，指纹使用默认值生成新种子）
 func (m *Manager) Copy(profileId string, newName string) (*Profile, error) {
+	return m.CopyChecked(profileId, newName, nil)
+}
+
+func (m *Manager) CopyChecked(profileId string, newName string, check func(*Profile) error) (*Profile, error) {
 	return m.copyProfile(profileId, newName, func(*Profile) []string {
 		return append([]string{}, m.Config.Browser.DefaultFingerprintArgs...)
-	})
+	}, check)
 }
 
 // CopyWithMode 按模式复制实例配置。
@@ -46,6 +50,10 @@ func (m *Manager) CopyWithMode(profileId string, newName string, mode string) (*
 
 // CopyWithOptions 按结构化选项复制实例配置。
 func (m *Manager) CopyWithOptions(profileId string, newName string, options ProfileCopyOptions) (*Profile, error) {
+	return m.CopyWithOptionsChecked(profileId, newName, options, nil)
+}
+
+func (m *Manager) CopyWithOptionsChecked(profileId string, newName string, options ProfileCopyOptions, check func(*Profile) error) (*Profile, error) {
 	normalizedMode := normalizeCopyMode(options.Mode)
 	normalizedTargets, err := normalizeCopyAutomationTargets(options.AutomationTargets)
 	if err != nil {
@@ -58,10 +66,13 @@ func (m *Manager) CopyWithOptions(profileId string, newName string, options Prof
 		default:
 			return buildAutoFingerprintArgs(src.FingerprintArgs, m.Config.Browser.DefaultFingerprintArgs, normalizedTargets)
 		}
-	})
+	}, check)
 }
 
-func (m *Manager) copyProfile(profileId string, newName string, fingerprintResolver func(*Profile) []string) (*Profile, error) {
+func (m *Manager) copyProfile(profileId string, newName string, fingerprintResolver func(*Profile) []string, check func(*Profile) error) (*Profile, error) {
+	if m.PublishedCores != nil && check == nil {
+		return nil, ErrPublishedCoreSelection
+	}
 	log := logger.New("Browser")
 	m.InitData()
 	m.Mutex.Lock()
@@ -71,6 +82,11 @@ func (m *Manager) copyProfile(profileId string, newName string, fingerprintResol
 	if !exists {
 		log.Error("源实例不存在", logger.F("profile_id", profileId))
 		return nil, fmt.Errorf("profile not found")
+	}
+	if check != nil {
+		if err := check(src); err != nil {
+			return nil, err
+		}
 	}
 
 	now := time.Now()

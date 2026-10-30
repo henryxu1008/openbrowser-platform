@@ -1,10 +1,9 @@
 import { Link } from 'react-router-dom'
-import { Archive, CheckCircle, ChevronRight, ChevronUp, Edit2, LayoutGrid, List, Play, Plus, RefreshCw, Sliders, Star, Trash2, Upload, XCircle } from 'lucide-react'
+import { Archive, ChevronRight, ChevronUp, LayoutGrid, List, Play, RefreshCw, Sliders, Trash2, Upload } from 'lucide-react'
 
-import { Button, Card, FormItem, Input, Modal, Switch, Table, Textarea } from '../../../shared/components'
-import type { TableColumn } from '../../../shared/components/Table'
+import { Button, Card, FormItem, Input, Modal, Switch, Textarea } from '../../../shared/components'
 
-import type { BrowserCore, BrowserCoreInput, BrowserGroupWithCount, BrowserProxy, BrowserSettings } from '../types'
+import type { BrowserCore, BrowserGroupWithCount, BrowserProxy, BrowserSettings } from '../types'
 import { InstanceFilterBar } from './InstanceFilterBar'
 import type { InstanceFilters } from './InstanceFilterBar'
 
@@ -159,17 +158,12 @@ interface BrowserListSettingsModalProps {
   launchText: string
   startUrlsText: string
   savingSettings: boolean
-  cores: BrowserCore[]
   onClose: () => void
   onSave: () => void
   onSettingsChange: (patch: Partial<BrowserSettings>) => void
   onFingerprintTextChange: (next: string) => void
   onLaunchTextChange: (next: string) => void
   onStartUrlsTextChange: (next: string) => void
-  onAddCore: () => void
-  onEditCore: (core: BrowserCore) => void
-  onDeleteCore: (coreId: string) => void
-  onSetDefaultCore: (coreId: string) => void
 }
 
 export function BrowserListSettingsModal({
@@ -179,48 +173,13 @@ export function BrowserListSettingsModal({
   launchText,
   startUrlsText,
   savingSettings,
-  cores,
   onClose,
   onSave,
   onSettingsChange,
   onFingerprintTextChange,
   onLaunchTextChange,
   onStartUrlsTextChange,
-  onAddCore,
-  onEditCore,
-  onDeleteCore,
-  onSetDefaultCore,
 }: BrowserListSettingsModalProps) {
-  const coreColumns: TableColumn<BrowserCore>[] = [
-    { key: 'coreName', title: '名称' },
-    { key: 'corePath', title: '路径' },
-    {
-      key: 'isDefault',
-      title: '默认',
-      render: (value) => (value ? <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" /> : null),
-    },
-    {
-      key: 'actions',
-      title: '操作',
-      align: 'right',
-      render: (_, record) => (
-        <div className="flex justify-end gap-1">
-          {!record.isDefault && (
-            <Button size="sm" variant="ghost" onClick={() => onSetDefaultCore(record.coreId)} title="设为默认">
-              <Star className="w-4 h-4" />
-            </Button>
-          )}
-          <Button size="sm" variant="ghost" onClick={() => onEditCore(record)} title="编辑">
-            <Edit2 className="w-4 h-4" />
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => onDeleteCore(record.coreId)} title="删除">
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
-      ),
-    },
-  ]
-
   return (
     <Modal
       open={open}
@@ -235,19 +194,7 @@ export function BrowserListSettingsModal({
       }
     >
       <div className="space-y-4">
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-[var(--color-text-primary)]">内核管理</span>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={onAddCore}>
-                <Plus className="w-4 h-4" />新增内核
-              </Button>
-            </div>
-          </div>
-          <Card padding="none">
-            <Table columns={coreColumns} data={cores} rowKey="coreId" />
-          </Card>
-        </div>
+        <Link to="/browser/cores" onClick={onClose} className="text-sm underline">选择平台内核版本</Link>
 
         <FormItem label="用户数据根目录">
           <Input
@@ -330,70 +277,6 @@ export function BrowserListSettingsModal({
             />
           </FormItem>
         </div>
-      </div>
-    </Modal>
-  )
-}
-
-interface BrowserCoreEditorModalProps {
-  open: boolean
-  coreForm: BrowserCoreInput
-  coreValidation: { valid: boolean; message: string } | null
-  savingCore: boolean
-  onClose: () => void
-  onSave: () => void
-  onValidate: () => void
-  onCoreFormChange: (patch: Partial<BrowserCoreInput>) => void
-}
-
-export function BrowserCoreEditorModal({
-  open,
-  coreForm,
-  coreValidation,
-  savingCore,
-  onClose,
-  onSave,
-  onValidate,
-  onCoreFormChange,
-}: BrowserCoreEditorModalProps) {
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={coreForm.coreId ? '编辑内核' : '新增内核'}
-      width="500px"
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>取消</Button>
-          <Button onClick={onSave} loading={savingCore}>保存</Button>
-        </>
-      }
-    >
-      <div className="space-y-4">
-        <FormItem label="内核名称" required>
-          <Input
-            value={coreForm.coreName}
-            onChange={(event) => onCoreFormChange({ coreName: event.target.value })}
-            placeholder="Chrome 142"
-          />
-        </FormItem>
-        <FormItem label="内核路径" required>
-          <div className="flex gap-2">
-            <Input
-              value={coreForm.corePath}
-              onChange={(event) => onCoreFormChange({ corePath: event.target.value })}
-              placeholder="chrome 或 D:/browsers/chrome-120"
-              className="flex-1"
-            />
-            <Button variant="secondary" onClick={onValidate}>验证</Button>
-          </div>
-          {coreValidation && (
-            <div className={`flex items-center gap-1 mt-1 text-sm ${coreValidation.valid ? 'text-green-600' : 'text-red-600'}`}>
-              {coreValidation.valid ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-              {coreValidation.message}
-            </div>
-          )}
-        </FormItem>
       </div>
     </Modal>
   )

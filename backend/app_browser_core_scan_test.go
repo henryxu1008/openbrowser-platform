@@ -45,7 +45,7 @@ func (s *browserCoreDAOStub) SetDefault(coreId string) error {
 	return nil
 }
 
-func TestBrowserCoreScanRegistersDetectedCoreInDAO(t *testing.T) {
+func TestBrowserCoreScanDoesNotAdoptLocalDirectoryInPlatformMode(t *testing.T) {
 	root := t.TempDir()
 	coreDir := filepath.Join(root, "chrome", "chromium-148")
 	exePath := filepath.Join(coreDir, filepath.FromSlash(browser.CoreExecutableCandidates()[0]))
@@ -66,19 +66,7 @@ func TestBrowserCoreScanRegistersDetectedCoreInDAO(t *testing.T) {
 	app.browserMgr.CoreDAO = dao
 
 	cores := app.BrowserCoreScan()
-	if len(dao.list) != 1 {
-		t.Fatalf("扫描后应写入 DAO 1 个内核，got=%d", len(dao.list))
-	}
-	if dao.list[0].CoreId != "core-chromium-148" {
-		t.Fatalf("内核 ID 不符合预期: got=%q", dao.list[0].CoreId)
-	}
-	if dao.list[0].CorePath != filepath.Join("chrome", "chromium-148") {
-		t.Fatalf("内核路径不符合预期: got=%q", dao.list[0].CorePath)
-	}
-	if !dao.list[0].IsDefault {
-		t.Fatal("首个扫描到的内核应设为默认")
-	}
-	if len(cores) != 1 || cores[0].CoreId != dao.list[0].CoreId {
-		t.Fatalf("扫描返回列表未包含新内核: %+v", cores)
+	if len(dao.list) != 0 || len(cores) != 0 {
+		t.Fatalf("platform mode adopted a local directory: DAO=%v result=%v", dao.list, cores)
 	}
 }

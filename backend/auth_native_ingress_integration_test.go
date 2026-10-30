@@ -42,6 +42,9 @@ func newNativeIngressFixture(t *testing.T) *nativeIngressFixture {
 	t.Setenv("ABFREE_OIDC_ISSUER", "")
 	t.Setenv("ABFREE_OIDC_CLIENT_ID", "")
 	a, b, identity := authFixture(t)
+	// This fixture tests identity ingress over profile-only operations, without
+	// a platform catalog. Published-kernel selection is covered separately.
+	a.kernels = nil
 	a.config = config.DefaultConfig()
 	a.config.Browser.UserDataRoot = filepath.Join(a.appRoot, "profiles")
 	a.db = newProfilePackageDatabase(t, a.appRoot)

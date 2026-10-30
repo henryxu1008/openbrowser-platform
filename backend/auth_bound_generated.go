@@ -1173,6 +1173,26 @@ func (a *AuthBoundApp) BrowserInstanceStop(profileId string, generation uint64) 
 	return
 }
 
+func (a *AuthBoundApp) BrowserKernelCatalog(generation uint64) (r0 string, r1 error) {
+	core, authErr := a.scopedKernel(generation)
+	if authErr != nil {
+		r1 = authErr
+		return
+	}
+	r0, r1 = core.BrowserKernelCatalog()
+	return
+}
+
+func (a *AuthBoundApp) BrowserKernelPrepare(releaseID string, generation uint64) (r0 error) {
+	core, authErr := a.scopedKernel(generation)
+	if authErr != nil {
+		r0 = authErr
+		return
+	}
+	r0 = core.BrowserKernelPrepare(releaseID)
+	return
+}
+
 func (a *AuthBoundApp) BrowserProfileBatchRemoveTags(profileIds []string, tags []string, generation uint64) (r0 error) {
 	a.core.storeGeneralMu.RLock()
 	defer a.core.storeGeneralMu.RUnlock()

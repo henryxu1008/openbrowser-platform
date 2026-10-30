@@ -430,9 +430,14 @@ func (a *App) restoreProfilePackageDatabase(snapshot ProfilePackageDatabase, pre
 	if err != nil {
 		return err
 	}
-	coreMappings, err := a.restoreProfilePackageCores(tx, snapshot.Cores, warnings)
-	if err != nil {
-		return err
+	coreMappings := map[string]string{}
+	if a.kernels == nil {
+		coreMappings, err = a.restoreProfilePackageCores(tx, snapshot.Cores, warnings)
+		if err != nil {
+			return err
+		}
+	} else if len(snapshot.Cores) > 0 {
+		appendProfilePackageWarning(warnings, "包内本机内核配置未恢复，使用所选平台发行版本")
 	}
 	proxyMappings, proxyValues, err := a.restoreProfilePackageProxies(tx, snapshot.Proxies, warnings)
 	if err != nil {
@@ -453,7 +458,7 @@ func (a *App) restoreProfilePackageDatabase(snapshot ProfilePackageDatabase, pre
 				profile.GroupId = ""
 			}
 		}
-		if originalCoreID := strings.TrimSpace(profile.CoreId); originalCoreID != "" {
+		if originalCoreID := strings.TrimSpace(profile.CoreId); a.kernels == nil && originalCoreID != "" {
 			if mapped := coreMappings[backupImportIDKey(originalCoreID)]; mapped != "" {
 				profile.CoreId = mapped
 			} else {
@@ -548,6 +553,9 @@ func (a *App) restoreProfilePackageDatabase(snapshot ProfilePackageDatabase, pre
 		}
 	}
 
+	if err := a.checkProfilePackageCommitIdentity(); err != nil {
+		return err
+	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("提交实例数据库恢复事务失败: %w", err)
 	}
@@ -581,10 +589,23 @@ func (a *App) restoreLegacyProfilePackageDatabase(prepared []preparedProfilePack
 		}
 	}
 
+	if err := a.checkProfilePackageCommitIdentity(); err != nil {
+		return err
+	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("提交实例配置恢复事务失败: %w", err)
 	}
 	committed = true
+	return nil
+}
+
+// The facade holds the original Store/general admission for the whole import.
+// Inside the single-connection SQLite transaction, recheck only its immutable
+// identity; calling the Store-data SQL guard here would wait on this same tx.
+func (a *App) checkProfilePackageCommitIdentity() error {
+	if a.admission != nil && a.identity != nil {
+		return a.identity.Check(a.authGeneration)
+	}
 	return nil
 }
 
@@ -778,6 +799,9 @@ type profilePackageTargetCore struct {
 }
 
 func (a *App) restoreProfilePackageCores(tx *sql.Tx, source []ProfilePackageDatabaseCore, warnings *[]string) (map[string]string, error) {
+	if a.kernels != nil {
+		return nil, errPlatformKernelOnly
+	}
 	targetByID := make(map[string]profilePackageTargetCore)
 	targetByPath := make(map[string]string)
 	usedIDs := make(map[string]struct{})

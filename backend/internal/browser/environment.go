@@ -34,6 +34,9 @@ func (m *Manager) ResolveUserDataDir(profile *Profile) string {
 
 // MigrateConfig 迁移旧配置到新格式
 func (m *Manager) MigrateConfig() bool {
+	if m.PublishedCores != nil {
+		return false
+	}
 	log := logger.New("Browser")
 
 	// 如果存在 environments 但没有 cores，执行迁移

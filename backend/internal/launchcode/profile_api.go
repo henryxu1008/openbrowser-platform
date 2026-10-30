@@ -23,6 +23,10 @@ type profileUpdater interface {
 	UpdateProfile(profileID string, input browser.ProfileInput) (*browser.Profile, error)
 }
 
+type profileUpdateRestorer interface {
+	RestoreProfileUpdate(profileID string) error
+}
+
 type profileDeleter interface {
 	DeleteProfile(profileID string) error
 }

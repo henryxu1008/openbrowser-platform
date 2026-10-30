@@ -56,6 +56,10 @@ func (a *App) BrowserProfileCreate(input BrowserProfileInput) (*BrowserProfile, 
 }
 
 func (a *App) BrowserProfileUpdate(profileId string, input BrowserProfileInput) (*BrowserProfile, error) {
+	return a.updateBrowserProfile(profileId, input, nil)
+}
+
+func (a *App) updateBrowserProfile(profileId string, input BrowserProfileInput, receipt *httpProfileUpdateReceipt) (*BrowserProfile, error) {
 	a.browserMgr.Mutex.Lock()
 	previous := ""
 	if p := a.browserMgr.Profiles[profileId]; p != nil {
@@ -66,7 +70,7 @@ func (a *App) BrowserProfileUpdate(profileId string, input BrowserProfileInput) 
 		return nil, err
 	}
 	check := a.captureAdmission()
-	return a.browserMgr.UpdateChecked(profileId, input, func() error {
+	return a.browserMgr.UpdateCheckedObserved(profileId, input, func() error {
 		if err := check(); err != nil {
 			return err
 		}
@@ -77,7 +81,15 @@ func (a *App) BrowserProfileUpdate(profileId string, input BrowserProfileInput) 
 				return errPlatformKernelOnly
 			}
 		}
+		if receipt != nil {
+			receipt.before = copyBrowserProfileSnapshot(a.browserMgr.Profiles[profileId])
+		}
 		return nil
+	}, func(profile *browser.Profile) {
+		if receipt != nil {
+			receipt.after = copyBrowserProfileSnapshot(profile)
+			receipt.object = profile
+		}
 	})
 }
 

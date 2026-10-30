@@ -11,6 +11,9 @@ import (
 
 // Profile 浏览器配置文件
 type Profile struct {
+	// Native-only mutation token for one-request recovery. Never persisted,
+	// exported in packages or exposed through JSON/Wails profile data.
+	WriteRevision      uint64   `json:"-"`
 	ProfileId          string   `json:"profileId"`
 	ProfileName        string   `json:"profileName"`
 	UserDataDir        string   `json:"userDataDir"`

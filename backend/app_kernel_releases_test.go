@@ -39,7 +39,7 @@ func (s *kernelSourceFixture) Catalog(context.Context, uint64) ([]kernelapi.Rele
 	}
 	return []kernelapi.Release{{ReleaseID: "10000000-0000-0000-0000-000000000001", Version: "130.0.0.1", OS: runtime.GOOS, Arch: runtime.GOARCH, MinClientVersion: "1.0.0"}}, nil
 }
-func (s *kernelSourceFixture) Artifact(context.Context, uint64, string) (kernelapi.Artifact, error) {
+func (s *kernelSourceFixture) Artifact(_ context.Context, _ uint64, id string) (kernelapi.Artifact, error) {
 	if s.artifactStarted != nil {
 		s.artifactGateOnce.Do(func() { close(s.artifactStarted); <-s.artifactRelease })
 	}
@@ -47,6 +47,9 @@ func (s *kernelSourceFixture) Artifact(context.Context, uint64, string) (kernela
 		return kernelapi.Artifact{}, s.err
 	}
 	if s.artifact.ReleaseID == "" {
+		return kernelapi.Artifact{}, kernelapi.ErrNotFound
+	}
+	if s.artifact.ReleaseID != id {
 		return kernelapi.Artifact{}, kernelapi.ErrNotFound
 	}
 	return s.artifact, nil

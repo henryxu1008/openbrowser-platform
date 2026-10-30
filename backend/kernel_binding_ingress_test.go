@@ -138,7 +138,10 @@ func TestKernelCopyBindsSourceAndIdentityAcrossMetadataRead(t *testing.T) {
 func kernelHTTPFixture(t *testing.T) (*nativeIngressFixture, *kernelSourceFixture, string) {
 	t.Helper()
 	a, b, identity, source, id := preparedKernelAppFixture(t)
-	s := launchcode.NewLaunchServer(nil, a, a.browserMgr, 0)
+	service := launchcode.NewLaunchCodeService(launchcode.NewSQLiteLaunchCodeDAO(a.db.GetConn()))
+	a.launchCodeSvc = service
+	a.browserMgr.CodeProvider = service
+	s := launchcode.NewLaunchServer(service, a, a.browserMgr, 0)
 	s.SetIdentityAuthority(identity, a.scopedHTTP)
 	s.SetAPIAuthConfig(launchcode.APIAuthConfig{Enabled: true, APIKey: t.Name()})
 	a.launchServer = s

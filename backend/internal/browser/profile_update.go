@@ -14,6 +14,12 @@ func (m *Manager) Update(profileId string, input ProfileInput) (*Profile, error)
 
 // UpdateChecked rechecks the caller's selection ticket under the profile lock.
 func (m *Manager) UpdateChecked(profileId string, input ProfileInput, check func() error) (*Profile, error) {
+	return m.UpdateCheckedObserved(profileId, input, check, nil)
+}
+
+// The optional observer captures a request's postimage under this same lock.
+// It must only record local data, never perform network calls or reacquire Mutex.
+func (m *Manager) UpdateCheckedObserved(profileId string, input ProfileInput, check func() error, observe func(*Profile)) (*Profile, error) {
 	if m.PublishedCores != nil && check == nil {
 		return nil, ErrPublishedCoreSelection
 	}
@@ -38,6 +44,7 @@ func (m *Manager) UpdateChecked(profileId string, input ProfileInput, check func
 		return nil, err
 	}
 
+	profile.WriteRevision++
 	profile.ProfileName = input.ProfileName
 	profile.UserDataDir = input.UserDataDir
 	profile.CoreId = normalizeProfileCoreID(input.CoreId)
@@ -69,6 +76,9 @@ func (m *Manager) UpdateChecked(profileId string, input ProfileInput, check func
 	if err := m.SaveProfiles(); err != nil {
 		return nil, err
 	}
+	if observe != nil {
+		observe(profile)
+	}
 	return profile, nil
 }
 
@@ -83,6 +93,7 @@ func (m *Manager) SetKeywords(profileId string, keywords []string) (*Profile, er
 	if !exists {
 		return nil, fmt.Errorf("profile not found")
 	}
+	profile.WriteRevision++
 	profile.Keywords = append([]string{}, keywords...)
 	profile.UpdatedAt = time.Now().Format(time.RFC3339)
 

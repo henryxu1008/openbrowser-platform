@@ -117,6 +117,12 @@ func (s *LaunchServer) rollbackProfileUpdate(profileID string, previous *browser
 	if previous == nil {
 		return nil
 	}
+	if err := s.checkAdmission(); err != nil {
+		return err
+	}
+	if restorer, ok := s.starter.(profileUpdateRestorer); ok {
+		return restorer.RestoreProfileUpdate(profileID)
+	}
 	_, err := s.updateProfileInternal(profileID, profileToInput(previous))
 	return err
 }

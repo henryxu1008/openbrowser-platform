@@ -337,8 +337,13 @@ func (m *Manager) prepare(ctx context.Context, generation uint64, a kernelapi.Ar
 		return browser.Core{}, publicError(err)
 	}
 	defer m.cleanStage(stage)
+	lastPhase, lastPercent := "", -1
 	emit := func(phase string, percent int) {
+		if phase == lastPhase && percent == lastPercent {
+			return
+		}
 		if progress != nil && ctx.Err() == nil && m.authority.Check(generation) == nil {
+			lastPhase, lastPercent = phase, percent
 			progress(phase, percent)
 		}
 	}

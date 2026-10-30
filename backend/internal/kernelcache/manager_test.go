@@ -16,6 +16,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"testing/iotest"
 
 	"ant-chrome/backend/internal/browser"
 	"ant-chrome/internal/desktopauth"
@@ -275,5 +276,26 @@ func TestDownloadRedirectPolicy(t *testing.T) {
 				t.Fatal("unsafe redirect accepted")
 			}
 		})
+	}
+}
+
+func TestPreparationProgressIsBoundedForFragmentedTransport(t *testing.T) {
+	m, s, _, _, data := fixture(t)
+	m.httpClient = func() (*http.Client, error) {
+		return &http.Client{Transport: transportFunc(func(r *http.Request) (*http.Response, error) {
+			return &http.Response{StatusCode: 200, Body: io.NopCloser(iotest.OneByteReader(bytes.NewReader(data))), ContentLength: int64(len(data)), Header: make(http.Header), Request: r}, nil
+		})}, nil
+	}
+	counts := map[string]int{}
+	if _, err := m.Prepare(context.Background(), 1, s.artifact.ReleaseID, func(phase string, percent int) {
+		counts[phase]++
+		if percent < 0 || percent > 100 {
+			t.Fatal("invalid progress")
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if counts["downloading"] > 101 || counts["ready"] != 1 {
+		t.Fatalf("fragmented transport flooded progress: %v", counts)
 	}
 }

@@ -35,3 +35,14 @@ it('halts status polling on an unknown result and retains app-only exit',async()
  native.AuthStatus.mockRejectedValue(new Error('synthetic transport failure'));await mount();
  await act(async()=>{vi.advanceTimersByTime(5000);await Promise.resolve();});expect(native.AuthStatus).toHaveBeenCalledTimes(1);expect(mounted).not.toHaveBeenCalled();expect(button('仅退出应用')).toBeDefined();
 });
+it.each([false,true])('shows the configuration failure once when configured=%s without admitting business',async configured=>{
+ native.AuthStatus.mockResolvedValue({generation:0,state:'unconfigured',configured,errorCode:'identity_configuration_required'});await mount();
+ const notices=tree.root.findAllByProps({role:'status'}).filter(node=>node.children.join('')==='安装包的登录配置不可用，请联系应用提供方。');
+ expect(notices).toHaveLength(1);expect(mounted).not.toHaveBeenCalled();expect(native.AuthLogin).not.toHaveBeenCalled();
+ if(!configured)expect(button('通过浏览器登录').props.disabled).toBe(true);
+ expect(button('仅退出应用')).toBeDefined();
+});
+it('preserves a distinct native error alongside missing configuration guidance',async()=>{
+ native.AuthStatus.mockResolvedValue({generation:0,state:'unconfigured',configured:false,errorCode:'identity_discovery_request_failed'});await mount();
+ const output=JSON.stringify(tree.toJSON());expect(output).toContain('安装包的登录配置不可用');expect(output).toContain('无法读取登录服务配置');expect(mounted).not.toHaveBeenCalled();
+});

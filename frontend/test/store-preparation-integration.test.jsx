@@ -1,7 +1,7 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import {act,create} from 'react-test-renderer'
 import {MemoryRouter,Route,Routes,useLocation,useNavigate} from 'react-router-dom'
-import {StoreWorkspace,StoreDetailPage,StoreEnvironmentEditPage} from '../src/modules/stores/StorePages'
+import {StoreWorkspace,StoreListPage,StoreDetailPage,StoreEnvironmentEditPage} from '../src/modules/stores/StorePages'
 import {acceptAuth,authSnapshot,beginAuthAction} from '../src/auth/session'
 // Flatten only the renderer portal boundary. All production components,
 // controls, adapters, auth capture and generated native bridge stay real.
@@ -16,7 +16,7 @@ const text=node=>typeof node==='string'?node:node?.children?.map(text).join('')|
 const button=label=>tree.root.findAllByType('button').find(node=>text(node)===label)
 const field=label=>tree.root.findAll(node=>typeof node.type==='string'&&node.props['aria-label']===label)[0]
 function Location(){location=useLocation();navigate=useNavigate();return null}
-async function mount(){await act(async()=>{tree=create(<MemoryRouter initialEntries={['/stores/shop-a/environment/edit?return=q%3Dkept']}><Location/><Routes><Route path="/stores" element={<StoreWorkspace/>}><Route path=":storeId" element={<StoreDetailPage/>}/><Route path=":storeId/environment/edit" element={<StoreEnvironmentEditPage/>}/></Route><Route path="/elsewhere" element={<p>elsewhere</p>}/></Routes></MemoryRouter>)})}
+async function mount(path='/stores/shop-a/environment/edit?return=q%3Dkept'){await act(async()=>{tree=create(<MemoryRouter initialEntries={[path]}><Location/><Routes><Route path="/stores" element={<StoreWorkspace/>}><Route index element={<StoreListPage/>}/><Route path=":storeId" element={<StoreDetailPage/>}/><Route path=":storeId/environment/edit" element={<StoreEnvironmentEditPage/>}/></Route><Route path="/elsewhere" element={<p>elsewhere</p>}/></Routes></MemoryRouter>)})}
 beforeEach(()=>{
  vi.useFakeTimers();const json=value=>Promise.resolve(JSON.stringify(value))
  native={StoreWorkbenchContext:vi.fn(()=>json(context)),StoreEnvironmentOptions:vi.fn(()=>json({input,cores:[],binding:state.binding})),BrowserKernelCatalog:vi.fn(()=>json([release])),BrowserKernelPrepare:vi.fn().mockResolvedValue(undefined),StoreEnvironmentSave:vi.fn(()=>json(state)),StoreWorkbenchGet:vi.fn(id=>json({id,name:'Shop',platform:'amazon',region:'US',recordStatus:'active'})),StoreEnvironmentGet:vi.fn(()=>json(state)),StoreAuditList:vi.fn(()=>json({items:[],nextCursor:null,coverage:[],canFilterActor:false})),StoreEnvironmentOpen:vi.fn(),StoreEnvironmentClose:vi.fn()}
@@ -68,4 +68,45 @@ it.each([['BINDING_VERSION_CONFLICT',false],['store_result_unknown operationId=1
  expect(field('本地代理地址').props.value).toBe(input.proxyConfig);expect(field('内核版本').props.value).toBe(release.releaseId)
  expect(button('保存配置').props.disabled).toBe(blocked);expect(text(tree.root)).toContain(blocked?'结果待核对':'返回店铺核对')
  expect(native.StoreEnvironmentOpen).not.toHaveBeenCalled()
+})
+it('reuses only the current Store network and requires an explicit direct selection',async()=>{
+ await mount();expect(field('网络使用方式').props.value).toBe('current');expect(field('本地代理地址').props.value).toBe(input.proxyConfig)
+ act(()=>field('网络使用方式').props.onChange({target:{value:'direct'}}));expect(field('本地代理地址').props.value).toBe('')
+ act(()=>field('网络使用方式').props.onChange({target:{value:'current'}}));expect(field('本地代理地址').props.value).toBe(input.proxyConfig)
+ await act(async()=>choose());await act(async()=>button('保存配置').props.onClick())
+ expect(JSON.parse(native.StoreEnvironmentSave.mock.calls[0][2]).proxyConfig).toBe(input.proxyConfig)
+ expect(native.StoreEnvironmentOpen).not.toHaveBeenCalled();expect(text(tree.root)).not.toContain('网络正常')
+})
+it('ignores captured network selections during save and after leaving the editor',async()=>{
+ const pending=deferred();native.StoreEnvironmentSave.mockReturnValue(pending.promise);await mount();await act(async()=>choose())
+ const select=field('网络使用方式').props.onChange
+ await act(async()=>{button('保存配置').props.onClick();select({target:{value:'direct'}})})
+ expect(field('本地代理地址').props.value).toBe(input.proxyConfig);expect(field('网络使用方式').props.disabled).toBe(true)
+ await act(async()=>navigate('/stores/shop-b'));act(()=>select({target:{value:'direct'}}));await act(async()=>pending.resolve(JSON.stringify(state)))
+ expect(location.pathname).toBe('/stores/shop-b');expect(native.StoreEnvironmentSave).toHaveBeenCalledTimes(1)
+})
+
+it('renders only authorized catalog facts and retries a failed list read explicitly',async()=>{
+ native.StoreWorkbenchList=vi.fn().mockRejectedValueOnce(new Error('unavailable')).mockResolvedValue(JSON.stringify({items:[{id:'shop-a',name:'Shop A',platform:'temu',region:'US',recordStatus:'active'}],pagination:{page:1,pageSize:20,total:1}}))
+ await mount('/stores?q=kept&platform=temu');expect(native.StoreWorkbenchList).toHaveBeenCalledExactlyOnceWith('kept','temu',1,7,generation)
+ expect(tree.root.findAllByType('td')).toHaveLength(0);await act(async()=>button('重新读取店铺').props.onClick())
+ expect(native.StoreWorkbenchList).toHaveBeenCalledTimes(2);expect(text(tree.root)).toContain('1 家可访问店铺');expect(text(tree.root)).toContain('已启用');expect(text(tree.root)).not.toContain('网络正常')
+ expect(native.StoreEnvironmentGet).not.toHaveBeenCalled();expect(native.StoreEnvironmentOpen).not.toHaveBeenCalled()
+ const link=tree.root.findAllByType('a').find(n=>text(n)==='进入工作台');expect(link.props.href).toContain('return=q%3Dkept%26platform%3Dtemu')
+})
+it('keeps query controls aligned with history and ignores an older catalog response',async()=>{
+ const old=deferred();native.StoreWorkbenchList=vi.fn().mockReturnValueOnce(old.promise).mockResolvedValue(JSON.stringify({items:[],pagination:{page:1,pageSize:20,total:0}}))
+ await mount('/stores?q=old&platform=temu');await act(async()=>navigate('/stores?q=new&platform=shein'))
+ expect(field('搜索店铺').props.value).toBe('new');expect(field('平台').props.value).toBe('shein')
+ await act(async()=>old.resolve(JSON.stringify({items:[{id:'old',name:'STALE STORE'}],pagination:{page:1,pageSize:20,total:999}})))
+ expect(text(tree.root)).not.toContain('STALE STORE');expect(text(tree.root)).toContain('0 家可访问店铺')
+ await act(async()=>navigate(-1));expect(field('搜索店铺').props.value).toBe('old');expect(field('平台').props.value).toBe('temu')
+})
+it('saves an explicit direct network without changing binding or automatically opening',async()=>{
+ await mount();act(()=>field('网络使用方式').props.onChange({target:{value:'direct'}}));await act(async()=>choose());await act(async()=>button('保存配置').props.onClick())
+ const [id,version,payload,revision,epoch]=native.StoreEnvironmentSave.mock.calls[0];expect([id,version,revision,epoch]).toEqual(['shop-a','4',7,generation]);expect(JSON.parse(payload)).toMatchObject({proxyId:'',proxyConfig:''});expect(native.StoreEnvironmentOpen).not.toHaveBeenCalled()
+})
+it('does not silently turn an empty custom network into a direct connection',async()=>{
+ await mount();await act(async()=>choose());act(()=>field('本地代理地址').props.onChange({target:{value:'   '}}));await act(async()=>button('保存配置').props.onClick())
+ expect(native.StoreEnvironmentSave).not.toHaveBeenCalled();expect(text(tree.root)).toContain('明确使用直连');expect(location.pathname).toContain('/environment/edit')
 })

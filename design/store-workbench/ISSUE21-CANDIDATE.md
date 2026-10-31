@@ -27,3 +27,11 @@ The first slice is **not complete product acceptance**: this is a preparation UX
 Tests exercise actual editor/detail React components and a MemoryRouter; native adapters, kernel picker transport and view-only subcomponents are mocked. Initial seven cases: six RED, one existing UNKNOWN case GREEN. Added lifecycle guidance and unmounted save each separately reproduced RED before changes. All 97 frontend tests and the clean TypeScript/Vite build passed against this candidate. Test logs and build artifacts are not committed. The cancel-target regression was added after implementation, not claimed as a prior RED.
 
 Independent read-only review found the unmounted-save gap; cleanup now invalidates the existing readiness ref and a regression covers it. Native Windows, Go backend changes/tests, real CDN, GUI screenshots, account operations, browser execution and cloud-to-desktop deployment: NOT_RUN. No backend source changed.
+
+## Selected prototype integration slice (2026-10-31)
+
+The Store list/detail adopts the selected light-blue list hierarchy without replacing production navigation or importing demo state. Catalog totals/status are server facts, not invented environment readiness. List errors have an explicit read retry; query controls follow history navigation and discard older reads. Existing prepare/save/open/close, enterprise revision, binding CAS and unknown-result recovery remain unchanged.
+
+Network choice is bounded to the existing Store `direct_or_local_only` contract: reuse this Store's saved local configuration, enter a self-owned proxy address, or explicitly select direct. No global proxy pool, purchased inventory, automatic connectivity assertion or server extension is added. Clearing a custom address blocks save instead of silently switching to direct. No save or selection opens a browser.
+
+See root `design-qa.md`: reference image/source inspected, but browser-rendered visual QA is **blocked / NOT_RUN**. This candidate is not a completed visual delivery. Marketplace, procurement approvals, network accounting and task budgets remain outside this PR.

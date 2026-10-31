@@ -7,6 +7,7 @@ Open the user's explicitly selected existing trial without copying or resetting 
 param(
     [string]$ExpectedExeSha256,
     [string]$PublicConfigPath,
+    [string]$ApiConfigPath,
     [string]$TrialRoot
 )
 $openArguments = @{} + $PSBoundParameters

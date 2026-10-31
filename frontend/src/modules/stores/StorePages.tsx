@@ -1,3 +1,4 @@
+import './store-workbench.css'
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button, Card, ConfirmModal, Input, Modal, Select, Table } from '../../shared/components'
@@ -47,8 +48,8 @@ export function StoreWorkspace() {
     try {const value=await storeAPI().select(id,previous.revision);if(epoch===requestEpoch.current)setScope(value)}catch(e){if(epoch===requestEpoch.current)setError(storeError(e))}finally{if(epoch===requestEpoch.current){requestPending.current=false;setBusy(false)}}
   }
   const scopeEpoch=requestEpoch.current
-  return <div className="space-y-4">
-    <Card padding="none"><div className="p-4 flex items-center justify-between gap-4"><Link to="/stores" className="font-semibold">店铺工作台</Link>
+  return <div className="store-workbench space-y-4">
+    <Card padding="none"><div className="store-context p-4 flex items-center justify-between gap-4"><Link to="/stores" className="font-semibold">店铺工作台</Link>
       <Select aria-label="当前企业" disabled={busy||!scope} value={scope?.context.effectiveOrganizationId||''} onChange={e=>{if(e.target.value===scope?.context.effectiveOrganizationId)return;if(dirty)setPendingOrg(e.target.value);else void select(e.target.value)}} options={[{value:'',label:busy?'加载中…':'请选择企业'},...(scope?.context.organizations||[]).map(org=>({value:org.id,label:org.name}))]} />
     </div></Card>
     <ErrorNotice message={error}/>
@@ -63,22 +64,28 @@ export function StoreListPage() {
   const scope=useScope(),[params,setParams]=useSearchParams()
   const q=params.get('q')||'',platform=params.get('platform')||'',page=Math.max(1,Number(params.get('page'))||1)
   const [draft,setDraft]=useState(q),[platformDraft,setPlatformDraft]=useState(platform)
+  const [retry,setRetry]=useState(0)
+  useEffect(()=>{setDraft(q);setPlatformDraft(platform)},[q,platform])
   const [catalog,setCatalog]=useState<Catalog|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(true)
-  useEffect(()=>{let current=true;setLoading(true);setCatalog(null);setError('');void storeAPI().list(q,platform,page,scope.revision).then(value=>{if(current)setCatalog(value)}).catch(e=>{if(current)setError(storeError(e))}).finally(()=>{if(current)setLoading(false)});return()=>{current=false}},[q,platform,page,scope.revision])
-  return <Card title="我的店铺">
-    <form className="flex gap-3 mb-4" onSubmit={e=>{e.preventDefault();setParams({q:draft,platform:platformDraft,page:'1'})}}>
+  useEffect(()=>{let current=true;setLoading(true);setCatalog(null);setError('');void storeAPI().list(q,platform,page,scope.revision).then(value=>{if(current)setCatalog(value)}).catch(e=>{if(current)setError(storeError(e))}).finally(()=>{if(current)setLoading(false)});return()=>{current=false}},[q,platform,page,scope.revision,retry])
+  return <section className="store-list">
+    <header className="store-heading"><div><h1>店铺工作台</h1><p>选择已授权店铺，继续准备环境或开始工作。</p></div><span className="store-count">{catalog ? `${catalog.pagination.total} 家可访问店铺` : '读取授权店铺'}</span></header>
+    <Card title="我的店铺" className="store-list-card">
+    <form className="store-filter flex gap-3 mb-4" onSubmit={e=>{e.preventDefault();setParams({q:draft,platform:platformDraft,page:'1'})}}>
       <Input aria-label="搜索店铺" value={draft} onChange={e=>setDraft(e.target.value)} placeholder="搜索店铺名称"/>
-      <Select aria-label="平台" value={platformDraft} onChange={e=>setPlatformDraft(e.target.value)} options={[{value:'',label:'全部平台'},...['amazon','temu','shein','tiktok','walmart'].map(value=>({value,label:value}))]}/>
+      <Select aria-label="平台" value={platformDraft} onChange={e=>setPlatformDraft(e.target.value)} options={[{value:'',label:'全部平台'},...['amazon','temu','shein','tiktok','walmart'].map(value=>({value,label:value==='amazon'?'Amazon':value.toUpperCase()}))]}/>
       <Button type="submit">查询</Button>
     </form>
     <ErrorNotice message={error}/>
+    {error&&<Button variant="secondary" disabled={loading} onClick={()=>setRetry(value=>value+1)}>重新读取店铺</Button>}
+    <p className="store-list-note">店铺状态来自服务端；进入工作台后核对本机环境和网络，列表不代表浏览器已就绪。</p>
     {!error&&<Table<Store> data={catalog?.items||[]} loading={loading} rowKey="id" emptyText="当前企业没有可访问的店铺" columns={[
       {key:'name',title:'店铺',render:(_,store)=><Link to={`/stores/${encodeURIComponent(store.id)}?return=${encodeURIComponent(params.toString())}`}>{store.name}</Link>},
-      {key:'platform',title:'平台'},{key:'region',title:'地区'},{key:'recordStatus',title:'店铺状态'},{key:'serviceStatus',title:'服务状态'},
-      {key:'action',title:'操作',render:(_,store)=><Link to={`/stores/${store.id}?return=${encodeURIComponent(params.toString())}`}>进入工作台</Link>},
+      {key:'platform',title:'平台',render:value=>String(value).toUpperCase()},{key:'region',title:'地区'},{key:'recordStatus',title:'店铺状态',render:value=><span className={`store-status ${value==='active'?'store-status-active':''}`}>{value==='active'?'已启用':value||'待核对'}</span>},{key:'serviceStatus',title:'服务状态',render:value=>value||'待核对'},
+      {key:'action',title:'操作',render:(_,store)=><Link className="store-enter" to={`/stores/${encodeURIComponent(store.id)}?return=${encodeURIComponent(params.toString())}`}>进入工作台</Link>},
     ]}/>}
     {catalog&&<div className="flex gap-3 justify-end mt-4"><Button variant="secondary" disabled={page<=1||loading} onClick={()=>setParams({q,platform,page:String(page-1)})}>上一页</Button><span className="py-2">第 {page} 页</span><Button variant="secondary" disabled={page*20>=catalog.pagination.total||loading} onClick={()=>setParams({q,platform,page:String(page+1)})}>下一页</Button></div>}
-  </Card>
+  </Card></section>
 }
 
 export function StoreDetailPage(){const {storeId}=useParams();return <StoreDetail key={storeId}/>}
@@ -121,7 +128,7 @@ function StoreDetail() {
   const tab=params.get('tab')==='records'?'records':'environment'
   return <div className="space-y-4">
     <Link to={`/stores?${params.get('return')||''}`}>返回店铺列表</Link>
-    <Card title={store?.name||'店铺详情'}><p className="text-sm">{store&&`${store.platform} · ${store.region} · ${store.recordStatus}`}</p><div className="flex gap-3 mt-3">{(['environment','records'] as const).map(value=><Button key={value} variant={tab===value?'primary':'secondary'} onClick={()=>{const next=new URLSearchParams(params);next.set('tab',value);setParams(next)}}>{value==='environment'?'店铺环境':'操作记录'}</Button>)}<Button variant="secondary" disabled={busy||!loaded} onClick={()=>void read(true)}>只读刷新</Button></div></Card>
+    <Card className="store-detail-heading" title={store?.name||'店铺详情'}><p className="text-sm">{store&&`${store.platform} · ${store.region} · ${store.recordStatus}`}</p><div className="flex gap-3 mt-3">{(['environment','records'] as const).map(value=><Button key={value} variant={tab===value?'primary':'secondary'} onClick={()=>{const next=new URLSearchParams(params);next.set('tab',value);setParams(next)}}>{value==='environment'?'店铺环境':'操作记录'}</Button>)}<Button variant="secondary" disabled={busy||!loaded} onClick={()=>void read(true)}>只读刷新</Button></div></Card>
     <ErrorNotice message={error}/>
     {!loaded&&<p role="status">加载中…</p>}
     {store&&environment&&tab==='environment'&&<>

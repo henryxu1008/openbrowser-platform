@@ -16,6 +16,14 @@
 - Copy/content: only authorized catalog facts shown. No invented running/network-ready counts, last-used times or installed kernel versions. Runtime state remains in the existing detail read.
 - Existing network means this Store's saved local configuration only. The current `direct_or_local_only` contract does not expose a global proxy pool or paid inventory. Custom empty input cannot silently become direct; direct is an explicit choice (or the explicitly labelled saved configuration).
 
+## Prototype version 4 palette update
+- Latest supplied HTML/source archive version 4 was separately materialized and compared byte-for-byte against retained version 3. HTML SHA256: `3a61a3c2386d264dabe7401835d4f6784fd22c73dc0f37db71315cf865a56efd` (521087 bytes).
+- Source delta: new `src/theme.css`, its import in `src/main.jsx`, updated guidance/QA and generated assets. Business handlers, policy functions, dependencies and the original 18 prototype tests are unchanged.
+- Applicable corrections are restricted to `[data-theme='light'] .store-workbench`: darker secondary/helper labels, clearer borders, explicit disabled button colors and preserved opacity. Native control scheme follows the production dark/light/cream/mint/ocean attribute; non-light palettes and other application pages are not replaced.
+- Four CSS contract tests first failed on the previous candidate and now pass. They verify scope, declared native schemes and selected literal foreground/background contrast pairs, not computed browser colors or full accessibility compliance.
+- Existing shared Form error borders are preserved. Body-mounted modal portals do not inherit the scoped palette; no modal-wide correction is claimed.
+- The prototype author's seven-page visual claims are not independent evidence for this production candidate. Browser-rendered comparison and usability gates remain NOT_RUN; no browser policy retry was made.
+
 ## Evidence and next gate
 - Offline real-component tests exercise the Store adapters and generated bridge with only native/events/renderer boundaries mocked. They are not visual or native-process acceptance.
 - Before visual approval: render source HTML and candidate at matching viewport/state; capture list, detail, network editor, loading/error and narrow layouts; inspect console and interactions; compare both full view and focused regions; fix any P0/P1/P2 differences and record the revised captures.

@@ -110,3 +110,24 @@ it('does not silently turn an empty custom network into a direct connection',asy
  await mount();await act(async()=>choose());act(()=>field('本地代理地址').props.onChange({target:{value:'   '}}));await act(async()=>button('保存配置').props.onClick())
  expect(native.StoreEnvironmentSave).not.toHaveBeenCalled();expect(text(tree.root)).toContain('明确使用直连');expect(location.pathname).toContain('/environment/edit')
 })
+it.each(['resolve','reject'])('keeps the new Store network and CAS isolated when old options %s late',async outcome=>{
+ const old=deferred(),bindingB={bindingId:'binding-b',profileId:'profile-b',bindingVersion:'19'}
+ const inputB={...input,profileName:'Shop B',proxyConfig:'http://localhost:2080'}
+ native.StoreEnvironmentOptions.mockImplementation(id=>id==='shop-a'?old.promise:Promise.resolve(JSON.stringify({input:inputB,cores:[],binding:bindingB})))
+ await mount();expect(button('保存配置').props.disabled).toBe(true)
+ expect(native.StoreEnvironmentOptions).toHaveBeenCalledExactlyOnceWith('shop-a',7,generation)
+ await act(async()=>navigate('/stores/shop-b/environment/edit?return=q%3Db'))
+ expect(field('配置名称').props.value).toBe('Shop B');expect(field('本地代理地址').props.value).toBe(inputB.proxyConfig)
+ await act(async()=>{if(outcome==='resolve')old.resolve(JSON.stringify({input,cores:[],binding:state.binding}));else old.reject(new Error('old Store options failed'))})
+ expect(field('配置名称').props.value).toBe('Shop B');expect(text(tree.root)).not.toContain('环境配置暂不可用')
+ act(()=>field('网络使用方式').props.onChange({target:{value:'direct'}}))
+ act(()=>field('网络使用方式').props.onChange({target:{value:'current'}}))
+ expect(field('本地代理地址').props.value).toBe(inputB.proxyConfig)
+ await act(async()=>choose());await act(async()=>button('保存配置').props.onClick())
+ expect(native.StoreEnvironmentSave).toHaveBeenCalledTimes(1)
+ const [id,version,payload,revision,epoch]=native.StoreEnvironmentSave.mock.calls[0]
+ expect([id,version,revision,epoch]).toEqual(['shop-b','19',7,generation])
+ expect(JSON.parse(payload)).toEqual({...inputB,coreId:release.releaseId})
+ expect(location.pathname+location.search).toBe('/stores/shop-b?q=b')
+ expect(native.StoreEnvironmentOpen).not.toHaveBeenCalled();expect(native.StoreEnvironmentClose).not.toHaveBeenCalled()
+})

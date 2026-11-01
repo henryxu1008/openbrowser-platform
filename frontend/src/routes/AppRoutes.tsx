@@ -87,7 +87,7 @@ export function AppRoutes() {
         <Route path=":storeId" element={<StoreDetailPage />} />
         <Route path=":storeId/environment/edit" element={<StoreEnvironmentEditPage />} />
       </Route>
-      <Route path="/" element={<Navigate to="/browser/list" replace />} />
+      <Route path="/" element={<Navigate to="/stores" replace />} />
       <Route path="/charts" element={<ChartsPage />} />
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/system/backup" element={<BackupPage />} />

@@ -67,6 +67,7 @@ it.each([['BINDING_VERSION_CONFLICT',false],['store_result_unknown operationId=1
  expect(location.pathname).toBe('/stores/shop-a/environment/edit');expect(native.StoreEnvironmentSave).toHaveBeenCalledTimes(1)
  expect(field('本地代理地址').props.value).toBe(input.proxyConfig);expect(field('内核版本').props.value).toBe(release.releaseId)
  expect(button('保存配置').props.disabled).toBe(blocked);expect(text(tree.root)).toContain(blocked?'结果待核对':'返回店铺核对')
+ expect(storePortal()).toBeDefined()
  expect(native.StoreEnvironmentOpen).not.toHaveBeenCalled()
 })
 it('reuses only the current Store network and requires an explicit direct selection',async()=>{
@@ -130,4 +131,36 @@ it.each(['resolve','reject'])('keeps the new Store network and CAS isolated when
  expect(JSON.parse(payload)).toEqual({...inputB,coreId:release.releaseId})
  expect(location.pathname+location.search).toBe('/stores/shop-b?q=b')
  expect(native.StoreEnvironmentOpen).not.toHaveBeenCalled();expect(native.StoreEnvironmentClose).not.toHaveBeenCalled()
+})
+
+const storePortal = () => tree.root.findAllByType('div').find(node => node.props.className?.split(' ').includes('store-workbench-modal'))
+it('keeps the managed leave confirmation in the Store portal scope and cancels without saving',async()=>{
+ await mount();act(()=>field('配置名称').props.onChange({target:{value:'Unsaved'}}))
+ act(()=>button('返回店铺').props.onClick());expect(storePortal()).toBeDefined()
+ act(()=>button('继续编辑').props.onClick());await act(async()=>vi.advanceTimersByTime(680))
+ expect(location.pathname).toBe('/stores/shop-a/environment/edit');expect(field('配置名称').props.value).toBe('Unsaved')
+ expect(native.StoreEnvironmentSave).not.toHaveBeenCalled()
+})
+it('keeps the dirty enterprise confirmation scoped and selects once with the original revision',async()=>{
+ const other={id:'org-b',name:'Org B',permissions:['workbench.store.browser.use']}
+ native.StoreWorkbenchContext.mockResolvedValue(JSON.stringify({...context,context:{...context.context,organizations:[...context.context.organizations,other]}}))
+ native.StoreWorkbenchSelectOrganization=vi.fn().mockResolvedValue(JSON.stringify({...context,revision:8,context:{...context.context,effectiveOrganizationId:'org-b'}}))
+ await mount();act(()=>field('配置名称').props.onChange({target:{value:'Unsaved'}}))
+ act(()=>field('当前企业').props.onChange({target:{value:'org-b'}}));expect(storePortal()).toBeDefined()
+ const confirm=tree.root.findByProps({role:'dialog'}).findAllByType('button').at(-1).props.onClick
+ act(()=>{confirm();confirm()})
+ expect(tree.root.findByProps({role:'dialog'}).findAllByType('button').slice(-2).every(node=>node.props.disabled)).toBe(true)
+ await act(async()=>vi.advanceTimersByTime(420))
+ expect(native.StoreWorkbenchSelectOrganization).toHaveBeenCalledExactlyOnceWith('org-b',7,generation)
+ expect(native.StoreEnvironmentSave).not.toHaveBeenCalled()
+})
+it.each(['record','receipt'])('keeps the read-only %s dialog in the Store portal scope',async kind=>{
+ native.StoreAuditList.mockResolvedValue(JSON.stringify({items:[{eventId:'event-a',operationId:'op-a',action:'browser_open_reported',actorSubject:'fixture',serverTime:'2026-10-31T10:40:35Z',outcome:'failed',factSource:'client_report'}],nextCursor:null,coverage:[],canFilterActor:false}))
+ native.StoreEnvironmentGet.mockResolvedValue(JSON.stringify({...state,lastOperation:{operationId:'op-a',outcome:'failed',reportState:'confirmed'}}))
+ native.StoreOperationGet=vi.fn().mockResolvedValue(JSON.stringify({operationId:'op-a',outcome:'failed'}))
+ await mount(`/stores/shop-a${kind==='record'?'?tab=records':''}`)
+ await act(async()=>button(kind==='record'?'查看记录':'只读核对原操作').props.onClick())
+ expect(storePortal()).toBeDefined();expect(tree.root.findByProps({role:'dialog'}).props['aria-labelledby']).toBeTruthy()
+ if(kind==='receipt')expect(native.StoreOperationGet).toHaveBeenCalledExactlyOnceWith('shop-a','op-a',7,generation)
+ expect(native.StoreEnvironmentSave).not.toHaveBeenCalled();expect(native.StoreEnvironmentOpen).not.toHaveBeenCalled();expect(native.StoreEnvironmentClose).not.toHaveBeenCalled()
 })

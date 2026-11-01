@@ -30,4 +30,10 @@
 - No completed visual iteration is claimed. Keep the PR draft.
 - Native Windows/customer Store/CDN lifecycle acceptance: NOT_RUN. No real login, Store open, proxy request, procurement, payment, deployment or release was performed.
 
+## Isolated Store portal increment (2026-11-01)
+- The v4 HTML was materialized through Library, read locally and verified against SHA256 `3a61a3c2386d264dabe7401835d4f6784fd22c73dc0f37db71315cf865a56efd`. This increment adds actual source rendering and bounded real-component fixture screenshots; earlier NOT_RUN entries describe the earlier candidate.
+- Enterprise confirmation, managed editor leave/save-error dialogs, operation detail and original receipt now explicitly opt into the Store portal scope. No operation handler, authorization, CAS or native admission logic changed.
+- See [the bounded portal QA report](design/store-modal-qa.md) and its committed synthetic-data screenshots for measurements, keyboard results and limitations. Full-view and focused source/candidate comparisons were opened together.
+- This does not approve the entire Store workbench or native lifecycle. The supplied prototype has no exact counterparts for production audit/receipt/unsaved-change states; a one-to-one comparison of those states remains NOT_RUN. Keep the overall visual gate and PR draft until the broader gates are completed.
+
 final result: blocked

@@ -14,6 +14,7 @@ interface ModalProps {
   footer?: ReactNode
   width?: string
   closable?: boolean
+  className?: string
 }
 
 export function Modal({
@@ -24,6 +25,7 @@ export function Modal({
   footer,
   width = '500px',
   closable = true,
+  className,
 }: ModalProps) {
   const [mounted, setMounted] = useState(open)
   const [closing, setClosing] = useState(false)
@@ -76,7 +78,7 @@ export function Modal({
   if (!mounted) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-[9990] flex items-center justify-center">
+    <div className={`fixed inset-0 z-[9990] flex items-center justify-center${className ? ` ${className}` : ''}`}>
       <div
         className={`modal-backdrop absolute inset-0 ${closing ? 'animate-modal-backdrop-out' : 'animate-modal-backdrop-in'}`}
       />
@@ -93,7 +95,7 @@ export function Modal({
         onClick={(e) => e.stopPropagation()}
       >
         {(title || closable) && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] flex-shrink-0">
+          <div className="modal-header flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] flex-shrink-0">
             {title && (
               <h3 id={titleId} className="text-lg font-semibold text-[var(--color-text-primary)]">
                 {title}
@@ -111,12 +113,12 @@ export function Modal({
           </div>
         )}
 
-        <div className="px-6 py-4 overflow-y-auto flex-1 min-h-0">
+        <div className="modal-body px-6 py-4 overflow-y-auto flex-1 min-h-0">
           {children}
         </div>
 
         {footer && (
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--color-border)] flex-shrink-0">
+          <div className="modal-footer flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--color-border)] flex-shrink-0">
             {footer}
           </div>
         )}
@@ -137,6 +139,7 @@ interface ConfirmModalProps {
   confirmText?: string
   cancelText?: string
   danger?: boolean
+  className?: string
 }
 
 export function ConfirmModal({
@@ -149,6 +152,7 @@ export function ConfirmModal({
   confirmText = '确定',
   cancelText = '取消',
   danger = false,
+  className,
 }: ConfirmModalProps) {
   const [confirming, setConfirming] = useState(false)
   const confirmTimerRef = useRef<number | null>(null)
@@ -176,6 +180,7 @@ export function ConfirmModal({
   return (
     <Modal
       open={open}
+      className={className}
       onClose={onClose}
       title={title}
       width="400px"

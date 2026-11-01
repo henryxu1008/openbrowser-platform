@@ -1,7 +1,7 @@
 import {afterEach,expect,it,vi} from 'vitest'
 import {act,create} from 'react-test-renderer'
 vi.mock('react-dom',()=>({createPortal:children=>children}))
-import {Modal} from '../src/shared/components/Modal'
+import {Modal,ConfirmModal} from '../src/shared/components/Modal'
 let tree
 afterEach(()=>{if(tree)act(()=>tree.unmount());tree=null;delete globalThis.document;delete globalThis.window})
 it('names the dialog and close button, traps keyboard focus, handles Escape and restores the trigger',()=>{
@@ -14,4 +14,12 @@ it('names the dialog and close button, traps keyboard focus, handles Escape and 
  document.activeElement=last;const prevent=vi.fn();listeners.keydown({key:'Tab',preventDefault:prevent});expect(prevent).toHaveBeenCalled();expect(first.focus).toHaveBeenCalledTimes(2)
  listeners.keydown({key:'Escape',preventDefault:vi.fn(),stopPropagation:vi.fn()});expect(close).toHaveBeenCalledTimes(1)
  act(()=>{tree.update(<Modal open={false} title="操作记录详情" onClose={close}><p>Record</p></Modal>)});expect(trigger.focus).toHaveBeenCalledTimes(1)
+})
+
+it('forwards an opt-in scope through the confirmation portal without changing unscoped dialogs',()=>{
+ globalThis.document={body:{style:{}},activeElement:null};globalThis.window={setTimeout,clearTimeout}
+ act(()=>{tree=create(<ConfirmModal open className="store-workbench-modal" content="fixture" onClose={()=>{}} onConfirm={()=>{}}/>)})
+ expect(tree.root.findAllByType('div').some(node=>node.props.className?.split(' ').includes('store-workbench-modal'))).toBe(true)
+ act(()=>{tree.update(<Modal open title="Ordinary" onClose={()=>{}}>fixture</Modal>)})
+ expect(tree.root.findAllByType('div').some(node=>node.props.className?.includes('store-workbench-modal'))).toBe(false)
 })

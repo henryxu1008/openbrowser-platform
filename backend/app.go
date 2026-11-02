@@ -37,8 +37,8 @@ type appState struct {
 	storeGeneralMu   sync.RWMutex
 	store            storeWorkspaceState
 	storeProxyChecks storeproxy.Manager
-	// No approved publisher catalog is shipped yet. Never read user proxy-check
-	// settings here. These private test ports have no renderer/config setter.
+	// The catalog is compiled into the release; user proxy-check settings and
+	// installed files cannot override it. Private test ports have no native setter.
 	storeProbeCatalog       storeproxy.Catalog
 	storeProbeRunner        storeproxy.Prober
 	businessInitAttempted   bool
@@ -102,7 +102,13 @@ func NewApp(appRoot string, appVersion ...string) *App {
 		// Keep the existing unconfigured login shell; never admit business work.
 		identityConfig = desktopauth.Config{}
 	}
+	probeCatalog, err := storeproxy.PublisherCatalog()
+	if err != nil {
+		// A bad release catalog cannot enable network work or block the login shell.
+		probeCatalog = storeproxy.Catalog{}
+	}
 	app := &App{appState: &appState{
+		storeProbeCatalog:      probeCatalog,
 		identity:               desktopauth.NewManager(identityConfig),
 		appRoot:                strings.TrimSpace(appRoot),
 		version:                version,

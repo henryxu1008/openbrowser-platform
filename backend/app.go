@@ -9,6 +9,7 @@ import (
 	"ant-chrome/backend/internal/launchcode"
 	"ant-chrome/backend/internal/logger"
 	"ant-chrome/backend/internal/proxy"
+	"ant-chrome/backend/internal/storeproxy"
 	"ant-chrome/internal/desktopauth"
 	"context"
 	"strings"
@@ -33,8 +34,13 @@ type App struct {
 
 // Scoped receivers share original native state; managers and mutexes are never copied.
 type appState struct {
-	storeGeneralMu          sync.RWMutex
-	store                   storeWorkspaceState
+	storeGeneralMu   sync.RWMutex
+	store            storeWorkspaceState
+	storeProxyChecks storeproxy.Manager
+	// No approved publisher catalog is shipped yet. Never read user proxy-check
+	// settings here. These private test ports have no renderer/config setter.
+	storeProbeCatalog       storeproxy.Catalog
+	storeProbeRunner        storeproxy.Prober
 	businessInitAttempted   bool
 	businessInitErr         error
 	ownedBrowsers           ownedBrowserReceipts

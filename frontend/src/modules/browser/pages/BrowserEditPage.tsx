@@ -238,14 +238,15 @@ function resolvePoolProxySelection(
   return { mode: 'pool', proxyId: directProxy?.proxyId || '', proxyConfig: '' }
 }
 
+export type ManagedProxyCheck = { scope: CheckScope; port: ProxyCheckPort }
 export interface ManagedBrowserEditor {
   title: string
-  load: () => Promise<{ input: BrowserProfileInput; cores: BrowserCore[] }>
+  load: () => Promise<{ input: BrowserProfileInput; cores: BrowserCore[]; proxyCheck?: ManagedProxyCheck }>
   save: (input: BrowserProfileInput) => Promise<void>
   back: () => void
   onDirtyChange?: (dirty: boolean) => void
-  // Unbound in production until the scoped native contract is approved.
-  proxyCheck?: { scope: CheckScope; port: ProxyCheckPort }
+  // Direct injection is retained for offline fixtures; production uses load().
+  proxyCheck?: ManagedProxyCheck
 }
 export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } = {}) {
   const { id } = useParams()
@@ -268,6 +269,8 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
   })
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [networkChoice, setNetworkChoice] = useState('current')
+  const [loadedProxyCheck,setLoadedProxyCheck] = useState<ManagedProxyCheck>()
+  const proxyCheck = loadedProxyCheck || managed?.proxyCheck
   const savedStoreNetwork = useRef('')
   const [optionsReady, setOptionsReady] = useState(!managed)
   const optionsReadyRef = useRef(!managed)
@@ -321,10 +324,12 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
       if (managed) {
         optionsReadyRef.current = false
         setOptionsReady(false)
+        setLoadedProxyCheck(undefined)
         setOptionsError('')
         const result = await managed.load()
         if (!active) return
         setFormData({ ...result.input, userDataDir: '', launchArgs: [], tags: [], keywords: [], groupId: '', proxyId: '' })
+        setLoadedProxyCheck(result.proxyCheck)
         savedStoreNetwork.current = result.input.proxyConfig || ''
         setNetworkChoice('current')
         setProxyMode('local')
@@ -765,7 +770,7 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
             </FormItem>
           )}
         </div>
-        {managed?.proxyCheck && <StoreProxyCheck {...managed.proxyCheck} proxyConfig={formData.proxyConfig || ''} disabled={!optionsReady || saving || saveBlocked || networkChoice === 'direct'} />}
+        {managed && proxyCheck && networkChoice !== 'direct' && (networkChoice === 'custom' || !!formData.proxyConfig?.trim()) && <StoreProxyCheck {...proxyCheck} proxyConfig={formData.proxyConfig || ''} disabled={!optionsReady || saving || saveBlocked} />}
         <p className="text-xs text-[var(--color-text-muted)] mt-2">
           {proxyMode === 'pool'
             ? `当前使用代理池节点${selectedPoolProxy?.proxyName ? `：${selectedPoolProxy.proxyName}` : '。'}`

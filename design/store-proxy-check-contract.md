@@ -1,6 +1,11 @@
-# Store-owned proxy check: draft contract and offline candidate
+# Historical draft: Store-owned proxy check
 
-Related to #22. This increment is an executable, mock-only frontend contract/UI
+This records the PR28 frontend stage. The implemented native candidate and its
+current limits are documented in [Store proxy native QA](store-proxy-native-qa.md).
+The descriptions below are the original pre-native contract, not current
+activation status.
+
+Related to #22. That increment was an executable, mock-only frontend contract/UI
 candidate. **No production bridge or native network adapter is connected.** It
 does not enable a real connectivity button in the released Store editor. Native
 authorization, cancellation, connector cleanup and a credential-safe transport

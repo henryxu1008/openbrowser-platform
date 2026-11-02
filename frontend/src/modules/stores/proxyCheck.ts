@@ -1,13 +1,13 @@
-// Draft offline port. No production native binding is connected to this module.
+// Scoped Store check contract; native independently derives all authority.
 export type CheckScope = {
   identity: string; generation: number; organization: string; revision: number
-  store: string; bindingVersion: string; connector: 'xray' | 'mihomo'
+  store: string; bindingVersion: string; connector: 'xray' | 'mihomo' | 'native'
 }
 export type CheckTarget = { id: string; label: string; url: string }
 export type Evidence = 'passed' | 'failed' | 'not_checked'
 export type CheckReason = 'NONE' | 'INVALID_PROXY' | 'UNSUPPORTED_PROTOCOL' | 'TCP_UNREACHABLE' |
   'TARGET_UNREACHABLE' | 'AUTH_REJECTED' | 'TIMEOUT' | 'CANCELED' | 'UNAVAILABLE' |
-  'PERMISSION_DENIED' | 'CONTEXT_CHANGED'
+  'PERMISSION_DENIED' | 'CONTEXT_CHANGED' | 'TARGET_CONFIGURATION_REQUIRED' | 'CHECK_BUSY' | 'CONNECTOR_REQUIRED'
 export type CheckResult = {
   schema: 'store-proxy-check-v1'; requestId: string; targetId: string
   syntax: Evidence; tcp: Evidence; target: Evidence; reason: CheckReason
@@ -15,6 +15,7 @@ export type CheckResult = {
 export type CheckRequest = { requestId: string; scope: CheckScope; proxyConfig: string; targetId: string }
 export type ProxyCheckPort = {
   targets: readonly CheckTarget[]
+  unavailableReason?: 'TARGET_CONFIGURATION_REQUIRED'
   // Native must derive authority independently, enforce binding CAS, whitelist
   // results, honor cancellation and settle only after owned resources stop.
   check: (request: CheckRequest, signal: AbortSignal) => Promise<unknown>
@@ -46,7 +47,7 @@ export function inspectProxyInput(raw: string): CheckReason | null {
 
 const evidence = new Set(['passed', 'failed', 'not_checked'])
 const reasons = new Set(['NONE', 'INVALID_PROXY', 'UNSUPPORTED_PROTOCOL', 'TCP_UNREACHABLE',
-  'TARGET_UNREACHABLE', 'AUTH_REJECTED', 'TIMEOUT', 'CANCELED', 'UNAVAILABLE', 'PERMISSION_DENIED', 'CONTEXT_CHANGED'])
+  'TARGET_UNREACHABLE', 'AUTH_REJECTED', 'TIMEOUT', 'CANCELED', 'UNAVAILABLE', 'PERMISSION_DENIED', 'CONTEXT_CHANGED', 'TARGET_CONFIGURATION_REQUIRED', 'CHECK_BUSY', 'CONNECTOR_REQUIRED'])
 
 // Never store/spread raw diagnostics or interpolate an exception into UI text.
 export function safeCheckResult(raw: unknown, request: Pick<CheckRequest, 'requestId' | 'targetId'>): CheckResult | null {
@@ -59,10 +60,12 @@ export function safeCheckResult(raw: unknown, request: Pick<CheckRequest, 'reque
     (r.target !== 'not_checked' && r.tcp !== 'passed') ||
     (r.reason === 'NONE' && r.target !== 'passed') ||
     (r.target === 'passed' && r.reason !== 'NONE') ||
-    (['INVALID_PROXY', 'UNSUPPORTED_PROTOCOL'].includes(r.reason) && (r.syntax !== 'failed' || r.tcp !== 'not_checked')) ||
+    (r.reason === 'INVALID_PROXY' && (r.syntax !== 'failed' || r.tcp !== 'not_checked')) ||
+    (r.reason === 'UNSUPPORTED_PROTOCOL' && (r.syntax !== 'not_checked' || r.tcp !== 'not_checked')) ||
+    (r.reason === 'CONNECTOR_REQUIRED' && (r.syntax !== 'passed' || r.tcp !== 'passed' || r.target !== 'not_checked')) ||
     (r.reason === 'TCP_UNREACHABLE' && (r.syntax !== 'passed' || r.tcp !== 'failed')) ||
     (['TARGET_UNREACHABLE', 'AUTH_REJECTED'].includes(r.reason) && r.target !== 'failed') ||
-    (['PERMISSION_DENIED', 'CONTEXT_CHANGED'].includes(r.reason) && r.syntax !== 'not_checked')) return null
+    (['PERMISSION_DENIED', 'CONTEXT_CHANGED', 'TARGET_CONFIGURATION_REQUIRED', 'CHECK_BUSY'].includes(r.reason) && r.syntax !== 'not_checked')) return null
   return { schema: 'store-proxy-check-v1', requestId: request.requestId, targetId: request.targetId,
     syntax: r.syntax as Evidence, tcp: r.tcp as Evidence, target: r.target as Evidence, reason: r.reason as CheckReason }
 }

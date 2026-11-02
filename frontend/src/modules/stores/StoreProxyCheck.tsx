@@ -7,16 +7,19 @@ const reasonText = {
   UNSUPPORTED_PROTOCOL: '此检查暂不支持该协议，原配置不变。',
   TCP_UNREACHABLE: '代理服务器 TCP 不可达，请核对地址、端口和服务状态。',
   TARGET_UNREACHABLE: '未能经代理访问所选目标，请核对代理与目标服务。',
-  AUTH_REJECTED: '代理明确拒绝了认证，请核对代理凭据。',
+  AUTH_REJECTED: '代理要求认证或未接受当前认证，请核对代理凭据。',
   TIMEOUT: '检查超时，结果未知。', CANCELED: '已取消检查，结果未知。',
   UNAVAILABLE: '暂时无法检查，请稍后重试或联系维护者。',
   PERMISSION_DENIED: '当前身份无权检查此店铺网络，请联系企业管理员。',
   CONTEXT_CHANGED: '店铺、企业、身份或配置已变化，原检查结果已失效。',
+  TARGET_CONFIGURATION_REQUIRED: '此版本尚未由发布方配置检查目标，请联系安装包维护者。',
+  CHECK_BUSY: '原检查尚未结束，请等待清理完成后重试。',
+  CONNECTOR_REQUIRED: '此代理需通过当前连接栈的独立桥接检查；本版本尚未检查凭据和所选目标。',
 }
 const evidenceText = { passed: '通过', failed: '未通过', not_checked: '未检查' }
 
-// An optional editor extension only. Production Store adapter intentionally does
-// not provide this port until the native activation contract has been reviewed.
+// The Store adapter supplies the scoped native port only after its options load.
+// Missing publisher targets stay explicit and cannot enable the check action.
 export function StoreProxyCheck({ port, scope, proxyConfig, disabled = false }: {
   port: ProxyCheckPort; scope: CheckScope; proxyConfig: string; disabled?: boolean
 }) {
@@ -62,6 +65,7 @@ export function StoreProxyCheck({ port, scope, proxyConfig, disabled = false }: 
         onClick={() => { if (currentPort.current === port) active.current?.cancel() }}>取消检查</Button>}
     </div>
     <div role="status" aria-live="polite" aria-atomic="true" className="space-y-2 text-sm text-[var(--color-text-secondary)]">
+      {port.unavailableReason && view.phase === 'idle' && <p>{reasonText[port.unavailableReason]}</p>}
       {view.phase === 'checking' && <p>正在检查所选目标…</p>}
       {view.reason && <p>{reasonText[view.reason]}{view.busy ? ' 等待检查停止后可重试。' : ''}</p>}
       {result && <>

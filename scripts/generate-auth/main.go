@@ -124,7 +124,7 @@ func main() {
 		switch name {
 		case "BrowserKernelCatalog", "BrowserKernelPrepare":
 			fmt.Fprintf(&body, "core, authErr := a.scopedKernel(generation); if authErr != nil { r%d = authErr; return }\n", len(rets)-1)
-		case "StoreWorkbenchContext", "StoreWorkbenchSelectOrganization", "StoreWorkbenchList", "StoreWorkbenchGet", "StoreEnvironmentGet", "StoreEnvironmentOptions", "StoreOperationGet", "StoreEnvironmentSave", "StoreEnvironmentOpen", "StoreEnvironmentClose", "StoreAuditList":
+		case "StoreWorkbenchContext", "StoreWorkbenchSelectOrganization", "StoreWorkbenchList", "StoreWorkbenchGet", "StoreEnvironmentGet", "StoreEnvironmentOptions", "StoreOperationGet", "StoreEnvironmentSave", "StoreEnvironmentOpen", "StoreEnvironmentClose", "StoreAuditList", "StoreProxyCheck", "StoreProxyCheckCancel":
 			fmt.Fprintf(&body, "core, authErr := a.scopedStore(generation); if authErr != nil { r%d = authErr; return }\n", len(rets)-1)
 		default:
 			body.WriteString("a.core.storeGeneralMu.RLock(); defer a.core.storeGeneralMu.RUnlock()\n")

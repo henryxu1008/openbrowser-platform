@@ -27,6 +27,52 @@ beforeEach(()=>{
 })
 afterEach(()=>{if(tree)act(()=>tree.unmount());tree=null;vi.useRealTimers();vi.unstubAllGlobals()})
 const choose=()=>field('内核版本').props.onChange({target:{value:release.releaseId}})
+const proxyOptions={available:true,reason:'NONE',catalogVersion:'c'.repeat(64),targets:[{id:'fixture',label:'离线示例目标',url:'https://target.example.invalid/check'}]}
+const proxyResult=request=>({schema:'store-proxy-check-v1',requestId:request.requestId,targetId:request.targetId,syntax:'passed',tcp:'passed',target:'passed',reason:'NONE'})
+function withProxyOptions(options=proxyOptions){
+ native.StoreEnvironmentOptions.mockResolvedValue(JSON.stringify({input,cores:[],binding:state.binding,proxyCheck:options}))
+ native.StoreProxyCheck=vi.fn((id,version,raw)=>Promise.resolve(JSON.stringify(proxyResult(JSON.parse(raw)))))
+ native.StoreProxyCheckCancel=vi.fn((id,requestId)=>Promise.resolve(JSON.stringify({requestId,settled:false})))
+}
+it('shows publisher target configuration as missing, with zero native check or save calls',async()=>{
+ withProxyOptions({available:false,reason:'TARGET_CONFIGURATION_REQUIRED',catalogVersion:'',targets:[]});await mount()
+ expect(text(tree.root)).toContain('此版本尚未由发布方配置检查目标')
+ expect(button('检查此代理').props.disabled).toBe(true)
+ expect(native.StoreProxyCheck).not.toHaveBeenCalled();expect(native.StoreEnvironmentSave).not.toHaveBeenCalled()
+})
+it('calls the dedicated real bridge once with original Store CAS, revision and auth generation',async()=>{
+ withProxyOptions();await mount();await act(async()=>field('检查目标').props.onChange({target:{value:'fixture'}}))
+ await act(async()=>{button('检查此代理').props.onClick();button('检查此代理').props.onClick()})
+ expect(native.StoreProxyCheck).toHaveBeenCalledTimes(1)
+ const [id,version,raw,revision,g]=native.StoreProxyCheck.mock.calls[0],request=JSON.parse(raw)
+ expect([id,version,revision,g]).toEqual(['shop-a','4',7,generation])
+ expect(request).toEqual({requestId:expect.any(String),proxyConfig:input.proxyConfig,targetId:'fixture',catalogVersion:proxyOptions.catalogVersion,expiresAtUnixMs:expect.any(Number)})
+ expect(text(tree.root)).toContain('代理服务器 TCP')
+ for(const method of ['StoreEnvironmentSave','StoreEnvironmentOpen','StoreEnvironmentClose','BrowserKernelPrepare'])expect(native[method]).not.toHaveBeenCalled()
+ expect(field('本地代理地址').props.value).toBe(input.proxyConfig)
+})
+it('does not offer a proxy check for an explicitly direct environment',async()=>{
+ withProxyOptions();await mount();await act(async()=>field('网络使用方式').props.onChange({target:{value:'direct'}}))
+ expect(button('检查此代理')).toBeUndefined();expect(native.StoreProxyCheck).not.toHaveBeenCalled();expect(native.StoreEnvironmentSave).not.toHaveBeenCalled()
+})
+it('keeps credentials and target unknown when a configured connector bridge is required',async()=>{
+ withProxyOptions();native.StoreEnvironmentOptions.mockResolvedValue(JSON.stringify({input:{...input,proxyConfig:'http://fixture-user:fixture-secret@proxy.example.invalid:8080'},cores:[],binding:state.binding,proxyCheck:proxyOptions}))
+ native.StoreProxyCheck.mockImplementation((id,v,raw)=>Promise.resolve(JSON.stringify({...proxyResult(JSON.parse(raw)),target:'not_checked',reason:'CONNECTOR_REQUIRED'})))
+ await mount();await act(async()=>field('检查目标').props.onChange({target:{value:'fixture'}}));await act(async()=>button('检查此代理').props.onClick())
+ expect(text(tree.root)).toContain('尚未检查凭据和所选目标');expect(text(tree.root)).not.toContain('fixture-secret')
+ expect(native.StoreEnvironmentSave).not.toHaveBeenCalled();expect(native.StoreEnvironmentOpen).not.toHaveBeenCalled()
+})
+it.each(['cancel','input','unmount'])('cancels original operation over real bridge on %s and ignores late success',async mode=>{
+ withProxyOptions();const pending=deferred();native.StoreProxyCheck.mockReturnValue(pending.promise)
+ await mount();await act(async()=>field('检查目标').props.onChange({target:{value:'fixture'}}));await act(async()=>button('检查此代理').props.onClick())
+ const request=JSON.parse(native.StoreProxyCheck.mock.calls[0][2])
+ await act(async()=>{if(mode==='cancel')button('取消检查').props.onClick();else if(mode==='input')field('本地代理地址').props.onChange({target:{value:'http://other.example.invalid:8080'}});else{tree.unmount();tree=null}})
+ expect(native.StoreProxyCheckCancel).toHaveBeenCalledExactlyOnceWith('shop-a',request.requestId,7,generation)
+ if(tree)expect(button('检查此代理').props.disabled).toBe(true)
+ await act(async()=>pending.resolve(JSON.stringify(proxyResult(request))))
+ if(tree)expect(text(tree.root)).not.toContain('代理服务器 TCP')
+ expect(native.StoreEnvironmentSave).not.toHaveBeenCalled();expect(native.StoreEnvironmentOpen).not.toHaveBeenCalled()
+})
 it.each([['existing',state.binding,'4'],['new',null,'0']])('prepares once and saves %s environment with original Store CAS without opening',async(kind,binding,expectedVersion)=>{
  native.StoreEnvironmentOptions.mockResolvedValue(JSON.stringify({input,cores:[],binding}))
  const prepare=deferred(),save=deferred();native.BrowserKernelPrepare.mockReturnValue(prepare.promise);native.StoreEnvironmentSave.mockReturnValue(save.promise)

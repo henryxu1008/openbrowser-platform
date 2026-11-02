@@ -1,4 +1,7 @@
 import './store-workbench.css'
+import { authSnapshot } from '../../auth/session'
+import { storeProxyPort } from './proxyCheckPort'
+import type { CheckScope } from './proxyCheck'
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button, Card, ConfirmModal, Input, Modal, Select, Table } from '../../shared/components'
@@ -146,8 +149,13 @@ export function StoreEnvironmentEditPage() {
   const setDirty=useContext(Dirty)
   const activeEditor=useRef<ManagedBrowserEditor|null>(null)
   const editor=useMemo<ManagedBrowserEditor>(()=>{
-    const api=storeAPI();let bindingVersion: string | null=null
-    const adapter:ManagedBrowserEditor={title:'店铺环境配置',onDirtyChange:setDirty,load:async()=>{const result=await api.options(storeId,scope.revision);bindingVersion=result.binding?.bindingVersion||'0';return result},save:async input=>{if(bindingVersion===null)throw new Error('store_configuration_unavailable');try{await api.save(storeId,bindingVersion,input,scope.revision)}catch(e){throw new Error(storeError(e))}},back:()=>{if(activeEditor.current===adapter)navigate(`/stores/${storeId}?${params.get('return')||''}`)}}
+    const api=storeAPI(),generation=authSnapshot().generation;let bindingVersion: string | null=null
+    const adapter:ManagedBrowserEditor={title:'店铺环境配置',onDirtyChange:setDirty,load:async()=>{
+      const result=await api.options(storeId,scope.revision);bindingVersion=result.binding?.bindingVersion||'0'
+      if(!result.proxyCheck)return {input:result.input,cores:result.cores}
+      const checkScope:CheckScope={identity:scope.context.user.id,generation,organization:scope.context.effectiveOrganizationId||'',revision:scope.revision,store:storeId,bindingVersion,connector:'native'}
+      return {...result,proxyCheck:{scope:checkScope,port:storeProxyPort(api,checkScope,result.proxyCheck)}}
+    },save:async input=>{if(bindingVersion===null)throw new Error('store_configuration_unavailable');try{await api.save(storeId,bindingVersion,input,scope.revision)}catch(e){throw new Error(storeError(e))}},back:()=>{if(activeEditor.current===adapter)navigate(`/stores/${storeId}?${params.get('return')||''}`)}}
     return adapter
   },[storeId,scope.revision,navigate,params,setDirty])
   useEffect(()=>{activeEditor.current=editor;return()=>{if(activeEditor.current===editor)activeEditor.current=null}},[editor])

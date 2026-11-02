@@ -89,7 +89,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         <h1 className="text-2xl font-semibold">登录 {projectConfig.name}</h1>
         <p className="text-sm text-[var(--color-text-secondary)]">登录后继续使用本机浏览器档案。</p>
         {status.state === 'loading' ? <Loading text="确认登录状态..." /> : null}
-        {!status.configured && status.state !== 'loading' ? <p role="status">安装包的登录配置不可用，请联系应用提供方。</p> : null}
+        {!status.configured && status.state !== 'loading' && status.errorCode !== 'identity_configuration_required' ? <p role="status">安装包的登录配置不可用，请联系应用提供方。</p> : null}
         {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
         {status.errorCode && <p role="status" className="text-sm">{authFailureMessage(status.errorCode)}</p>}
         {status.state === 'signing_in' ? <>

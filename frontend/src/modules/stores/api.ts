@@ -1,6 +1,7 @@
 import { captureBridge } from '../../auth/bridge'
 import { kernelError } from '../browser/api/kernelReleases'
 import type { BrowserCore, BrowserProfileInput } from '../browser/types'
+import type { CheckTarget } from './proxyCheck'
 
 export type Store = { id: string; name: string; platform: string; region: string; recordStatus: string; serviceStatus?: string; connectionStatus?: string }
 export type StoreContext = { context: { user: { id: string }; effectiveOrganizationId: string | null; selectionRequired: boolean; organizations: { id: string; name: string; permissions: string[] }[] }; revision: number }
@@ -11,6 +12,7 @@ export type Environment = { binding: Binding | null; name: string; coreId: strin
 export type AuditItem = { eventId: string; operationId: string; actorSubject: string; memberRef: string; action: string; serverTime: string; clientObservedAt?: string; outcome: string; reasonCode: string; profileRef: string; bindingRef: string; factSource: string }
 export type AuditPage = { items: AuditItem[]; nextCursor: string | null; coverage: string[]; canFilterActor: boolean }
 export type AuditQuery = { action?: string; outcome?: string; actor?: string; from?: string; to?: string; cursor?: string }
+export type StoreProxyOptions = { available: boolean; reason: string; catalogVersion: string; targets: CheckTarget[] }
 
 // Capture the original auth epoch once for a page operation. Native also pins
 // generation and organization revision; no token/URL/header transport is exposed.
@@ -23,7 +25,9 @@ export function storeAPI() {
     list: (q: string, platform: string, page: number, revision: number) => json<Catalog>(native.StoreWorkbenchList(q, platform, page, revision)),
     store: (id: string, revision: number) => json<Store>(native.StoreWorkbenchGet(id, revision)),
     environment: (id: string, revision: number) => json<Environment>(native.StoreEnvironmentGet(id, revision)),
-    options: (id: string, revision: number) => json<{input: BrowserProfileInput; cores: BrowserCore[]; binding: Binding | null}>(native.StoreEnvironmentOptions(id, revision)),
+    options: (id: string, revision: number) => json<{input: BrowserProfileInput; cores: BrowserCore[]; binding: Binding | null; proxyCheck?: StoreProxyOptions}>(native.StoreEnvironmentOptions(id, revision)),
+    checkProxy: (id: string, version: string, request: {requestId: string; proxyConfig: string; targetId: string; catalogVersion: string; expiresAtUnixMs:number}, revision: number) => json<unknown>(native.StoreProxyCheck(id,version,JSON.stringify(request),revision)),
+    cancelProxyCheck: (id: string, requestId: string, revision: number) => json<{requestId:string;settled:boolean}>(native.StoreProxyCheckCancel(id,requestId,revision)),
     save: (id: string, version: string, input: BrowserProfileInput, revision: number) => json<Environment>(native.StoreEnvironmentSave(id, version, JSON.stringify(input), revision)),
     open: (id: string, version: string, revision: number) => json<Environment>(native.StoreEnvironmentOpen(id, version, revision)),
     close: (id: string, revision: number) => json<{operationId:string;outcome:string;observedAt:string}>(native.StoreEnvironmentClose(id, revision)),
@@ -33,6 +37,7 @@ export function storeAPI() {
 }
 export function storeError(error: unknown) {
   const code = String(error)
+  if (code.includes('store_workspace_busy')) return '另一个操作尚未结束，请等待完成后重试。'
   if (code.includes('store_service_configuration_required')) return '店铺服务尚未配置，请联系安装包维护者。'
   if (code.includes('PERMISSION') || code.includes('NOT_FOUND')) return '当前身份无权访问该店铺或执行此操作。'
   if (code.includes('BINDING_VERSION_CONFLICT')) return '环境已发生变化，请返回店铺核对后再操作。'

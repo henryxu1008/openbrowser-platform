@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
 
@@ -65,6 +66,18 @@ func NewWailsLogger(appRoot string) *WailsLogger {
 }
 
 func (l *WailsLogger) write(level string, message string) {
+	// Wails dispatcher errors include the full raw IPC packet; trace callbacks
+	// include complete results (including editable proxy input). Never persist
+	// those payloads, even in development or a malformed/obfuscated call.
+	for _, prefix := range []string{"process message error:", "json call result data:", "Unknown message returned from dispatcher:"} {
+		if strings.Contains(message, prefix) {
+			message = prefix + " [payload omitted]"
+			break
+		}
+	}
+	if strings.Contains(message, "StoreProxyCheck") || strings.Contains(message, "store-proxy-check-v1") {
+		message = "Store proxy check message: [payload omitted]"
+	}
 	Log(l.appRoot, "wails.log", map[string]interface{}{
 		"level":   level,
 		"message": message,

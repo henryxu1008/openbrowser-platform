@@ -7,6 +7,8 @@ export function StoreWorkbenchList(q,p,page,r,g) { return window.go.main.App.Sto
 export function StoreWorkbenchGet(id,r,g) { return window.go.main.App.StoreWorkbenchGet(id,r,g); }
 export function StoreEnvironmentGet(id,r,g) { return window.go.main.App.StoreEnvironmentGet(id,r,g); }
 export function StoreEnvironmentOptions(id,r,g) { return window.go.main.App.StoreEnvironmentOptions(id,r,g); }
+export function StoreProxyCheck(id,v,raw,r,g) { return window.go.main.App.StoreProxyCheck(id,v,raw,r,g); }
+export function StoreProxyCheckCancel(id,key,r,g) { return window.go.main.App.StoreProxyCheckCancel(id,key,r,g); }
 export function StoreOperationGet(id,key,r,g) { return window.go.main.App.StoreOperationGet(id,key,r,g); }
 export function StoreEnvironmentSave(id,v,raw,r,g) { return window.go.main.App.StoreEnvironmentSave(id,v,raw,r,g); }
 export function StoreEnvironmentOpen(id,v,r,g) { return window.go.main.App.StoreEnvironmentOpen(id,v,r,g); }

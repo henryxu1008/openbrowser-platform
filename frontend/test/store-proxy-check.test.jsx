@@ -49,6 +49,7 @@ describe('bounded input and evidence',()=>{
     {schema:'diagnostic-v2'}, {requestId:'other'}, {targetId:'other'}, {syntax:'maybe'}, {reason:'raw fixture-secret'},
     {syntax:'failed'}, {tcp:'not_checked'}, {target:'not_checked'}, {reason:'TIMEOUT'},
     {syntax:{toString:()=> 'passed'}}, {target:'not_checked',reason:'PERMISSION_DENIED'},
+    {target:'not_checked',tcp:'failed',reason:'CONNECTOR_REQUIRED'},
   ])('rejects malformed, mismatched or contradictory result %j',overrides=>{
     const request={requestId:'fixture-request',targetId:'fixture-target'}
     expect(safeCheckResult(result(request,overrides),request)).toBe(null)

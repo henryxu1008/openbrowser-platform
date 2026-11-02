@@ -1,0 +1,33 @@
+{
+  "events": {
+    "exceptions": 0,
+    "consoleErrors": 0,
+    "externalRequests": 0
+  },
+  "fixture": {
+    "checks": 0,
+    "probes": 0,
+    "cancels": 0,
+    "saves": 0,
+    "opens": 0,
+    "unexpected": 0
+  },
+  "geometry": {
+    "width": 1280,
+    "scrollWidth": 1274
+  },
+  "controls": {
+    "button": {
+      "height": 44,
+      "border": "solid",
+      "borderColor": "rgb(193, 205, 221)",
+      "color": "rgb(86, 101, 122)",
+      "background": "rgb(229, 235, 243)"
+    },
+    "select": {
+      "width": 958,
+      "height": 44
+    }
+  },
+  "keyboard": null
+}

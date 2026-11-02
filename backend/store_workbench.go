@@ -296,12 +296,13 @@ func (a *App) StoreEnvironmentOptions(storeID string, revision uint64) (string, 
 		Input       BrowserProfileInput   `json:"input"`
 		Binding     *browser.StoreBinding `json:"binding"`
 		ProxyPolicy string                `json:"proxyPolicy"`
+		ProxyCheck  storeProxyOptions     `json:"proxyCheck"`
 	}{cores, input, func() *browser.StoreBinding {
 		if found {
 			return &binding
 		}
 		return nil
-	}(), "direct_or_local_only"})
+	}(), "direct_or_local_only", a.storeProxyOptions()})
 }
 func (a *App) StoreOperationGet(storeID, key string, revision uint64) (string, error) {
 	// Like the server's None receipt route, an original receipt must survive

@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { StoreProxyCheck } from '../../stores/StoreProxyCheck'
+import type { CheckScope, ProxyCheckPort } from '../../stores/proxyCheck'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ChevronDown, ChevronUp, FolderOpen, HelpCircle, Layers, ShieldCheck } from 'lucide-react'
 import { Button, Card, ConfirmModal, FormItem, Input, Modal, Select, Textarea, toast } from '../../../shared/components'
@@ -242,6 +244,8 @@ export interface ManagedBrowserEditor {
   save: (input: BrowserProfileInput) => Promise<void>
   back: () => void
   onDirtyChange?: (dirty: boolean) => void
+  // Unbound in production until the scoped native contract is approved.
+  proxyCheck?: { scope: CheckScope; port: ProxyCheckPort }
 }
 export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } = {}) {
   const { id } = useParams()
@@ -703,7 +707,7 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
           ]}/></FormItem>
           <p className="text-xs text-[var(--color-text-muted)]">仅支持当前店铺保存的网络或自有代理地址。不读取全局代理池，不采购网络；保存不代表连接检测通过。运行中的环境须先正常关闭再修改。</p>
         </div>}
-        <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-4 items-start">
+        <div className={`grid grid-cols-1 ${managed ? '' : 'lg:grid-cols-[220px_minmax(0,1fr)]'} gap-4 items-start`}>
           {!managed && <FormItem label="代理来源">
             <Select
               value={proxyMode}
@@ -761,6 +765,7 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
             </FormItem>
           )}
         </div>
+        {managed?.proxyCheck && <StoreProxyCheck {...managed.proxyCheck} proxyConfig={formData.proxyConfig || ''} disabled={!optionsReady || saving || saveBlocked || networkChoice === 'direct'} />}
         <p className="text-xs text-[var(--color-text-muted)] mt-2">
           {proxyMode === 'pool'
             ? `当前使用代理池节点${selectedPoolProxy?.proxyName ? `：${selectedPoolProxy.proxyName}` : '。'}`

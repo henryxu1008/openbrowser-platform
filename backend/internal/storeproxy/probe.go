@@ -98,9 +98,16 @@ type Authorize func(context.Context) Reason
 type Prober interface {
 	Run(context.Context, string, Target, string, string, Authorize) Result
 }
+
+// Connector owns only this operation's bridge. Cleanup must join its process and
+// I/O; the returned endpoint must be a credential-free loopback SOCKS5 endpoint.
+type Connector interface {
+	Connect(context.Context, Endpoint) (Endpoint, func(), Reason)
+}
 type NetworkProber struct {
 	Dial                      func(context.Context, string, string) (net.Conn, error)
 	Transport                 func(Endpoint) (http.RoundTripper, func())
+	Connector                 Connector
 	tcpTimeout, targetTimeout time.Duration // private fixture overrides, clamped below
 }
 
@@ -263,8 +270,27 @@ func (p NetworkProber) Run(ctx context.Context, raw string, target Target, id, t
 	// TCP reachability is valid independent evidence, but neither authentication
 	// nor target access may bypass the browser's required connector stack.
 	if endpoint.URL.User != nil {
-		r.Reason = ConnectorRequired
-		return r
+		if p.Connector == nil {
+			r.Reason = ConnectorRequired
+			return r
+		}
+		bridgeEndpoint, cleanup, bridgeReason := p.Connector.Connect(ctx, endpoint)
+		if cleanup != nil {
+			defer cleanup()
+		}
+		if bridgeReason != None {
+			r.Reason = phaseReason(ctx, ctx.Err(), bridgeReason)
+			return r
+		}
+		// A trusted adapter cannot turn a bridge error into a remote/direct route.
+		if cleanup == nil || !validOwnedBridgeEndpoint(bridgeEndpoint) {
+			r.Reason = ConnectorRequired
+			return r
+		}
+		endpoint = bridgeEndpoint
+		if reason = check(); reason != None {
+			return Unknown(id, targetID, reason)
+		}
 	}
 	targetCtx, stopTarget := context.WithTimeout(ctx, boundedPhase(p.targetTimeout, 6*time.Second))
 	defer stopTarget()
@@ -314,4 +340,12 @@ func (p NetworkProber) Run(ctx context.Context, raw string, target Target, id, t
 		return Unknown(id, targetID, reason)
 	}
 	return r
+}
+
+func validOwnedBridgeEndpoint(endpoint Endpoint) bool {
+	if endpoint.URL == nil || endpoint.URL.Scheme != "socks5" || endpoint.URL.User != nil || endpoint.URL.Hostname() != "127.0.0.1" || endpoint.URL.Path != "" || endpoint.URL.RawQuery != "" || endpoint.URL.ForceQuery || endpoint.URL.Fragment != "" {
+		return false
+	}
+	parsed, reason := ParseEndpoint(endpoint.URL.String())
+	return reason == None && parsed.Address == endpoint.Address
 }

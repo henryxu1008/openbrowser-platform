@@ -9,6 +9,10 @@ next step. No external endpoint was selected, configured or probed for this work
 This is a native implementation candidate, not Issue22 completion or a ready
 customer connectivity feature.
 
+The following increment adds a compiled publisher source (still empty) and an
+owned bridge lifecycle/real-child fixture. Its real core Starter remains unbound;
+see [source, bridge contract and health-interface investigation](store-proxy-publisher-and-bridge.md).
+
 ## Authority and operation lifetime
 
 - `StoreProxyCheck(storeID, expectedVersion, raw, revision, generation)` uses

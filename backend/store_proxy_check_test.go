@@ -8,7 +8,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -17,6 +19,91 @@ import (
 )
 
 type storeProbeFunc func(context.Context, string, storeproxy.Target, string, string, storeproxy.Authorize) storeproxy.Result
+type storeProbeTCPConn struct{ net.Conn }
+
+func (*storeProbeTCPConn) Close() error { return nil }
+func TestStoreProxyRealTransportJoinsCanceledDialBeforeSettlement(t *testing.T) {
+	a, _, s := storeAppFixture(t)
+	binding := installStoreFixture(t, a, s)
+	a.storeProbeCatalog = probeCatalog(t)
+	entered, aborted, cleanup := make(chan struct{}), make(chan struct{}), make(chan struct{})
+	var release sync.Once
+	defer release.Do(func() { close(cleanup) })
+	var calls atomic.Int32
+	a.storeProbeRunner = storeproxy.NetworkProber{Dial: func(ctx context.Context, _, _ string) (net.Conn, error) {
+		switch calls.Add(1) {
+		case 1:
+			return &storeProbeTCPConn{}, nil
+		case 2:
+			close(entered)
+			<-ctx.Done()
+			close(aborted)
+			<-cleanup
+			return nil, ctx.Err()
+		default:
+			return nil, errors.New("unexpected probe reentry")
+		}
+	}}
+	id := uuid.NewString()
+	var request storeProxyRequest
+	_ = json.Unmarshal([]byte(probeRaw(id, a.storeProbeCatalog.Version())), &request)
+	request.ProxyConfig = "http://proxy.example.invalid:8080"
+	raw, _ := json.Marshal(request)
+	finished := make(chan struct{})
+	go func() {
+		defer close(finished)
+		result, err := a.StoreProxyCheck(s.StoreID, binding.BindingVersion, string(raw), 1)
+		if r := parseProbeResult(t, result, err); r.Reason != storeproxy.Canceled {
+			t.Errorf("canceled worker returned %s", r.Reason)
+		}
+	}()
+	select {
+	case <-entered:
+	case <-time.After(time.Second):
+		t.Fatal("real transport did not dial")
+	}
+	canceled := make(chan struct{})
+	go func() {
+		defer close(canceled)
+		result, err := a.StoreProxyCheckCancel(s.StoreID, id, 1)
+		if err != nil || !strings.Contains(result, `"settled":true`) {
+			t.Error("cancel did not acknowledge settled cleanup")
+		}
+	}()
+	select {
+	case <-aborted:
+	case <-time.After(time.Second):
+		t.Fatal("dial did not receive cancellation")
+	}
+	select {
+	case <-finished:
+		t.Error("check settled before actual dial cleanup")
+	case <-time.After(30 * time.Millisecond):
+	}
+	select {
+	case <-canceled:
+		t.Error("cancel acknowledged before actual dial cleanup")
+	default:
+	}
+	_ = json.Unmarshal([]byte(probeRaw(uuid.NewString(), a.storeProbeCatalog.Version())), &request)
+	request.ProxyConfig = "http://proxy.example.invalid:8080"
+	raw, _ = json.Marshal(request)
+	result, e := a.StoreProxyCheck(s.StoreID, binding.BindingVersion, string(raw), 1)
+	if r := parseProbeResult(t, result, e); r.Reason != storeproxy.Busy || calls.Load() != 2 {
+		t.Errorf("another worker entered before cleanup: reason=%s dials=%d", r.Reason, calls.Load())
+	}
+	release.Do(func() { close(cleanup) })
+	select {
+	case <-finished:
+	case <-time.After(time.Second):
+		t.Fatal("worker did not settle after cleanup")
+	}
+	select {
+	case <-canceled:
+	case <-time.After(time.Second):
+		t.Fatal("cancel did not acknowledge after cleanup")
+	}
+}
 
 func TestStoreProxyNativeSubsetMatchesExistingConnectorMatrix(t *testing.T) {
 	for _, connector := range []string{config.BrowserConnectorXray, config.BrowserConnectorMihomo} {

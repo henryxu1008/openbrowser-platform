@@ -75,6 +75,17 @@ Dialing is pinned to the explicit proxy endpoint. Connections, bodies and idle
 transports are owned and closed before settlement. A late successful response
 after phase cancellation/expiry is discarded. Delayed cleanup holds the gate.
 
+The owned transport additionally seals late dial/read/write capabilities, cancels
+and joins each active dial and socket I/O callback, and closes operation-owned
+connections before settlement. `CloseIdleConnections` alone is insufficient:
+Go1.26.5 can return from a canceled request while its dial is still unwinding.
+A real `ownedTransport` backend regression reproduced premature settlement and a
+third dial on `0be3cf5` (`check settled before actual dial cleanup`, followed by
+`TCP_UNREACHABLE dials=3`). Delayed dial cleanup now retains both native gates,
+returns Busy without a third dial, and acknowledges settlement only afterward.
+Additional tests cover reads that delay cleanup, late connections returned
+after cancellation, and denied I/O/dials after the seal.
+
 Only the small v1 DTO crosses the bridge: schema/request ID/target ID, format,
 TCP and target evidence plus fixed reason. No recent logs, raw errors, headers,
 body, IP/region or merchant-login inference is returned. HTTP CONNECT 407 is
@@ -106,7 +117,8 @@ customer account, service, browser process or external proxy was operated.
   exact Store/CAS/revision/generation arguments; malformed/missing catalog; direct
   mode; cancellation, input change and unmount; no save/open/close/prepare side
   effects; pinned catalog/scope/cancel keys; and bridge-required partial evidence.
-- Full offline Go race suite passes: **1668 passed test events, including subtests**.
+- Full offline Go race suite passes: **1671 passed test events, including subtests**
+  (**531 top-level tests**).
   Native cases cover Store/permission/identity/
   enterprise/binding changes, cancel during admission, owner/revision isolation,
   cross-remount and cross-login cleanup gates, session concurrency, phase deadlines

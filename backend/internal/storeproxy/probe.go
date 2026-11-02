@@ -174,8 +174,9 @@ func (p NetworkProber) ownedTransport(endpoint Endpoint) (http.RoundTripper, fun
 	if endpoint.URL.User != nil {
 		return unavailableTransport{}, func() {}
 	}
+	owned := newOwnedIO()
 	proxyDial := func(ctx context.Context, _ string, _ string) (net.Conn, error) {
-		return p.dial(ctx, "tcp", endpoint.Address)
+		return owned.dial(ctx, "tcp", endpoint.Address, p.dial)
 	}
 	tr := &http.Transport{DisableKeepAlives: true, DisableCompression: true, MaxConnsPerHost: 1, MaxIdleConns: 1, MaxResponseHeaderBytes: 32 * 1024, TLSHandshakeTimeout: 2 * time.Second, ResponseHeaderTimeout: 3 * time.Second, ForceAttemptHTTP2: false, DialContext: proxyDial, OnProxyConnectResponse: func(_ context.Context, _ *url.URL, _ *http.Request, response *http.Response) error {
 		if response.StatusCode == 407 {
@@ -202,7 +203,7 @@ func (p NetworkProber) ownedTransport(endpoint Endpoint) (http.RoundTripper, fun
 	} else {
 		tr.Proxy = http.ProxyURL(endpoint.URL)
 	}
-	return tr, tr.CloseIdleConnections
+	return tr, func() { owned.closeAndWait(tr) }
 }
 
 type ownedForwarder struct {

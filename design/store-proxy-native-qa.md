@@ -9,9 +9,10 @@ next step. No external endpoint was selected, configured or probed for this work
 This is a native implementation candidate, not Issue22 completion or a ready
 customer connectivity feature.
 
-The following increment adds a compiled publisher source (still empty) and an
-owned bridge lifecycle/real-child fixture. Its real core Starter remains unbound;
-see [source, bridge contract and health-interface investigation](store-proxy-publisher-and-bridge.md).
+The current increment adds a compiled publisher source (still empty), concrete
+Windows Xray/Mihomo Starter, native stack snapshot and operation-owned cleanup.
+See [source, real Starter contract and target status](store-proxy-publisher-and-bridge.md).
+Official cores and external targets have not been executed for this candidate.
 
 ## Authority and operation lifetime
 
@@ -29,7 +30,8 @@ see [source, bridge contract and health-interface investigation](store-proxy-pub
   a session gate and a Store gate, including across renderer remounts and a
   replacement login. Busy/binding results follow Store permission admission.
   Binding ID/profile ID/version are pinned and rechecked; the existing Store
-  read lock prevents simultaneous Store save/open changes. No save, launch,
+  general-ingress fence freezes native stack/path configuration through cleanup
+  and prevents simultaneous Store save/open changes. No save, browser launch,
   preparation, report, credential persistence or journal intent is performed.
 - `StoreProxyCheckCancel(storeID, requestId, originalRevision, generation)` can
   only stop its original session/Store/revision/operation. It does not need a new
@@ -50,23 +52,25 @@ see [source, bridge contract and health-interface investigation](store-proxy-pub
 
 The existing user-editable `ProxyCheck` configuration and generic multi-target
 connectivity helpers are deliberately not consumed. There is no renderer or
-runtime setter for the private catalog. `NewCatalog` validates/copies a future
-publisher-owned catalog: at most eight targets, unique IDs, bounded labels/URLs,
+runtime setter for the compiled publisher catalog. `NewCatalog` validates/copies
+its entries: at most eight targets, unique IDs, bounded labels/URLs,
 credential-free HTTPS DNS names on port443, no query/fragment/IP/localhost/local
 targets, and a bounded positive expected-status set. An exact catalog fingerprint
 and target ID must resolve again natively. Validation does not itself establish
-publisher trust; approval and integration of a real source remain outstanding.
+publisher trust. The source loader is implemented; approval of a real target
+remains outstanding. The withdrawn health candidate is not configured or used.
 
 The supported network subset follows the existing connector matrix:
 
 - HTTP/HTTPS/SOCKS5 without credentials use the existing native protocol path.
   A private transport uses standard `net/http` and the existing `x/net/proxy`
   SOCKS5 primitive; it has no shared connector manager or pool.
-- Credentialed standard proxies require Xray/Mihomo in the browser's matrix.
-  This candidate can record format and TCP evidence, then returns
-  `CONNECTOR_REQUIRED` with credentials/target untested. It never authenticates
-  through an alternative native path, borrows a shared bridge, switches stacks,
-  downloads a core or launches a bridge. An owned bridge adapter is future work.
+- Credentialed standard proxies use an operation-owned Xray/Mihomo process in the
+  pinned native stack on Windows, when its existing runtime is available. Missing
+  runtime or unsupported ownership proof yields `CONNECTOR_REQUIRED`, retaining
+  only format/TCP evidence. No authenticated native shortcut, shared bridge, stack
+  switch or core download is introduced. Empty production targets prevent any
+  official bridge from starting in the current shipped configuration.
 - Other bridge protocols remain unsupported for this check; format is unknown,
   not falsely declared invalid. Existing browser save/start support is unchanged.
 
@@ -121,8 +125,8 @@ customer account, service, browser process or external proxy was operated.
   exact Store/CAS/revision/generation arguments; malformed/missing catalog; direct
   mode; cancellation, input change and unmount; no save/open/close/prepare side
   effects; pinned catalog/scope/cancel keys; and bridge-required partial evidence.
-- Full offline Go race suite passes: **1671 passed test events, including subtests**
-  (**531 top-level tests**).
+- Full offline Go race suite passes: **1719 passed test events, including subtests**
+  (**555 top-level tests**).
   Native cases cover Store/permission/identity/
   enterprise/binding changes, cancel during admission, owner/revision isolation,
   cross-remount and cross-login cleanup gates, session concurrency, phase deadlines
@@ -163,8 +167,9 @@ production configuration option and performs no network traffic.
 
 ## Remaining gates
 
-Keep Draft for independent native/contract review. A trusted publisher target
-source, an operation-owned connector adapter for authenticated/bridge protocols,
-and real Windows/customer/target acceptance are outstanding. No actual proxy,
+Keep Draft for independent native/contract review. An approved active publisher
+target and real official-core/Windows/customer/target acceptance are outstanding.
+The concrete standard-proxy adapter is bound on Windows; other bridge protocols
+and non-Windows process-ownership acceptance remain outside this candidate. No actual proxy,
 region or merchant-login acceptance was run. Existing entitlement/role gates and
 generic Store boundaries are unchanged. No merge, deployment or release.

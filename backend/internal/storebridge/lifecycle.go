@@ -7,10 +7,7 @@ import (
 	"ant-chrome/backend/internal/proxy"
 	"ant-chrome/backend/internal/storeproxy"
 	"context"
-	"encoding/json"
 	"errors"
-	"io"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -31,40 +28,6 @@ func (i Input) Engine() string   { return i.engine }
 func (i Input) String() string   { return "store-proxy-bridge[" + i.engine + "]" }
 func (i Input) GoString() string { return i.String() }
 
-// WritePrivateInput supplies a bounded native-adapter envelope. It is not an
-// Xray/Mihomo config format; a core-specific stdin/config adapter is still needed.
-func (i Input) WritePrivateInput(w io.Writer) error {
-	if i.proxy.URL == nil || i.proxy.URL.User == nil || w == nil {
-		return ErrUnavailable
-	}
-	password, _ := i.proxy.URL.User.Password()
-	port, _ := strconv.Atoi(i.proxy.URL.Port())
-	if port == 0 {
-		if i.proxy.URL.Scheme == "https" {
-			port = 443
-		} else {
-			port = 80
-		}
-	}
-	data, err := json.Marshal(struct {
-		Engine   string `json:"engine"`
-		Protocol string `json:"protocol"`
-		Server   string `json:"server"`
-		Port     int    `json:"port"`
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}{i.engine, i.proxy.URL.Scheme, i.proxy.URL.Hostname(), port, i.proxy.URL.User.Username(), password})
-	if err != nil {
-		return ErrUnavailable
-	}
-	data = append(data, '\n')
-	defer clear(data)
-	if n, err := w.Write(data); err != nil || n != len(data) {
-		return ErrUnavailable
-	}
-	return nil
-}
-
 // Start must return every owned handle even when startup fails or context has
 // expired. It must not detach work. Ready and Wait include their own I/O cleanup;
 // Stop targets only that exact handle and unblocks Ready. Wait joins actual exit.
@@ -72,8 +35,8 @@ func (i Input) WritePrivateInput(w io.Writer) error {
 // context after handoff. The lease watches the original operation lifetime.
 type Process interface {
 	Ready(context.Context) (string, error)
-	Stop()
-	Wait()
+	Stop() error
+	Wait() error
 	// Settled is an immutable, non-nil signal owned by the process worker. It
 	// closes only after actual exit and every input/output/cleanup worker joins,
 	// independently of Stop/Wait helper success. Helpers must be idempotent and
@@ -96,11 +59,14 @@ func makeInput(raw, stack string) (Input, error) {
 	if reason != storeproxy.None || endpoint.URL.User == nil {
 		return Input{}, ErrRequired
 	}
+	canonical := *endpoint.URL
+	canonical.Host = endpoint.Address
+	endpoint.URL = &canonical
 	// Derive the exact engine from the existing configured stack authority.
 	if stack != "" && stack != config.BrowserConnectorXray && stack != config.BrowserConnectorMihomo {
 		return Input{}, ErrRequired
 	}
-	resolved, err := proxy.ResolveProxyKernelForConnector(raw, nil, "", stack)
+	resolved, err := proxy.ResolveProxyKernelForConnector(endpoint.URL.String(), nil, "", stack)
 	if err != nil || resolved.Kernel != proxy.ProxyKernelXray && resolved.Kernel != proxy.ProxyKernelMihomo {
 		return Input{}, ErrRequired
 	}
@@ -197,13 +163,15 @@ type Lease struct {
 	fault               atomic.Bool
 }
 
-func (l *Lease) contain(work func()) {
+func (l *Lease) contain(work func() error) {
 	defer func() {
 		if recover() != nil {
 			l.fault.Store(true)
 		}
 	}()
-	work()
+	if work() != nil {
+		l.fault.Store(true)
+	}
 }
 func (l *Lease) stop() { l.stopOnce.Do(func() { l.contain(l.process.Stop) }) }
 func (l *Lease) watch(ctx context.Context) func() {

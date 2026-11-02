@@ -9,6 +9,7 @@ import (
 	"ant-chrome/backend/internal/launchcode"
 	"ant-chrome/backend/internal/logger"
 	"ant-chrome/backend/internal/proxy"
+	"ant-chrome/backend/internal/storebridge"
 	"ant-chrome/backend/internal/storeproxy"
 	"ant-chrome/internal/desktopauth"
 	"context"
@@ -41,6 +42,7 @@ type appState struct {
 	// installed files cannot override it. Private test ports have no native setter.
 	storeProbeCatalog       storeproxy.Catalog
 	storeProbeRunner        storeproxy.Prober
+	storeProbeFactory       func(context.Context, storebridge.RuntimeSnapshot) storeproxy.Prober // private fixture only
 	businessInitAttempted   bool
 	businessInitErr         error
 	ownedBrowsers           ownedBrowserReceipts

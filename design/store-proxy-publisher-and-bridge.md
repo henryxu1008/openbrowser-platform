@@ -50,9 +50,8 @@ An owned bridge must have one operation-owned process handle and private
 credential input, bounded startup, operation cancellation, stop and joined exit.
 It must not borrow `EnsureBridge`/`AcquireBridge` shared-manager references, kill
 by process name/port, accept a caller command line, expose raw process output, or
-release the Store/session gate before the process and its I/O finish. Tests use
-only a local process fixture. Production activation remains closed until its
-owned core/config/readiness integration and target source are verified.
+release the Store/session gate before the process and its I/O finish. The native
+adapter is now bound to the scoped use case; the empty catalog prevents activation.
 
 `storebridge.Connector` now derives the engine through the existing resolver,
 limits startup to three seconds within the operation context, and owns a lease
@@ -64,19 +63,71 @@ panic; both Stop and Wait are attempted even when either panics. An independent
 non-nil `Settled` channel must prove actual exit and all I/O cleanup, so helper
 failure never acknowledges settlement. Cleanup faults become a fixed unavailable
 result after joining, including when target evidence had otherwise succeeded.
-The real process implementation must own that signal independently of helpers.
-Input formatting is redacted; decoded synthetic credentials travel on the child's
+The concrete process worker owns that signal independently of helpers.
+Input formatting is redacted; decoded credentials travel on the child's
 stdin, never argv, environment or files. Process errors/output are not returned.
 
 `NetworkProber` has a narrow native-only `Connector` port. It permits only a
 credential-free `127.0.0.1` SOCKS5 endpoint from the owned adapter, repeats authority
 checks after startup, and joins transport cleanup before bridge cleanup. Partial
 bridge startup cannot reach a target or fall back to direct. The production
-prober still supplies **no Starter/Connector** and returns `CONNECTOR_REQUIRED`
-for credentialed input. The private input envelope and fixture readiness frame
-are **not real Xray/Mihomo configuration or readiness protocols**. Core-specific
-configuration, trusted binary resolution, verified readiness and native stack
-capture remain implementation work; they are not a missing user permission.
+prober now constructs the real Starter from an immutable native snapshot of the
+configured stack and existing runtime paths. These fields are never request data.
+The existing general-ingress fence is held exclusively through cleanup, including
+for an unsaved Store, to prevent generic configuration writers from changing that
+snapshot. Concurrent generic calls wait until cleanup; the original Store guard
+then decides their admission. Store/identity/enterprise/binding authority is still
+rechecked at stages and before publishing evidence.
+
+## Concrete Windows Starter and engine configuration
+
+The candidate supports Windows ownership verification. Other platforms keep
+credentialed checks closed until an equivalent OS proof is implemented. The
+existing no-credential native path is unchanged on those platforms.
+
+`ExecStarter` uses the already native-configured Xray/Mihomo executable path. With
+no explicit Xray path it uses the installed `bin/xray.exe`, requiring the existing
+release owner's embedded `publish/runtime-manifest.json` digest. Missing explicit
+Mihomo configuration fails closed. Explicit native paths retain the browser's
+existing native-configuration trust authority; this does not claim publisher
+signing/provenance for custom executables. No path, stack, flags or command can be
+supplied in the Store request. There is no PATH/environment/other-client search,
+download, installation or automatic stack fallback.
+
+Paths are local, regular, bounded-size files with reparse ancestors rejected. A
+Windows read-share-only handle pins the selected file through process exit and
+I/O cleanup; readiness checks its file identity again. Each operation has a private
+temporary home. Only that generated home is eligible for removal. No proxy
+configuration/credential file is created, and existing client workdirs are unused.
+
+The real argument forms are `xray run -format=json -config stdin:` and
+`mihomo -d <owned-home> -f -`. Source evidence:
+[Xray's run command](https://github.com/XTLS/Xray-core/blob/v26.2.6/main/run.go),
+[Xray stdin documentation](https://xtls.github.io/en/document/command.html), and
+[pinned Mihomo stdin handling](https://github.com/MetaCubeX/mihomo/blob/v1.19.20/main.go).
+`BuildOwnedStandardProbeConfig` extracts the existing standard proxy mappings
+without managers/loggers/network TLS-pin fetching: one loopback SOCKS listener,
+one upstream and an explicit rule to it; no direct outbound, UDP, providers,
+controller, external UI, DNS listener, cache persistence or geo auto-updates.
+HTTPS proxy TLS verification remains enabled. Configuration is bounded JSON sent
+through stdin followed by EOF, then its serialized buffer is cleared. The earlier
+generic fixture envelope now exists only in tests, not production code.
+
+The child environment has only a small OS/locale/temp whitelist; proxy, identity,
+CLASH/XRAY config and other caller overrides are absent. stdout/stderr go to the
+OS null device. Readiness verifies the exact owned PID's loopback listener via
+Windows TCP owner metadata, performs only a bounded SOCKS greeting (no CONNECT),
+then verifies ownership/file identity again. An unrelated process on the same port
+cannot satisfy readiness. Existing transport bounds then cover the one target.
+
+The process owns an independent operation-deadline watcher. Cancellation kills the
+exact handle **before closing stdin**: Windows anonymous-pipe Close can otherwise
+wait behind a blocked writer and prevent termination. One worker waits actual
+exit, joins stdin and cancellation callbacks, closes runtime/null handles, removes
+the private home and only then closes `Settled`. Stop/Wait return fixed cleanup
+errors; the lease also contains their panics and never substitutes a helper return
+for that independent proof. Transport joins before bridge cleanup and native
+Store/session gates remain held until both complete.
 
 ## Target status
 
@@ -96,13 +147,30 @@ injection. No runtime health endpoint has been probed. Real proxy, region,
 merchant-login and customer acceptance remain NOT_RUN. Keep Draft for independent
 review; no merge or deployment.
 
-The local process fixture executes only this Go test binary with fixed arguments,
-no listener and no network. It verifies both configured stacks, private credential
-input, concurrent cleanup, cancel during startup with deliberately delayed cleanup,
-late returned handles, remote readiness rejection, startup errors, readiness panic
-and deadlines. Key lifecycle and transport-order regressions passed twenty
-race-enabled repetitions. The complete offline Go race suite passed **1691 test
-events including subtests / 545 top-level tests**, plus full vet and Windows
+Lifecycle fixtures execute this test binary with fixed arguments; the real Starter
+fixtures build a fixed Go core substitute. It binds only loopback, checks the real
+argument/config shape and answers SOCKS greetings. It never dials, resolves a host
+or forwards CONNECT. Native end-to-end fixtures exercise both configured stacks
+through the real scoped facade, actual Starter/PID readiness and a mock target
+transport, with zero save/open/admit/report effects. Config fixtures check existing
+mapping semantics and exact decoded synthetic credentials; no official engine
+parser/process is executed or new dependency installed.
+
+Tests cover blocked stdin, process exit, independent lifetime cleanup, unknown or
+unpinned runtimes, cross-stack rejection, invalid readiness, late handles, readiness
+and Stop/Wait panics, cleanup-before-settlement, and native settings serialization
+before and after a Store binding exists. The Wait-panic regression failed on the
+prior candidate with premature settlement; the new tests pass. Key lifecycle and
+blocked-stdin regressions passed twenty race-enabled repetitions. The complete
+offline Go race suite passed **1719 test events including subtests / 555 top-level
+tests**, plus full vet and Windows
 production compilation without product execution. Frontend code is unchanged;
 the existing v4-aligned component screenshots remain applicable. Exact-head CI
 still performs the normal complete frontend and offline distribution guards.
+
+Actual official Xray/Mihomo execution, syntax acceptance by those binaries, real
+proxy/target/customer acceptance and non-Windows ownership acceptance are NOT_RUN.
+No current authorization requires or permits an official core test run here.
+End-to-end acceptance will need an approved single HTTPS target/status contract
+and appropriate permission to run existing official cores and a controlled owned
+proxy. New services are unnecessary for development and are not deployed.

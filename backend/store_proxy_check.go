@@ -2,6 +2,7 @@ package backend
 
 import (
 	"ant-chrome/backend/internal/browser"
+	"ant-chrome/backend/internal/storebridge"
 	"ant-chrome/backend/internal/storeproxy"
 	"ant-chrome/internal/shuomiapi"
 	"bytes"
@@ -139,10 +140,17 @@ func (a *App) StoreProxyCheck(storeID, expectedVersion, raw string, revision uin
 	// Reserve cancellation ownership before remote admission. Even a rejected
 	// busy request owns its admission context until it has actually settled.
 	busy := lease.Acquire() != nil
-	if a.storeGeneralMu.TryRLock() {
-		defer a.storeGeneralMu.RUnlock()
+	// Freeze the existing generic native ingress (including configuration writes)
+	// until cleanup. A read lock would also admit generic configuration writers.
+	if a.storeGeneralMu.TryLock() {
+		defer a.storeGeneralMu.Unlock()
 	} else {
 		busy = true
+	}
+	var snapshot storebridge.RuntimeSnapshot
+	var snapshotOK bool
+	if !busy {
+		snapshot, snapshotOK = a.storeProbeRuntimeSnapshot()
 	}
 	local := func(ctx context.Context) storeproxy.Reason {
 		if a.storeCheck(revision) != nil {
@@ -154,6 +162,12 @@ func (a *App) StoreProxyCheck(storeID, expectedVersion, raw string, revision uin
 		}
 		if ctx.Err() != nil {
 			return probeReason(ctx.Err())
+		}
+		if !busy && snapshotOK {
+			current, ok := a.storeProbeRuntimeSnapshot()
+			if !ok || current != snapshot {
+				return storeproxy.ContextChanged
+			}
 		}
 		return storeproxy.None
 	}
@@ -237,7 +251,14 @@ func (a *App) StoreProxyCheck(storeID, expectedVersion, raw string, revision uin
 	}
 	runner := a.storeProbeRunner
 	if runner == nil {
-		runner = storeproxy.NetworkProber{}
+		if !snapshotOK {
+			return unknown(storeproxy.Unavailable)
+		}
+		if a.storeProbeFactory != nil {
+			runner = a.storeProbeFactory(lease.Context, snapshot)
+		} else {
+			runner = a.storeNetworkProber(lease.Context, snapshot)
+		}
 	}
 	result := runner.Run(lease.Context, request.ProxyConfig, target, request.RequestID, request.TargetID, authorize)
 	// Run returns only after its owned transports/connection bodies have closed.

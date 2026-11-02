@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -139,8 +140,13 @@ func (p *processFixture) Ready(ctx context.Context) (string, error) {
 		return "", ctx.Err()
 	}
 }
-func (p *processFixture) Stop()                    { p.stops.Add(1); _ = p.stdin.Close(); _ = p.cmd.Process.Kill() }
-func (p *processFixture) Wait()                    { p.waits.Add(1); <-p.waitDone }
+func (p *processFixture) Stop() error {
+	p.stops.Add(1)
+	_ = p.stdin.Close()
+	_ = p.cmd.Process.Kill()
+	return nil
+}
+func (p *processFixture) Wait() error              { p.waits.Add(1); <-p.waitDone; return nil }
 func (p *processFixture) Settled() <-chan struct{} { return p.waitDone }
 
 type panicCleanupProcess struct {
@@ -153,18 +159,19 @@ func (p *panicCleanupProcess) Ready(ctx context.Context) (string, error) {
 	<-ctx.Done()
 	return "", ctx.Err()
 }
-func (p *panicCleanupProcess) Stop() {
+func (p *panicCleanupProcess) Stop() error {
 	p.stopCalls.Add(1)
 	if p.stopPanic {
 		panic(fixtureProxy)
 	}
+	return nil
 }
-func (p *panicCleanupProcess) Wait() {
+func (p *panicCleanupProcess) Wait() error {
 	p.waitCalls.Add(1)
 	if p.waitPanic {
 		panic(fixtureProxy)
 	}
-	p.processFixture.Wait()
+	return p.processFixture.Wait()
 }
 
 func TestOwnedBridgeStopWaitPanicsStillJoin(t *testing.T) {
@@ -425,4 +432,38 @@ func TestOwnedBridgeAdmissionAndUnboundDefaultNeverStart(t *testing.T) {
 	if calls != 0 {
 		t.Fatal("inadmissible request started a process")
 	}
+}
+
+// WritePrivateInput supplies a bounded native-adapter envelope. It is not an
+// Xray/Mihomo config format; a core-specific stdin/config adapter is still needed.
+func (i Input) WritePrivateInput(w io.Writer) error {
+	if i.proxy.URL == nil || i.proxy.URL.User == nil || w == nil {
+		return ErrUnavailable
+	}
+	password, _ := i.proxy.URL.User.Password()
+	port, _ := strconv.Atoi(i.proxy.URL.Port())
+	if port == 0 {
+		if i.proxy.URL.Scheme == "https" {
+			port = 443
+		} else {
+			port = 80
+		}
+	}
+	data, err := json.Marshal(struct {
+		Engine   string `json:"engine"`
+		Protocol string `json:"protocol"`
+		Server   string `json:"server"`
+		Port     int    `json:"port"`
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}{i.engine, i.proxy.URL.Scheme, i.proxy.URL.Hostname(), port, i.proxy.URL.User.Username(), password})
+	if err != nil {
+		return ErrUnavailable
+	}
+	data = append(data, '\n')
+	defer clear(data)
+	if n, err := w.Write(data); err != nil || n != len(data) {
+		return ErrUnavailable
+	}
+	return nil
 }

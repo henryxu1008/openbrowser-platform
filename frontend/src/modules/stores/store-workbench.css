@@ -39,7 +39,9 @@
 .store-count { flex-shrink: 0; color: var(--color-accent); background: var(--color-bg-muted); border-radius: 8px; padding: 9px 14px; font-size: 13px; }
 .store-list-card { border-radius: 12px; }
 .store-filter { flex-wrap: wrap; align-items: center; }
-.store-filter > :first-child { flex: 1; min-width: 180px; }
+.store-filter > :first-child { flex: 1 1 240px; min-width: 180px; width: auto; }
+.store-filter > :nth-child(2) { flex: 0 1 180px; width: 180px; }
+.store-filter > button { flex-shrink: 0; }
 .store-list-note { margin: 0 0 16px; font-size: 12px; line-height: 1.7; color: var(--color-text-muted); }
 .store-list table th { padding-top: 16px; padding-bottom: 16px; }
 .store-list table td { padding-top: 21px; padding-bottom: 21px; }

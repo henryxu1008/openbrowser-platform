@@ -112,4 +112,14 @@ describe('operation ownership and lifetime',()=>{
     x.pending.resolve(result(x.check.mock.calls[0][0]));await run;await x.controller.start('fixture-target')
     expect(listener).not.toHaveBeenCalled();expect(x.check).toHaveBeenCalledTimes(1)
   })
+  it('retains the operation lock across adapter replacement, even before invalidation effects',async()=>{
+    const p=deferred(),old={targets,check:vi.fn(()=>p.promise)},replacement={targets,check:vi.fn(async r=>result(r))}
+    let port=old
+    const controller=createProxyCheckController(()=>port,()=>({scope,proxyConfig:'http://proxy.example.invalid:8080',enabled:true}),{id:()=> 'fixture-request'})
+    const run=controller.start('fixture-target');port=replacement
+    await controller.start('fixture-target');expect(replacement.check).not.toHaveBeenCalled()
+    p.resolve(result(old.check.mock.calls[0][0]));await run
+    expect(controller.snapshot()).toEqual({phase:'idle',busy:false})
+    await controller.start('fixture-target');expect(replacement.check).toHaveBeenCalledTimes(1)
+  })
 })

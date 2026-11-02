@@ -67,16 +67,17 @@ export function safeCheckResult(raw: unknown, request: Pick<CheckRequest, 'reque
     syntax: r.syntax as Evidence, tcp: r.tcp as Evidence, target: r.target as Evidence, reason: r.reason as CheckReason }
 }
 
-export function createProxyCheckController(port: ProxyCheckPort, current: () => Current,
+export function createProxyCheckController(source: ProxyCheckPort | (() => ProxyCheckPort), current: () => Current,
   options: { timeoutMs?: number; id?: () => string } = {}) {
+  const readPort = () => typeof source === 'function' ? source() : source
   let view: CheckView = { phase: 'idle', busy: false }
   let disposed = false
-  let active: { abort: AbortController; key: string; input: string; invalidated: boolean } | null = null
+  let active: { abort: AbortController; key: string; input: string; invalidated: boolean; port: ProxyCheckPort } | null = null
   const listeners = new Set<(view: CheckView) => void>()
   const emit = (next: CheckView) => { view = next; if (!disposed) listeners.forEach(fn => fn(next)) }
   const matches = (operation: NonNullable<typeof active>) => {
     const c = current()
-    return c.enabled && scopeKey(c.scope) === operation.key && c.proxyConfig === operation.input
+    return c.enabled && readPort() === operation.port && scopeKey(c.scope) === operation.key && c.proxyConfig === operation.input
   }
   return {
     snapshot: () => view,
@@ -98,12 +99,13 @@ export function createProxyCheckController(port: ProxyCheckPort, current: () => 
       if (disposed || active) return
       const c = current()
       if (!c.enabled) return
+      const port = readPort()
       const invalid = inspectProxyInput(c.proxyConfig)
       if (invalid) { emit({ phase: 'failed', busy: false, reason: invalid }); return }
       if (!targetId || !port.targets.some(t => t.id === targetId)) {
         emit({ phase: 'failed', busy: false, reason: 'UNAVAILABLE' }); return
       }
-      const operation = { abort: new AbortController(), key: scopeKey(c.scope), input: c.proxyConfig, invalidated: false }
+      const operation = { abort: new AbortController(), key: scopeKey(c.scope), input: c.proxyConfig, invalidated: false, port }
       active = operation
       const request = { requestId: options.id?.() || crypto.randomUUID(), scope: { ...c.scope }, proxyConfig: c.proxyConfig.trim(), targetId }
       emit({ phase: 'checking', busy: true })

@@ -23,21 +23,25 @@ export function StoreProxyCheck({ port, scope, proxyConfig, disabled = false }: 
   const [target, setTarget] = useState('')
   const current = useRef({ scope, proxyConfig, enabled: !disabled })
   current.current = { scope, proxyConfig, enabled: !disabled }
-  const active = useRef<{ port: ProxyCheckPort; controller: ReturnType<typeof createProxyCheckController> } | null>(null)
+  const currentPort = useRef(port)
+  currentPort.current = port
+  const active = useRef<ReturnType<typeof createProxyCheckController> | null>(null)
   const owner = scopeKey(scope)
-  const [received, setReceived] = useState<{ view: CheckView; owner: string; input: string }>({
-    view: { phase: 'idle', busy: false }, owner, input: proxyConfig,
+  const [received, setReceived] = useState<{ view: CheckView; owner: string; input: string; port: ProxyCheckPort }>({
+    view: { phase: 'idle', busy: false }, owner, input: proxyConfig, port,
   })
   useEffect(() => {
-    const controller = createProxyCheckController(port, () => current.current)
-    active.current = { port, controller }
+    // The operation owner lives for this component, across adapter replacement.
+    // Aborting an old adapter never proves its sockets/worker have stopped.
+    const controller = createProxyCheckController(() => currentPort.current, () => current.current)
+    active.current = controller
     const unsubscribe = controller.subscribe(view => setReceived({ view,
-      owner: scopeKey(current.current.scope), input: current.current.proxyConfig }))
-    return () => { unsubscribe(); controller.dispose(); if (active.current?.controller === controller) active.current = null }
-  }, [port])
-  useEffect(() => { active.current?.controller.invalidate() }, [port, owner, proxyConfig, disabled, target])
+      owner: scopeKey(current.current.scope), input: current.current.proxyConfig, port: currentPort.current }))
+    return () => { unsubscribe(); controller.dispose(); if (active.current === controller) active.current = null }
+  }, [])
+  useEffect(() => { active.current?.invalidate() }, [port, owner, proxyConfig, disabled, target])
   // Hide old evidence in the same render that changes input/scope, before effects.
-  const view = received.owner === owner && received.input === proxyConfig ? received.view : { phase: 'idle', busy: received.view.busy } as CheckView
+  const view = received.owner === owner && received.input === proxyConfig && received.port === port ? received.view : { phase: 'idle', busy: received.view.busy } as CheckView
   const result = view.result
   return <div className="store-proxy-check mt-4 space-y-3 border-t border-[var(--color-border-default)] pt-4">
     <FormItem label="检查目标">
@@ -52,10 +56,10 @@ export function StoreProxyCheck({ port, scope, proxyConfig, disabled = false }: 
     <div className="flex flex-wrap gap-2">
       <Button type="button" variant="secondary" className="border-solid min-h-[44px]" disabled={disabled || view.busy || !target || !proxyConfig.trim()}
         onClick={() => {
-          if (active.current?.port === port && scopeKey(current.current.scope) === owner && current.current.proxyConfig === proxyConfig) void active.current.controller.start(target)
+          if (currentPort.current === port && scopeKey(current.current.scope) === owner && current.current.proxyConfig === proxyConfig) void active.current?.start(target)
         }}>检查此代理</Button>
       {view.busy && <Button type="button" variant="secondary" className="border-solid min-h-[44px]" disabled={view.phase !== 'checking'}
-        onClick={() => { if (active.current?.port === port) active.current.controller.cancel() }}>取消检查</Button>}
+        onClick={() => { if (currentPort.current === port) active.current?.cancel() }}>取消检查</Button>}
     </div>
     <div role="status" aria-live="polite" aria-atomic="true" className="space-y-2 text-sm text-[var(--color-text-secondary)]">
       {view.phase === 'checking' && <p>正在检查所选目标…</p>}

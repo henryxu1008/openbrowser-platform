@@ -55,6 +55,21 @@ it('aborts when unmounted and rejects a captured stale action',async()=>{
   act(()=>tree.unmount());tree=null;expect(check.mock.calls[0][1].aborted).toBe(true)
   await act(async()=>{p.resolve(ok(check.mock.calls[0][0]));action()});expect(check).toHaveBeenCalledTimes(1)
 })
+it.each(['resolve','reject'])('holds the lock across port replacement until old worker cleanup %s',async settlement=>{
+  let resolve,reject
+  const pending=new Promise((a,b)=>{resolve=a;reject=b})
+  const old={targets,check:vi.fn(()=>pending)},replacement={targets,check:vi.fn(async r=>ok(r))}
+  await mount(old);await choose();await act(async()=>button('检查此代理').props.onClick())
+  await act(async()=>tree.update(<StoreProxyCheck scope={scope} proxyConfig={proxyConfig} port={replacement}/>))
+  expect(old.check.mock.calls[0][1].aborted).toBe(true)
+  expect(button('检查此代理').props.disabled).toBe(true)
+  await act(async()=>button('检查此代理').props.onClick());expect(replacement.check).not.toHaveBeenCalled()
+  expect(JSON.stringify(tree.toJSON())).not.toContain('代理服务器 TCP')
+  await act(async()=>{if(settlement==='resolve')resolve(ok(old.check.mock.calls[0][0]));else reject(new Error('fixture-secret'))})
+  expect(button('检查此代理').props.disabled).toBe(false)
+  expect(JSON.stringify(tree.toJSON())).not.toMatch(/代理服务器 TCP|fixture-secret/)
+  await act(async()=>button('检查此代理').props.onClick());expect(replacement.check).toHaveBeenCalledTimes(1)
+})
 it('mounts through the actual managed editor with no save, back or native transport side effect',async()=>{
   const native=vi.fn(()=>{throw new Error('Unexpected native transport')})
   vi.stubGlobal('window',{setTimeout,clearTimeout,go:{backend:{AuthBoundApp:new Proxy({},{get:()=>native})}}})

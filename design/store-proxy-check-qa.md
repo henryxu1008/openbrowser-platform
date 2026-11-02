@@ -52,7 +52,7 @@ The fixture runs under React StrictMode, including effect cleanup/remount.
 
 ## Behavior verification
 
-- **215/215 frontend tests pass**, including 59 new contract/component cases.
+- **218/218 frontend tests pass**, including 62 new contract/component cases.
 - TypeScript plus clean production Vite build and whitespace check pass.
 - New tests cover empty/illegal/oversize UTF-8/direct/unsupported input, explicit
   target selection, partial evidence, malformed/contradictory/mismatched DTOs,
@@ -61,6 +61,10 @@ The fixture runs under React StrictMode, including effect cleanup/remount.
   ceiling, holding the retry lock until adapter settlement, late success,
   unmount/stale callbacks, identity/generation/enterprise/revision/Store/binding/
   connector/input changes, and old timeout attribution before renderer effects.
+- Independent review found a port-replacement lifetime gap. The controller now
+  survives port changes and retains its pending lock until the old worker settles.
+  A pure-controller case and two component cases cover ignored abort, delayed
+  cleanup resolution/rejection, blocked reentry and dropped old results.
 - Actual managed editor mock integration verifies no save, back, configuration
   mutation or native bridge call from checking. Removing the optional port hides
   the check action. Existing standalone and Store regression suites pass.

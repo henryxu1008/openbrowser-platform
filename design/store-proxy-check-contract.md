@@ -93,6 +93,9 @@ cancels the old request. Stale completion never reappears. Cancel/timeout ignore
 late success and holds the retry lock until adapter settlement. Unmount aborts,
 removes listeners and cannot publish a result. Renderer checks are UI fences,
 **not native authorization**.
+Replacing an adapter also invalidates and cancels the old operation, while the
+same controller retains the lock until its worker actually settles. Native must
+add a session/Store gate and operation-keyed cancellation across real remounts.
 
 ## Prototype fit and tests
 

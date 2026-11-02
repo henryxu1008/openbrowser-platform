@@ -26,6 +26,7 @@ function focusable(){const node={isConnected:true,closest:()=>null,getClientRect
 async function mount(path='/stores',completeShell=false){
  await act(async()=>{tree=create(<MemoryRouter initialEntries={[path]}><Location/><ShellSlotsProvider><AuthGate>{completeShell?<BusinessShell/>:<Layout><Suspense fallback={<p>Loading</p>}><AppRoutes/></Suspense></Layout>}</AuthGate></ShellSlotsProvider></MemoryRouter>,{createNodeMock:element=>{
   if(element.type==='aside')return nodes.aside
+  if(element.props.id==='workspace-content')return nodes.main
   if(element.props.className==='shell-workspace')return nodes.workspace
   if(element.props.className==='shell-organization-slot')return nodes.organization
   if(element.type==='div'&&Object.keys(element.props).length===0)return nodes.account
@@ -38,7 +39,7 @@ beforeEach(()=>{
  generation=authSnapshot().generation+1;status={generation,state:'signed_in',configured:true,subject:'synthetic-user',expiresAt:new Date(Date.now()+60000).toISOString()}
  const first=focusable(),last=focusable(),trigger=focusable(),closedInput=focusable()
  closedInput.closest=()=>({querySelector:()=>last})
- nodes={first,last,trigger,organization:{kind:'organization'},account:{kind:'account'},workspace:{inert:false},aside:{querySelector:()=>first,querySelectorAll:()=>[first,last,closedInput],addEventListener:(name,fn)=>{listeners[name]=fn},removeEventListener:(name)=>{delete listeners[name]}}}
+ nodes={first,last,trigger,main:focusable(),organization:{kind:'organization'},account:{kind:'account'},workspace:{inert:false},aside:{querySelector:()=>first,querySelectorAll:()=>[first,last,closedInput],addEventListener:(name,fn)=>{listeners[name]=fn},removeEventListener:(name)=>{delete listeners[name]}}}
  native={AuthStatus:vi.fn(()=>Promise.resolve(status)),GetAppConfig:vi.fn().mockResolvedValue({version:'fixture'}),
   BrowserProfileList:vi.fn().mockResolvedValue([]),ListGroups:vi.fn().mockResolvedValue([]),FrontendOperationLog:vi.fn().mockResolvedValue(undefined),
   StoreWorkbenchContext:vi.fn(()=>json(context())),StoreWorkbenchList:vi.fn(()=>json({items:[],pagination:{page:1,pageSize:20,total:0}})),
@@ -50,7 +51,7 @@ beforeEach(()=>{
  nativeSpies={...native}
  const storage={getItem:()=>null,setItem:vi.fn(),removeItem:vi.fn()}
  vi.stubGlobal('window',{go:{main:{App:new Proxy(native,{get:(object,key)=>{if(!(key in object)){unexpected.push(String(key));return ()=>Promise.reject(new Error('unexpected method'))}return object[key]}})}},runtime:{EventsOnMultiple:()=>()=>{}},setInterval,clearInterval,setTimeout,clearTimeout,addEventListener:vi.fn(),removeEventListener:vi.fn(),localStorage:storage,sessionStorage:storage,location:{origin:'https://fixture.test',pathname:'/',search:'',hash:''}})
- vi.stubGlobal('document',{body:{style:{}},activeElement:trigger,querySelector:()=>null,addEventListener:vi.fn(),removeEventListener:vi.fn()})
+ vi.stubGlobal('document',{body:{style:{}},activeElement:trigger,querySelector:()=>null,getElementById:id=>id==='workspace-content'?nodes.main:null,addEventListener:vi.fn(),removeEventListener:vi.fn()})
  vi.stubGlobal('go',window.go)
  vi.stubGlobal('localStorage',storage)
  useLayoutStore.setState({sidebarCollapsed:false});acceptAuth(status,beginAuthAction())
@@ -95,6 +96,17 @@ it('keeps explicit enterprise selection single-flight with the original revision
  await act(async()=>{change({target:{value:'org-b'}});change({target:{value:'org-b'}})})
  expect(native.StoreWorkbenchSelectOrganization).toHaveBeenCalledExactlyOnceWith('org-b',7,generation)
  expect(native.StoreWorkbenchList).toHaveBeenLastCalledWith('','',1,8,generation)
+})
+it('skips to editor content without navigation, discard confirmation or clearing a dirty draft',async()=>{
+ await mount('/stores/shop-a/environment/edit?return=kept')
+ await act(async()=>field('配置名称').props.onChange({target:{value:'kept dirty draft'}}))
+ const skip=button('跳转到内容');expect(skip.props.type).toBe('button');expect(skip.props.href).toBeUndefined()
+ await act(async()=>skip.props.onClick())
+ expect(document.activeElement).toBe(nodes.main);expect(where.pathname+where.search).toBe('/stores/shop-a/environment/edit?return=kept');expect(where.hash).toBe('')
+ expect(tree.root.findAllByProps({role:'dialog'})).toHaveLength(0);expect(field('配置名称').props.value).toBe('kept dirty draft')
+ await act(async()=>field('当前企业').props.onChange({target:{value:'org-b'}}))
+ expect(text(tree.root)).toContain('放弃未保存的更改并切换企业？')
+ expect(native.StoreWorkbenchSelectOrganization).not.toHaveBeenCalled()
 })
 it('retains the original explicit API permission handler inside the account portal',async()=>{
  await mount()

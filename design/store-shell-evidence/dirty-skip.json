@@ -1,0 +1,337 @@
+{
+  "events": {
+    "exceptions": 0,
+    "consoleErrors": 0,
+    "externalAttempts": 0
+  },
+  "text": "跳转到内容\n硕米\nSHUOMI\n请选择企业\n示例企业 1\n示例企业 2\n日常运营\n店铺工作台\n资源管理\n浏览器环境\n网络资源\n内核与扩展\n更多工具\n设置与备份\n离\n离线示例用户\n已登录\n收起侧边栏\nCtrl K\n2026-11-02\n本机时间\n店铺环境配置\n返回店铺\n保存配置\n\n确认名称、内核版本和代理；保存后返回店铺，再点击“打开环境”。保存不会启动浏览器，也不会更改店铺授权。\n\n基础配置\n配置名称*\n内核版本*\n请选择平台发行版本\n130.0.0.1 · 推荐 · 已就绪\n刷新版本\n店铺网络\n网络使用方式\n沿用当前店铺已保存代理\n使用自有代理地址\n明确使用直连（不使用代理）\n\n仅支持当前店铺保存的网络或自有代理地址。不读取全局代理池，不采购网络；保存不代表连接检测通过。运行中的环境须先正常关闭再修改。\n\n本地代理地址\n?\n检查目标\n请选择一个检查目标\n\n仅检查当前代理与所选目标，不保存配置、不打开环境。结果不证明地区正确或商家账号可登录。\n\n检查此代理\n\n此版本尚未由发布方配置检查目标，请联系安装包维护者。\n\n本地代理不会进入代理池，只对当前实例保存生效。\n\n高级设置\n离线合成夹具 · /stores/fixture-store/environment/edit?return=kept",
+  "route": "离线合成夹具 · /stores/fixture-store/environment/edit?return=kept",
+  "calls": [
+    {
+      "method": "GetAppConfig",
+      "args": [
+        1
+      ]
+    },
+    {
+      "method": "StoreWorkbenchContext",
+      "args": [
+        1
+      ]
+    },
+    {
+      "method": "AuthStatus",
+      "args": []
+    },
+    {
+      "method": "StoreEnvironmentOptions",
+      "args": [
+        "fixture-store",
+        7,
+        1
+      ]
+    },
+    {
+      "method": "BrowserKernelCatalog",
+      "args": [
+        1
+      ]
+    },
+    {
+      "method": "BrowserKernelCatalog",
+      "args": [
+        1
+      ]
+    }
+  ],
+  "geometry": {
+    "width": 1280,
+    "scrollWidth": 1280
+  },
+  "filter": [],
+  "controls": [
+    {
+      "tag": "BUTTON",
+      "text": "跳转到内容",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "A",
+      "text": "硕米SHUOMI",
+      "label": "硕米指纹浏览器",
+      "name": "",
+      "href": "/stores"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "",
+      "label": "关闭导航",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "A",
+      "text": "店铺工作台",
+      "label": null,
+      "name": "",
+      "href": "/stores"
+    },
+    {
+      "tag": "SELECT",
+      "text": "请选择企业示例企业 1示例企业 2",
+      "label": "当前企业",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": "fixture-org-a"
+    },
+    {
+      "tag": "A",
+      "text": "选择企业",
+      "label": null,
+      "name": "",
+      "href": "/stores"
+    },
+    {
+      "tag": "A",
+      "text": "店铺工作台",
+      "label": null,
+      "name": "",
+      "href": "/stores"
+    },
+    {
+      "tag": "A",
+      "text": "浏览器环境",
+      "label": null,
+      "name": "",
+      "href": "/browser/list"
+    },
+    {
+      "tag": "A",
+      "text": "网络资源",
+      "label": null,
+      "name": "",
+      "href": "/browser/proxy-pool"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "内核与扩展",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "更多工具",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "设置与备份",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "text": "",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": "on"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "退出登录",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "A",
+      "text": "关于应用",
+      "label": null,
+      "name": "",
+      "href": "/profile"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "收起侧边栏",
+      "label": "收起侧边栏",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "",
+      "label": "打开导航",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "text": "",
+      "label": "全局搜索店铺",
+      "name": "",
+      "href": null,
+      "disabled": true,
+      "value": ""
+    },
+    {
+      "tag": "A",
+      "text": "",
+      "label": "通知中心",
+      "name": "",
+      "href": "/notifications"
+    },
+    {
+      "tag": "A",
+      "text": "",
+      "label": "帮助中心",
+      "name": "",
+      "href": "/system/docs"
+    },
+    {
+      "tag": "A",
+      "text": "2026-11-02本机时间",
+      "label": null,
+      "name": "",
+      "href": "/settings"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "返回店铺",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "保存配置",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "text": "",
+      "label": "配置名称",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": "kept-dirty-fixture"
+    },
+    {
+      "tag": "SELECT",
+      "text": "请选择平台发行版本130.0.0.1 · 推荐 · 已就绪",
+      "label": "内核版本",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": "10000000-0000-0000-0000-000000000001"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "刷新版本",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "SELECT",
+      "text": "沿用当前店铺已保存代理使用自有代理地址明确使用直连（不使用代理）",
+      "label": "网络使用方式",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": "current"
+    },
+    {
+      "tag": "INPUT",
+      "text": "",
+      "label": "本地代理地址",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": "socks5://proxy.example.invalid:1080"
+    },
+    {
+      "tag": "SELECT",
+      "text": "请选择一个检查目标",
+      "label": "检查目标",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "检查此代理",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": true,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "高级设置",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    }
+  ],
+  "dialog": [],
+  "operations": {
+    "GetAppConfig": 1,
+    "StoreWorkbenchContext": 1,
+    "AuthStatus": 1,
+    "StoreEnvironmentOptions": 1,
+    "BrowserKernelCatalog": 2
+  },
+  "unexpected": [],
+  "skipEvidence": {
+    "mainFocused": true,
+    "noDialog": true,
+    "noHash": true,
+    "value": "kept-dirty-fixture",
+    "stillDirty": true
+  },
+  "shell": {
+    "organizationInSidebar": true,
+    "accountControlsInSidebar": true,
+    "backgroundInert": false,
+    "mainScrollWidth": 1034,
+    "mainWidth": 1034,
+    "rowActionRect": null
+  }
+}

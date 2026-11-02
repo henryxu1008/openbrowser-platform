@@ -1407,6 +1407,41 @@
       },
       "keyboard": null,
       "accountKeyboard": null
+    },
+    {
+      "case": "dirty-skip",
+      "route": "离线合成夹具 · /stores/fixture-store/environment/edit?return=kept",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 1,
+        "StoreEnvironmentOptions": 1,
+        "BrowserKernelCatalog": 2
+      },
+      "geometry": {
+        "width": 1280,
+        "scrollWidth": 1280
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 1034,
+        "mainWidth": 1034,
+        "rowActionRect": null
+      },
+      "skipEvidence": {
+        "mainFocused": true,
+        "noDialog": true,
+        "noHash": true,
+        "value": "kept-dirty-fixture",
+        "stillDirty": true
+      }
     }
   ],
   "allPassed": true,

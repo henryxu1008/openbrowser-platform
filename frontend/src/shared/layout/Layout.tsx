@@ -39,7 +39,7 @@ function Shell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', focusSearch, true)
   }, [canSearch])
   return <div className="app-shell">
-    <a className="shell-skip" href="#workspace-content">跳转到内容</a>
+    <button type="button" className="shell-skip" onClick={() => document.getElementById('workspace-content')?.focus()}>跳转到内容</button>
     <Sidebar mobileOpen={mobileOpen} onMobileClose={closeMobile} />
     {mobileOpen && <button className="shell-nav-backdrop" aria-label="关闭导航遮罩" onClick={() => setMobileOpen(false)} tabIndex={-1} />}
     <div className="shell-workspace" ref={workspaceRef}>

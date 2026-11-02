@@ -56,7 +56,7 @@ export function StoreWorkspace() {
     {error&&<Button variant="secondary" onClick={()=>void load()}>只读核对企业上下文</Button>}
     {scope?.context.selectionRequired&&<p role="status">请选择企业后查看获授权的店铺。</p>}
     {scope?.context.effectiveOrganizationId&&!busy&&<Scope.Provider value={{...scope,refresh:()=>load(scope,scopeEpoch)}}><Dirty.Provider value={setDirty}><Outlet key={`${scope.revision}:${scopeEpoch}`}/></Dirty.Provider></Scope.Provider>}
-    <ConfirmModal open={!!pendingOrg} title="放弃未保存的更改并切换企业？" content="当前环境配置尚未保存。" onClose={()=>setPendingOrg('')} onConfirm={()=>{const org=pendingOrg;setPendingOrg('');setDirty(false);void select(org)}}/>
+    <ConfirmModal className="store-workbench-modal" open={!!pendingOrg} title="放弃未保存的更改并切换企业？" content="当前环境配置尚未保存。" onClose={()=>setPendingOrg('')} onConfirm={()=>{const org=pendingOrg;setPendingOrg('');setDirty(false);void select(org)}}/>
   </div>
 }
 
@@ -135,7 +135,7 @@ function StoreDetail() {
       {!canUse&&<p role="status">当前角色未获店铺浏览器使用权限，或店铺已停用。已有窗口可通过本机归属证明安全关闭。</p>}
       <BrowserDetailPage managed={{name:environment.name,running:environment.running,known:!environment.binding||environment.runtimeKnown,core:environment.coreId,proxy:environment.proxySummary,observedAt:environment.observedAt,pending:busy,canUse:!!canUse&&!environment.pending,evidence:environment.pending?`操作 ${environment.pending.operationId} 结果待核对，已阻断新操作。`:environment.lastOperation?`原操作 ${environment.lastOperation.operationId} · ${outcome(environment.lastOperation.outcome)} · ${environment.lastOperation.reportState==='confirmed'?'报告已收到':'报告未确认'}`:undefined,onEdit:()=>navigate(`/stores/${storeId}/environment/edit?return=${encodeURIComponent(params.toString())}`),onOpen:()=>void action('open'),onClose:()=>void action('close')}}/>
       {(unknownKey||environment.lastOperation)&&<Button variant="secondary" onClick={()=>void inspectReceipt()}>只读核对原操作</Button>}
-      {receipt&&<Modal open title="原操作回执" onClose={()=>setReceipt('')} width="760px"><pre className="whitespace-pre-wrap break-all text-xs">{receipt}</pre></Modal>}
+      {receipt&&<Modal className="store-workbench-modal" open title="原操作回执" onClose={()=>setReceipt('')} width="760px"><pre className="whitespace-pre-wrap break-all text-xs">{receipt}</pre></Modal>}
     </>}
     {store&&tab==='records'&&<StoreRecords storeId={storeId}/>}
   </div>
@@ -172,7 +172,7 @@ function StoreRecords({storeId}:{storeId:string}) {
       {key:'serverTime',title:'服务器时间',render:value=>time(value)},{key:'actorSubject',title:'操作人'},{key:'action',title:'操作',render:value=>actions[value]||value},{key:'outcome',title:'结果',render:value=>outcome(value)},{key:'factSource',title:'来源',render:value=>value==='client_report'?'客户端声明':'服务器事实'},{key:'detail',title:'详情',render:(_,item)=><Button variant="secondary" size="sm" onClick={()=>setSelected(item)}>查看记录</Button>},
     ]}/>}
     {page&&<div className="flex justify-end gap-3 mt-4"><Button variant="secondary" disabled={loading||!cursors.length} onClick={()=>{const prev=cursors.slice(0,-1);setCursors(prev);setQuery({...query,cursor:prev[prev.length-1]||undefined})}}>上一页</Button><Button variant="secondary" disabled={loading||!page.nextCursor} onClick={()=>{if(page.nextCursor){setCursors([...cursors,page.nextCursor]);setQuery({...query,cursor:page.nextCursor})}}}>下一页</Button></div>}
-    <Modal open={!!selected} title="操作记录详情" onClose={()=>setSelected(null)} width="700px">{selected&&<dl className="grid grid-cols-[150px_1fr] gap-3 text-sm break-all">
+    <Modal className="store-workbench-modal" open={!!selected} title="操作记录详情" onClose={()=>setSelected(null)} width="700px">{selected&&<dl className="grid grid-cols-[150px_1fr] gap-3 text-sm break-all">
       {Object.entries({'操作编号':selected.operationId,'操作人':selected.actorSubject,'成员引用':selected.memberRef,'操作':actions[selected.action]||selected.action,'结果':outcome(selected.outcome),'原因':selected.reasonCode,'事实来源':selected.factSource,'服务器时间':time(selected.serverTime),'客户端声明时间':time(selected.clientObservedAt),'本机绑定引用':selected.bindingRef,'实例引用':selected.profileRef}).map(([label,value])=><div key={label} className="contents"><dt>{label}</dt><dd>{value||'—'}</dd></div>)}
     </dl>}</Modal>
   </Card>

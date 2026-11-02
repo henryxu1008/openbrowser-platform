@@ -910,6 +910,7 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
 
       <ConfirmModal
         open={leaveConfirm}
+        className={managed ? 'store-workbench-modal' : undefined}
         onClose={() => {setLeaveConfirm(false);setLeaveTarget('')}}
         onConfirm={() => {setIsDirty(false);if(leaveTarget)navigate(leaveTarget);else if(managed)managed.back();else navigate('/browser/list')}}
         title="放弃未保存的更改？"
@@ -983,6 +984,7 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
 
       <Modal
         open={!!saveError}
+        className={managed ? 'store-workbench-modal' : undefined}
         onClose={() => setSaveError('')}
         title="保存失败"
         width="420px"

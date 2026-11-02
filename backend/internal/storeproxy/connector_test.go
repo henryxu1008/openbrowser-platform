@@ -2,16 +2,32 @@ package storeproxy
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/http"
 	"reflect"
 	"testing"
 )
 
-type connectorFunc func(context.Context, Endpoint) (Endpoint, func(), Reason)
+type connectorFunc func(context.Context, Endpoint) (Endpoint, func() error, Reason)
 
-func (f connectorFunc) Connect(ctx context.Context, e Endpoint) (Endpoint, func(), Reason) {
+func (f connectorFunc) Connect(ctx context.Context, e Endpoint) (Endpoint, func() error, Reason) {
 	return f(ctx, e)
+}
+
+func TestProbeOwnedConnectorCleanupFaultReturnsUnknown(t *testing.T) {
+	bridge, _ := ParseEndpoint("socks5://127.0.0.1:31991")
+	p := NetworkProber{Dial: func(context.Context, string, string) (net.Conn, error) { return &connFixture{}, nil }, Connector: connectorFunc(func(context.Context, Endpoint) (Endpoint, func() error, Reason) {
+		return bridge, func() error { return errors.New("fixture-secret") }, None
+	}), Transport: func(Endpoint) (http.RoundTripper, func()) {
+		return roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			return &http.Response{StatusCode: 204, Body: &bodyFixture{}, Request: r}, nil
+		}), func() {}
+	}}
+	r := p.Run(context.Background(), "http://user:pass@proxy.example.invalid:8080", fixtureTarget(), "id", "fixture", func(context.Context) Reason { return None })
+	if r.Reason != Unavailable || r.Target != "not_checked" || r.TCP != "not_checked" {
+		t.Fatal("cleanup fault published evidence")
+	}
 }
 
 func TestProbeOwnedConnectorUsesLoopbackAndJoinsTransportBeforeBridge(t *testing.T) {
@@ -24,12 +40,12 @@ func TestProbeOwnedConnectorUsesLoopbackAndJoinsTransportBeforeBridge(t *testing
 			}
 			return &connFixture{}, nil
 		},
-		Connector: connectorFunc(func(ctx context.Context, e Endpoint) (Endpoint, func(), Reason) {
+		Connector: connectorFunc(func(ctx context.Context, e Endpoint) (Endpoint, func() error, Reason) {
 			if e.URL.User == nil || e.URL.User.Username() != "fixture-user" {
 				t.Error("credentialed endpoint not passed to owned adapter")
 			}
 			events = append(events, "bridge-ready")
-			return bridge, func() { events = append(events, "bridge-joined") }, None
+			return bridge, func() error { events = append(events, "bridge-joined"); return nil }, None
 		}),
 		Transport: func(e Endpoint) (http.RoundTripper, func()) {
 			if e.URL.String() != bridge.URL.String() || e.URL.User != nil {
@@ -54,8 +70,8 @@ func TestProbeRejectsNonOwnedBridgeEndpointsAndCleansPartialStartup(t *testing.T
 	for _, address := range []string{"socks5://remote.example.invalid:1080", "http://127.0.0.1:1080", "socks5://user:pass@127.0.0.1:1080", "socks5://127.0.0.1:1080/?x=1"} {
 		endpoint, _ := ParseEndpoint(address)
 		cleaned := 0
-		p := NetworkProber{Dial: func(context.Context, string, string) (net.Conn, error) { return &connFixture{}, nil }, Connector: connectorFunc(func(context.Context, Endpoint) (Endpoint, func(), Reason) {
-			return endpoint, func() { cleaned++ }, None
+		p := NetworkProber{Dial: func(context.Context, string, string) (net.Conn, error) { return &connFixture{}, nil }, Connector: connectorFunc(func(context.Context, Endpoint) (Endpoint, func() error, Reason) {
+			return endpoint, func() error { cleaned++; return nil }, None
 		}), Transport: func(Endpoint) (http.RoundTripper, func()) {
 			t.Error("unowned endpoint reached transport")
 			return nil, nil
@@ -66,8 +82,8 @@ func TestProbeRejectsNonOwnedBridgeEndpointsAndCleansPartialStartup(t *testing.T
 		}
 	}
 	cleaned := 0
-	p := NetworkProber{Dial: func(context.Context, string, string) (net.Conn, error) { return &connFixture{}, nil }, Connector: connectorFunc(func(context.Context, Endpoint) (Endpoint, func(), Reason) {
-		return Endpoint{}, func() { cleaned++ }, Timeout
+	p := NetworkProber{Dial: func(context.Context, string, string) (net.Conn, error) { return &connFixture{}, nil }, Connector: connectorFunc(func(context.Context, Endpoint) (Endpoint, func() error, Reason) {
+		return Endpoint{}, func() error { cleaned++; return nil }, Timeout
 	})}
 	r := p.Run(context.Background(), "http://user:pass@proxy.example.invalid:8080", fixtureTarget(), "id", "fixture", func(context.Context) Reason { return None })
 	if r.Reason != Timeout || r.TCP != "passed" || r.Target != "not_checked" || cleaned != 1 {
@@ -78,7 +94,9 @@ func TestProbeRejectsNonOwnedBridgeEndpointsAndCleansPartialStartup(t *testing.T
 func TestProbeRechecksAuthorityAfterOwnedBridgeStartup(t *testing.T) {
 	checks, cleaned := 0, 0
 	bridge, _ := ParseEndpoint("socks5://127.0.0.1:31991")
-	p := NetworkProber{Dial: func(context.Context, string, string) (net.Conn, error) { return &connFixture{}, nil }, Connector: connectorFunc(func(context.Context, Endpoint) (Endpoint, func(), Reason) { return bridge, func() { cleaned++ }, None }), Transport: func(Endpoint) (http.RoundTripper, func()) { t.Error("revoked bridge reached target"); return nil, nil }}
+	p := NetworkProber{Dial: func(context.Context, string, string) (net.Conn, error) { return &connFixture{}, nil }, Connector: connectorFunc(func(context.Context, Endpoint) (Endpoint, func() error, Reason) {
+		return bridge, func() error { cleaned++; return nil }, None
+	}), Transport: func(Endpoint) (http.RoundTripper, func()) { t.Error("revoked bridge reached target"); return nil, nil }}
 	r := p.Run(context.Background(), "http://user:pass@proxy.example.invalid:8080", fixtureTarget(), "id", "fixture", func(context.Context) Reason {
 		checks++
 		if checks == 3 {

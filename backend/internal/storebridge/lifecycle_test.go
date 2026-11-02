@@ -139,8 +139,76 @@ func (p *processFixture) Ready(ctx context.Context) (string, error) {
 		return "", ctx.Err()
 	}
 }
-func (p *processFixture) Stop() { p.stops.Add(1); _ = p.stdin.Close(); _ = p.cmd.Process.Kill() }
-func (p *processFixture) Wait() { p.waits.Add(1); <-p.waitDone }
+func (p *processFixture) Stop()                    { p.stops.Add(1); _ = p.stdin.Close(); _ = p.cmd.Process.Kill() }
+func (p *processFixture) Wait()                    { p.waits.Add(1); <-p.waitDone }
+func (p *processFixture) Settled() <-chan struct{} { return p.waitDone }
+
+type panicCleanupProcess struct {
+	*processFixture
+	stopPanic, waitPanic bool
+	stopCalls, waitCalls atomic.Int32
+}
+
+func (p *panicCleanupProcess) Ready(ctx context.Context) (string, error) {
+	<-ctx.Done()
+	return "", ctx.Err()
+}
+func (p *panicCleanupProcess) Stop() {
+	p.stopCalls.Add(1)
+	if p.stopPanic {
+		panic(fixtureProxy)
+	}
+}
+func (p *panicCleanupProcess) Wait() {
+	p.waitCalls.Add(1)
+	if p.waitPanic {
+		panic(fixtureProxy)
+	}
+	p.processFixture.Wait()
+}
+
+func TestOwnedBridgeStopWaitPanicsStillJoin(t *testing.T) {
+	for _, mode := range []string{"wait", "stop", "both"} {
+		t.Run(mode, func(t *testing.T) {
+			cleanup := make(chan struct{})
+			var release sync.Once
+			defer release.Do(func() { close(cleanup) })
+			started := make(chan *panicCleanupProcess, 1)
+			connector := New("xray", startFunc(func(ctx context.Context, input Input) (Process, error) {
+				p := &panicCleanupProcess{processFixture: launchFixture(t, input, "no-ready", cleanup), stopPanic: mode == "stop" || mode == "both", waitPanic: mode == "wait" || mode == "both"}
+				started <- p
+				return p, nil
+			}))
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			result := make(chan error, 1)
+			go func() { _, err := connector.Acquire(ctx, fixtureProxy); result <- err }()
+			process := <-started
+			// The fixture's independent owner has killed/joined the exact child,
+			// while I/O/resource cleanup deliberately remains incomplete.
+			process.processFixture.Stop()
+			<-process.exited
+			cancel()
+			select {
+			case <-result:
+				t.Error("cleanup panic acknowledged settlement before owned cleanup")
+			case <-time.After(30 * time.Millisecond):
+			}
+			release.Do(func() { close(cleanup) })
+			select {
+			case err := <-result:
+				if err != ErrUnavailable {
+					t.Error("cleanup fault did not become fixed unavailable")
+				}
+			case <-time.After(time.Second):
+				t.Fatal("fault cleanup did not settle")
+			}
+			if process.stopCalls.Load() != 1 || process.waitCalls.Load() != 1 {
+				t.Error("fault skipped or repeated a cleanup phase")
+			}
+		})
+	}
+}
 
 func TestOwnedBridgeUsesConfiguredStackAndPrivateInput(t *testing.T) {
 	for _, stack := range []string{"xray", "mihomo"} {

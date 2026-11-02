@@ -102,7 +102,7 @@ type Prober interface {
 // Connector owns only this operation's bridge. Cleanup must join its process and
 // I/O; the returned endpoint must be a credential-free loopback SOCKS5 endpoint.
 type Connector interface {
-	Connect(context.Context, Endpoint) (Endpoint, func(), Reason)
+	Connect(context.Context, Endpoint) (Endpoint, func() error, Reason)
 }
 type NetworkProber struct {
 	Dial                      func(context.Context, string, string) (net.Conn, error)
@@ -223,14 +223,14 @@ func (d *ownedForwarder) Dial(network, address string) (net.Conn, error) {
 func (d *ownedForwarder) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
 	return d.dial(ctx, network, address)
 }
-func (p NetworkProber) Run(ctx context.Context, raw string, target Target, id, targetID string, authorize Authorize) Result {
+func (p NetworkProber) Run(ctx context.Context, raw string, target Target, id, targetID string, authorize Authorize) (r Result) {
 	check := func() Reason {
 		if ctx.Err() != nil {
 			return phaseReason(ctx, ctx.Err(), Unavailable)
 		}
 		return authorize(ctx)
 	}
-	r := Unknown(id, targetID, Unavailable)
+	r = Unknown(id, targetID, Unavailable)
 	endpoint, reason := ParseEndpoint(raw)
 	if reason != None {
 		if reason != Unsupported {
@@ -276,7 +276,11 @@ func (p NetworkProber) Run(ctx context.Context, raw string, target Target, id, t
 		}
 		bridgeEndpoint, cleanup, bridgeReason := p.Connector.Connect(ctx, endpoint)
 		if cleanup != nil {
-			defer cleanup()
+			defer func() {
+				if cleanup() != nil {
+					r = Unknown(id, targetID, Unavailable)
+				}
+			}()
 		}
 		if bridgeReason != None {
 			r.Reason = phaseReason(ctx, ctx.Err(), bridgeReason)

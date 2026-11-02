@@ -12,6 +12,7 @@ import (
 	"io"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -73,6 +74,11 @@ type Process interface {
 	Ready(context.Context) (string, error)
 	Stop()
 	Wait()
+	// Settled is an immutable, non-nil signal owned by the process worker. It
+	// closes only after actual exit and every input/output/cleanup worker joins,
+	// independently of Stop/Wait helper success. Helpers must be idempotent and
+	// non-panicking; the lease still contains their faults and waits for proof.
+	Settled() <-chan struct{}
 }
 type Starter interface {
 	Start(context.Context, Input) (Process, error)
@@ -101,7 +107,7 @@ func makeInput(raw, stack string) (Input, error) {
 	return Input{resolved.Kernel, endpoint}, nil
 }
 
-func (c *Connector) Connect(ctx context.Context, endpoint storeproxy.Endpoint) (storeproxy.Endpoint, func(), storeproxy.Reason) {
+func (c *Connector) Connect(ctx context.Context, endpoint storeproxy.Endpoint) (storeproxy.Endpoint, func() error, storeproxy.Reason) {
 	if endpoint.URL == nil {
 		return storeproxy.Endpoint{}, nil, storeproxy.ConnectorRequired
 	}
@@ -148,11 +154,15 @@ func (c *Connector) Acquire(ctx context.Context, raw string) (result *Lease, cal
 	published := false
 	defer func() {
 		if !published {
-			lease.CloseAndWait()
+			if lease.CloseAndWait() != nil {
+				result = nil
+				callErr = ErrUnavailable
+			}
 			lifetimeWatch()
 			startupWatch()
 		}
 	}()
+	lease.settled = process.Settled()
 	if err != nil || startup.Err() != nil {
 		return nil, fixedError(startup, err)
 	}
@@ -183,9 +193,19 @@ type Lease struct {
 	endpoint            storeproxy.Endpoint
 	stopOnce, closeOnce sync.Once
 	unwatch             func()
+	settled             <-chan struct{}
+	fault               atomic.Bool
 }
 
-func (l *Lease) stop() { l.stopOnce.Do(l.process.Stop) }
+func (l *Lease) contain(work func()) {
+	defer func() {
+		if recover() != nil {
+			l.fault.Store(true)
+		}
+	}()
+	work()
+}
+func (l *Lease) stop() { l.stopOnce.Do(func() { l.contain(l.process.Stop) }) }
 func (l *Lease) watch(ctx context.Context) func() {
 	done := make(chan struct{})
 	stop := context.AfterFunc(ctx, func() { defer close(done); l.stop() })
@@ -198,14 +218,21 @@ func (l *Lease) watch(ctx context.Context) func() {
 		})
 	}
 }
-func (l *Lease) CloseAndWait() {
+func (l *Lease) CloseAndWait() error {
 	l.closeOnce.Do(func() {
 		l.stop()
-		l.process.Wait()
+		l.contain(l.process.Wait)
+		// Helper faults never stand in for actual settlement. An invalid provider
+		// without a join signal cannot acknowledge cleanup or release its gate.
+		<-l.settled
 		if l.unwatch != nil {
 			l.unwatch()
 		}
 	})
+	if l.fault.Load() {
+		return ErrUnavailable
+	}
+	return nil
 }
 
 // Endpoint exposes only the validated private bridge endpoint, never upstream

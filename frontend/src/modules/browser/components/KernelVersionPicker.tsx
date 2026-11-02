@@ -89,7 +89,7 @@ export function KernelVersionPicker({ value, scopeKey, disabled, onChange, onBus
   const unavailable = !!value && !releases.some(item => item.releaseId === value)
   const needsPreparation = releases.some(item => item.releaseId === value && !item.installed)
   return <div className="space-y-2">
-    <div className="flex gap-2">
+    <div className="kernel-version-actions flex gap-2">
       <Select aria-label="内核版本" value={pending || value} disabled={disabled || loading || busy} onChange={event => void choose(event.target.value)} options={[
         { value: '', label: loading ? '正在获取可用版本…' : '请选择平台发行版本' },
         ...(unavailable ? [{ value, label: '当前绑定版本（不在可选目录中）' }] : []),

@@ -1,0 +1,334 @@
+{
+  "events": {
+    "exceptions": 0,
+    "consoleErrors": 0,
+    "externalAttempts": 0
+  },
+  "text": "跳转到内容\n店铺工作台\n\n选择已授权店铺，继续准备环境或开始工作。\n\n1 家可访问店铺\n我的店铺\n全部平台\nAmazon\nTEMU\nSHEIN\nTIKTOK\nWALMART\n查询\n\n店铺状态来自服务端；进入工作台后核对本机环境和网络，列表不代表浏览器已就绪。\n\n店铺\n\t\n平台\n\t\n地区\n\t\n店铺状态\n\t\n服务状态\n\t\n操作\n\n示例店铺\tTEMU\tUS\t已启用\t待核对\t进入工作台\n上一页\n第 1 页\n下一页\n离线合成夹具 · /stores",
+  "route": "离线合成夹具 · /stores",
+  "calls": [
+    {
+      "method": "GetAppConfig",
+      "args": [
+        1
+      ]
+    },
+    {
+      "method": "StoreWorkbenchContext",
+      "args": [
+        1
+      ]
+    },
+    {
+      "method": "AuthStatus",
+      "args": []
+    },
+    {
+      "method": "StoreWorkbenchList",
+      "args": [
+        "",
+        "",
+        1,
+        7,
+        1
+      ]
+    },
+    {
+      "method": "StoreWorkbenchList",
+      "args": [
+        "",
+        "",
+        1,
+        7,
+        1
+      ]
+    },
+    {
+      "method": "FrontendOperationLog",
+      "args": [
+        "debug",
+        "StoreWorkbenchList",
+        true,
+        0,
+        "",
+        1
+      ]
+    },
+    {
+      "method": "AuthStatus",
+      "args": []
+    }
+  ],
+  "geometry": {
+    "width": 390,
+    "scrollWidth": 390
+  },
+  "filter": [
+    {
+      "x": 33,
+      "y": 291.5,
+      "width": 324,
+      "height": 44
+    },
+    {
+      "x": 33,
+      "y": 347.5,
+      "width": 180,
+      "height": 44
+    },
+    {
+      "x": 225,
+      "y": 347.5,
+      "width": 60,
+      "height": 44
+    }
+  ],
+  "controls": [
+    {
+      "tag": "A",
+      "text": "跳转到内容",
+      "label": null,
+      "name": "",
+      "href": "#workspace-content"
+    },
+    {
+      "tag": "A",
+      "text": "硕米SHUOMI",
+      "label": "硕米指纹浏览器",
+      "name": "",
+      "href": "/stores"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "",
+      "label": "关闭导航",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "A",
+      "text": "店铺工作台",
+      "label": null,
+      "name": "",
+      "href": "/stores"
+    },
+    {
+      "tag": "SELECT",
+      "text": "请选择企业示例企业 1示例企业 2",
+      "label": "当前企业",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": "fixture-org-a"
+    },
+    {
+      "tag": "A",
+      "text": "选择企业",
+      "label": null,
+      "name": "",
+      "href": "/stores"
+    },
+    {
+      "tag": "A",
+      "text": "店铺工作台",
+      "label": null,
+      "name": "",
+      "href": "/stores"
+    },
+    {
+      "tag": "A",
+      "text": "浏览器环境",
+      "label": null,
+      "name": "",
+      "href": "/browser/list"
+    },
+    {
+      "tag": "A",
+      "text": "网络资源",
+      "label": null,
+      "name": "",
+      "href": "/browser/proxy-pool"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "内核与扩展",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "更多工具",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "设置与备份",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "text": "",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": "on"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "退出登录",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "A",
+      "text": "关于应用",
+      "label": null,
+      "name": "",
+      "href": "/profile"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "收起侧边栏",
+      "label": "收起侧边栏",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "",
+      "label": "打开导航",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "text": "",
+      "label": "全局搜索店铺",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "A",
+      "text": "",
+      "label": "通知中心",
+      "name": "",
+      "href": "/notifications"
+    },
+    {
+      "tag": "A",
+      "text": "",
+      "label": "帮助中心",
+      "name": "",
+      "href": "/system/docs"
+    },
+    {
+      "tag": "A",
+      "text": "2026-11-02本机时间",
+      "label": null,
+      "name": "",
+      "href": "/settings"
+    },
+    {
+      "tag": "INPUT",
+      "text": "",
+      "label": "搜索店铺",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "SELECT",
+      "text": "全部平台AmazonTEMUSHEINTIKTOKWALMART",
+      "label": "平台",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "查询",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "A",
+      "text": "示例店铺",
+      "label": null,
+      "name": "",
+      "href": "/stores/fixture-store?return="
+    },
+    {
+      "tag": "A",
+      "text": "进入工作台",
+      "label": null,
+      "name": "",
+      "href": "/stores/fixture-store?return="
+    },
+    {
+      "tag": "BUTTON",
+      "text": "上一页",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": true,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "下一页",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": true,
+      "value": ""
+    }
+  ],
+  "dialog": [],
+  "operations": {
+    "GetAppConfig": 1,
+    "StoreWorkbenchContext": 1,
+    "AuthStatus": 2,
+    "StoreWorkbenchList": 1,
+    "FrontendOperationLog": 1
+  },
+  "unexpected": [],
+  "shell": {
+    "organizationInSidebar": true,
+    "accountControlsInSidebar": true,
+    "backgroundInert": false,
+    "mainScrollWidth": 390,
+    "mainWidth": 390,
+    "rowActionRect": {
+      "x": 193.265625,
+      "width": 100
+    }
+  }
+}

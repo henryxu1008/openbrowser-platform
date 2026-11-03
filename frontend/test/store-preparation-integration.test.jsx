@@ -88,6 +88,31 @@ it('keeps prior selection on preparation failure and retries only explicitly',as
  await mount();await act(async()=>choose());expect(field('内核版本').props.value).toBe('prior-release');expect(text(tree.root)).toContain('内核制品校验失败');expect(native.StoreEnvironmentSave).not.toHaveBeenCalled()
  native.BrowserKernelPrepare.mockResolvedValue(undefined);await act(async()=>choose());expect(native.BrowserKernelPrepare).toHaveBeenCalledTimes(2);expect(field('内核版本').props.value).toBe(release.releaseId);expect(native.StoreEnvironmentSave).not.toHaveBeenCalled()
 })
+it('retries a failed kernel preparation only explicitly and updates only the current draft over the real bridge',async()=>{
+ const pending=deferred(),prior='prior-release'
+ native.StoreEnvironmentOptions.mockResolvedValue(JSON.stringify({input:{...input,coreId:prior},cores:[],binding:state.binding}))
+ native.BrowserKernelPrepare.mockRejectedValueOnce(new Error('kernel_preparation_failed')).mockReturnValueOnce(pending.promise)
+ await mount();await act(async()=>choose())
+ expect(field('内核版本').props.value).toBe(prior)
+ expect(field('本地代理地址').props.value).toBe(input.proxyConfig)
+ expect(text(tree.root)).not.toContain('正在准备所选版本')
+ expect(button(`重新准备 ${release.version}`)).toBeDefined()
+ await act(async()=>vi.advanceTimersByTime(1000))
+ expect(native.BrowserKernelPrepare).toHaveBeenCalledTimes(1)
+ const retry=button(`重新准备 ${release.version}`).props.onClick
+ await act(async()=>{retry();retry();button('保存配置').props.onClick()})
+ expect(native.BrowserKernelPrepare).toHaveBeenCalledTimes(2)
+ expect(native.BrowserKernelPrepare).toHaveBeenLastCalledWith(release.releaseId,generation)
+ expect(button('保存配置').props.disabled).toBe(true)
+ expect(native.StoreEnvironmentSave).not.toHaveBeenCalled()
+ await act(async()=>pending.resolve())
+ expect(field('内核版本').props.value).toBe(release.releaseId)
+ expect(field('本地代理地址').props.value).toBe(input.proxyConfig)
+ expect(button('保存配置').props.disabled).toBe(false)
+ expect(button(`重新准备 ${release.version}`)).toBeUndefined()
+ expect(location.pathname).toBe('/stores/shop-a/environment/edit')
+ for(const method of ['StoreEnvironmentSave','StoreEnvironmentOpen','StoreEnvironmentClose'])expect(native[method]).not.toHaveBeenCalled()
+})
 it.each(['catalog','preparation'])('explains kernel permission denial during %s and preserves the draft until an explicit refresh',async stage=>{
  const pending=deferred(),prior='prior-release'
  native.StoreEnvironmentOptions.mockResolvedValue(JSON.stringify({input:{...input,coreId:prior},cores:[],binding:state.binding}))

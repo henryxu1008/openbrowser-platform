@@ -12,7 +12,7 @@ const deferred = () => { let resolve, reject; const promise = new Promise((yes, 
 let tree, props
 const choose = () => tree.root.findByType('select').props.onChange({ target: { value: release.releaseId } })
 const login = () => { const epoch = beginAuthAction(); acceptAuth({ generation: authSnapshot().generation + 1, state: 'signed_in', configured: true, expiresAt: new Date(Date.now() + 60000).toISOString() }, epoch) }
-beforeEach(() => { vi.clearAllMocks(); login(); api.fetch.mockResolvedValue([release]); api.prepare.mockResolvedValue(undefined); props = { value: '', scopeKey: 'store-a:1', onChange: vi.fn(), onBusyChange: vi.fn() } })
+beforeEach(() => { vi.resetAllMocks(); login(); api.fetch.mockResolvedValue([release]); api.prepare.mockResolvedValue(undefined); props = { value: '', scopeKey: 'store-a:1', onChange: vi.fn(), onBusyChange: vi.fn() } })
 afterEach(() => { if (tree) act(() => tree.unmount()); tree = null })
 async function mount() { await act(async () => { tree = create(<KernelVersionPicker {...props}/>); await Promise.resolve() }) }
 
@@ -73,4 +73,75 @@ it('ignores foreign progress and discards an older catalog response', async () =
   act(() => api.event({ releaseId: release.releaseId, generation: authSnapshot().generation + 1, phase: 'ready', percent: 100 }))
   expect(tree.root.findByProps({ role: 'status' }).children.join('')).not.toContain('100%')
   await act(async () => { pending.resolve(); await pending.promise })
+})
+
+const retryButton = () => tree.root.findAllByType('button').find(node => node.children.join('') === `重新准备 ${release.version}`)
+it.each([['kernel_preparation_failed', true], ['kernel_catalog_unavailable', false]])('offers one explicit retry after %s without retaining failed progress or changing the old binding', async (error, asError) => {
+  const failed = deferred(), retry = deferred()
+  props.value = 'old-binding'; api.prepare.mockReturnValueOnce(failed.promise).mockReturnValueOnce(retry.promise)
+  await mount(); act(() => choose())
+  const oldProgress = api.event
+  act(() => oldProgress({ releaseId: release.releaseId, generation: authSnapshot().generation, phase: 'downloading', percent: 62 }))
+  expect(tree.root.findByProps({ role: 'status' }).children.join('')).toContain('62%')
+  await act(async () => { failed.reject(asError ? new Error(error) : error); await Promise.resolve() })
+  expect(tree.root.findAllByProps({ role: 'status' })).toHaveLength(0)
+  act(() => oldProgress({ releaseId: release.releaseId, generation: authSnapshot().generation, phase: 'ready', percent: 100 }))
+  expect(tree.root.findAllByProps({ role: 'status' })).toHaveLength(0)
+  expect(tree.root.findByType('select').props.value).toBe('old-binding')
+  expect(props.onChange).not.toHaveBeenCalled()
+  expect(props.onBusyChange).toHaveBeenLastCalledWith(false)
+  expect(api.prepare).toHaveBeenCalledTimes(1)
+  const click = retryButton().props.onClick
+  act(() => { click(); click() })
+  expect(api.prepare).toHaveBeenCalledTimes(2)
+  expect(api.prepare).toHaveBeenLastCalledWith(release.releaseId)
+  expect(tree.root.findByType('select').props.disabled).toBe(true)
+  expect(retryButton().props.disabled).toBe(true)
+  expect(props.onChange).not.toHaveBeenCalled()
+  await act(async () => { retry.resolve(); await retry.promise })
+  expect(props.onChange).toHaveBeenCalledExactlyOnceWith(release.releaseId)
+  expect(api.off).toHaveBeenCalledTimes(2)
+  expect(retryButton()).toBeUndefined()
+})
+
+it.each(['kernel_release_forbidden', 'kernel_artifact_integrity_failed', 'kernel_release_identity_changed', 'kernel_release_not_found', 'desktop_unauthenticated', 'kernel_service_configuration_required', 'kernel_release_forbidden kernel_preparation_failed'])('clears failed progress without offering a shortcut retry for %s', async error => {
+  api.prepare.mockRejectedValue(new Error(error)); await mount()
+  await act(async () => { choose(); await Promise.resolve() })
+  expect(tree.root.findByProps({ role: 'alert' })).toBeDefined()
+  expect(tree.root.findAllByProps({ role: 'status' })).toHaveLength(0)
+  expect(retryButton()).toBeUndefined()
+  expect(props.onChange).not.toHaveBeenCalled()
+  expect(api.prepare).toHaveBeenCalledTimes(1)
+})
+
+it.each(['scope', 'value', 'auth', 'refresh', 'unmount'])('invalidates the failed choice and captured retry after %s', async kind => {
+  api.prepare.mockRejectedValueOnce(new Error('kernel_preparation_failed'))
+  await mount(); await act(async () => { choose(); await Promise.resolve() })
+  const staleClick = retryButton().props.onClick
+  await act(async () => {
+    if (kind === 'auth') login()
+    else if (kind === 'unmount') { tree.unmount(); tree = null }
+    else if (kind === 'refresh') await tree.root.findAllByType('button').find(node => node.children.join('') === '刷新版本').props.onClick()
+    else { props = { ...props, ...(kind === 'scope' ? { scopeKey: 'store-b:2' } : { value: 'different-binding' }) }; tree.update(<KernelVersionPicker {...props}/>) }
+  })
+  act(() => staleClick())
+  expect(api.prepare).toHaveBeenCalledTimes(1)
+  expect(props.onChange).not.toHaveBeenCalled()
+  if (tree) expect(retryButton()).toBeUndefined()
+})
+
+it('checks the newest disabled state before dispatching a captured retry and permits a later explicit retry', async () => {
+  api.prepare.mockRejectedValueOnce(new Error('kernel_preparation_failed'))
+  await mount(); await act(async () => { choose(); await Promise.resolve() })
+  const click = retryButton().props.onClick
+  act(() => { props = { ...props, disabled: true }; tree.update(<KernelVersionPicker {...props}/>) })
+  expect(retryButton().props.disabled).toBe(true)
+  act(() => click())
+  expect(api.prepare).toHaveBeenCalledTimes(1)
+  expect(props.onChange).not.toHaveBeenCalled()
+  act(() => { props = { ...props, disabled: false }; tree.update(<KernelVersionPicker {...props}/>) })
+  expect(retryButton().props.disabled).toBe(false)
+  await act(async () => { retryButton().props.onClick(); await Promise.resolve() })
+  expect(api.prepare).toHaveBeenCalledTimes(2)
+  expect(props.onChange).toHaveBeenCalledExactlyOnceWith(release.releaseId)
 })

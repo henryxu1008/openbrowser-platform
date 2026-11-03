@@ -11,8 +11,9 @@ import { BusinessShell } from '../../src/App'
 import '../../src/index.css'
 
 const params = new URLSearchParams(location.search), counts = {}, unexpected = []
+const kernelFailure = { retry: 'kernel_preparation_failed', forbidden: 'kernel_release_forbidden' }[params.get('kernel')]
 const status = { generation: authSnapshot().generation + 1, state: 'signed_in', configured: true, subject: '离线示例用户', expiresAt: new Date(Date.now() + 3600000).toISOString() }
-const release = { releaseId: '10000000-0000-0000-0000-000000000001', version: '130.0.0.1', os: 'windows', arch: 'amd64', recommended: true, installed: true }
+const release = { releaseId: '10000000-0000-0000-0000-000000000001', version: '130.0.0.1', os: 'windows', arch: 'amd64', recommended: true, installed: !kernelFailure }
 let organization = 'fixture-org-a', revision = 7
 const json = value => Promise.resolve(JSON.stringify(value))
 const store = { id: 'fixture-store', name: '示例店铺', platform: 'temu', region: 'US', recordStatus: 'active' }
@@ -27,6 +28,14 @@ const native = {
   BrowserKernelCatalog: () => json([release]),
 }
 window.proxyDraftFixture = { counts, unexpected }
+if (kernelFailure) {
+  input.coreId = '10000000-0000-0000-0000-000000000002'
+  native.BrowserKernelPrepare = () => {
+    if (kernelFailure === 'kernel_release_forbidden' || counts.BrowserKernelPrepare === 1) return Promise.reject(new Error(kernelFailure))
+    release.installed = true
+    return Promise.resolve()
+  }
+}
 window.go = { main: { App: new Proxy(native, { get: (target, key) => { const method = target[key]; return (...args) => {
   counts[key] = (counts[key] || 0) + 1
   if (!(key in target)) { unexpected.push(String(key)); return Promise.reject(new Error('Offline fixture rejects this native method')) }

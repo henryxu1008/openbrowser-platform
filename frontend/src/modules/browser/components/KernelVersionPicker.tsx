@@ -26,8 +26,8 @@ export function KernelVersionPicker({ value, scopeKey, disabled, onChange, onBus
   const working = useRef(false)
   const callbacks = useRef({ onChange, onBusyChange })
   callbacks.current = { onChange, onBusyChange }
-  const context = useRef({ scopeKey, value })
-  context.current = { scopeKey, value }
+  const context = useRef({ scopeKey, value, disabled })
+  context.current = { scopeKey, value, disabled }
 
   const ticket = () => {
     const request = ++serial.current, generation = authSnapshot().generation, epoch = authEpoch()
@@ -60,7 +60,7 @@ export function KernelVersionPicker({ value, scopeKey, disabled, onChange, onBus
   }, [scopeKey, value])
 
   const choose = async (releaseId: string) => {
-    if (!releaseId || working.current || disabled || loading) return
+    if (!releaseId || working.current || context.current.disabled || loading) return
     const release = releases.find(item => item.releaseId === releaseId)
     if (!release) return
     const request = ticket()

@@ -129,3 +129,19 @@ it.each(['scope', 'value', 'auth', 'refresh', 'unmount'])('invalidates the faile
   expect(props.onChange).not.toHaveBeenCalled()
   if (tree) expect(retryButton()).toBeUndefined()
 })
+
+it('checks the newest disabled state before dispatching a captured retry and permits a later explicit retry', async () => {
+  api.prepare.mockRejectedValueOnce(new Error('kernel_preparation_failed'))
+  await mount(); await act(async () => { choose(); await Promise.resolve() })
+  const click = retryButton().props.onClick
+  act(() => { props = { ...props, disabled: true }; tree.update(<KernelVersionPicker {...props}/>) })
+  expect(retryButton().props.disabled).toBe(true)
+  act(() => click())
+  expect(api.prepare).toHaveBeenCalledTimes(1)
+  expect(props.onChange).not.toHaveBeenCalled()
+  act(() => { props = { ...props, disabled: false }; tree.update(<KernelVersionPicker {...props}/>) })
+  expect(retryButton().props.disabled).toBe(false)
+  await act(async () => { retryButton().props.onClick(); await Promise.resolve() })
+  expect(api.prepare).toHaveBeenCalledTimes(2)
+  expect(props.onChange).toHaveBeenCalledExactlyOnceWith(release.releaseId)
+})

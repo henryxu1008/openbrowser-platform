@@ -21,6 +21,7 @@ export function KernelVersionPicker({ value, scopeKey, disabled, onChange, onBus
   const [pending, setPending] = useState('')
   const [error, setError] = useState('')
   const [progress, setProgress] = useState('')
+  const [retry, setRetry] = useState<{ releaseId: string; version: string; live: () => boolean } | null>(null)
   const serial = useRef(0)
   const working = useRef(false)
   const callbacks = useRef({ onChange, onBusyChange })
@@ -35,7 +36,7 @@ export function KernelVersionPicker({ value, scopeKey, disabled, onChange, onBus
   const refresh = async () => {
     if (working.current) return
     const request = ticket()
-    setLoading(true); setError('')
+    setLoading(true); setError(''); setProgress(''); setRetry(null)
     try {
       const list = await fetchKernelReleases()
       if (request.live()) setReleases(list)
@@ -45,13 +46,13 @@ export function KernelVersionPicker({ value, scopeKey, disabled, onChange, onBus
 
   useEffect(() => {
     working.current = false
-    setBusy(false); setPending(''); setProgress('')
+    setBusy(false); setPending(''); setProgress(''); setRetry(null)
     callbacks.current.onBusyChange?.(false)
     void refresh()
     const unsubscribe = subscribeAuth(() => {
       serial.current++
       working.current = false
-      setReleases([]); setBusy(false); setPending(''); setLoading(false)
+      setReleases([]); setBusy(false); setPending(''); setLoading(false); setProgress(''); setRetry(null)
       setError('登录状态已变化，请重新登录后选择。')
       callbacks.current.onBusyChange?.(false)
     })
@@ -66,21 +67,33 @@ export function KernelVersionPicker({ value, scopeKey, disabled, onChange, onBus
     if (!request.live()) return
     working.current = true
     setBusy(true); setPending(releaseId); setError(''); setProgress('正在准备所选版本…')
+    if (retry?.releaseId !== releaseId) setRetry(null)
     callbacks.current.onBusyChange?.(true)
     // The per-listener disposer never removes another page's listener.
     let off = () => {}
     try {
       off = EventsOn('browser.kernel.progress', (event: { releaseId: string; generation: number; phase: string; percent: number }) => {
-        if (request.live() && event?.releaseId === releaseId && event.generation === request.generation && phases[event.phase] && Number.isFinite(event.percent)) {
+        if (working.current && request.live() && event?.releaseId === releaseId && event.generation === request.generation && phases[event.phase] && Number.isFinite(event.percent)) {
           setProgress(`${phases[event.phase]} ${Math.max(0, Math.min(100, event.percent))}%`)
         }
       })
       await prepareKernelRelease(releaseId)
       if (!request.live()) return
       setReleases(list => list.map(item => item.releaseId === releaseId ? { ...item, installed: true } : item))
+      setRetry(null)
       setProgress('所选版本已就绪。')
       callbacks.current.onChange(releaseId)
-    } catch (e) { if (request.live()) setError(kernelError(e)) }
+    } catch (e) {
+      if (request.live()) {
+        setProgress(''); setError(kernelError(e)); setRetry(null)
+        const code = e instanceof Error ? e.message : String(e)
+        // Retry only generic preparation/service failures. The original
+        // ticket also expires captured clicks on refresh or context replacement.
+        if (code === 'kernel_preparation_failed' || code === 'kernel_catalog_unavailable') {
+          setRetry({ releaseId, version: release.version, live: request.live })
+        }
+      }
+    }
     finally {
       off()
       if (request.live()) { working.current = false; setBusy(false); setPending(''); callbacks.current.onBusyChange?.(false) }
@@ -97,7 +110,7 @@ export function KernelVersionPicker({ value, scopeKey, disabled, onChange, onBus
       ]} />
       <Button variant="secondary" disabled={disabled || loading || busy} onClick={() => void refresh()}>刷新版本</Button>
     </div>
-    {needsPreparation && <Button variant="secondary" disabled={disabled || loading || busy} onClick={() => void choose(value)}>准备此版本</Button>}
+    {(retry || needsPreparation) && <Button variant="secondary" disabled={disabled || loading || busy} onClick={() => { if (retry) { if (retry.live()) void choose(retry.releaseId) } else void choose(value) }}>{retry ? `重新准备 ${retry.version}` : '准备此版本'}</Button>}
     {!loading && !error && !releases.length && <p className="text-sm text-[var(--color-text-muted)]">暂无适用于此客户端的发行版本。</p>}
     {unavailable && <p className="text-sm text-[var(--color-text-muted)]">现有绑定保持原版本；选择新版本后，保存配置才会更改绑定。</p>}
     {progress && <p role="status" className="text-sm text-[var(--color-text-secondary)]">{progress}</p>}

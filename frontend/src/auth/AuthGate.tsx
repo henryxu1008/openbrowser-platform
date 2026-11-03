@@ -3,6 +3,7 @@ import { AuthCancel, AuthGrantAPI, AuthLogin, AuthLogout, AuthStatus as NativeAu
 import { Button, Loading } from '../shared/components';
 import { projectConfig } from '../config/projectBase.config';
 import { acceptAuth, authEpoch, authSnapshot, beginAuthAction, signedIn, subscribeAuth } from './session';
+import { ShellAccountControls } from '../shared/layout/ShellSlots';
 
 export const useAuthStatus = () => useSyncExternalStore(subscribeAuth, authSnapshot, authSnapshot);
 
@@ -62,7 +63,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   if (signedIn()) return (
     <div className="flex h-screen flex-col">
-      <div className="flex shrink-0 items-center justify-end gap-3 border-b border-[var(--color-border)] px-4 py-2 text-sm">
+      <ShellAccountControls>
+      <div className="shell-auth-controls flex shrink-0 items-center justify-end gap-3 border-b border-[var(--color-border)] px-4 py-2 text-sm">
         <span>{status.subject}</span>
         <label className="flex items-center gap-2">
           <input type="checkbox" checked={!!status.apiGranted} disabled={busy} onChange={async (event) => {
@@ -78,6 +80,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         </label>
         <Button variant="secondary" size="sm" onClick={() => { void action('logout'); }} disabled={busy}>退出登录</Button>
       </div>
+      </ShellAccountControls>
       {error && <p role="alert" className="px-4 py-2 text-red-600">{error}</p>}
       <div className="min-h-0 flex-1" key={`${status.generation}:${status.issuer}:${status.subject}`}>{children}</div>
     </div>
@@ -89,7 +92,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         <h1 className="text-2xl font-semibold">登录 {projectConfig.name}</h1>
         <p className="text-sm text-[var(--color-text-secondary)]">登录后继续使用本机浏览器档案。</p>
         {status.state === 'loading' ? <Loading text="确认登录状态..." /> : null}
-        {!status.configured && status.state !== 'loading' ? <p role="status">安装包的登录配置不可用，请联系应用提供方。</p> : null}
+        {!status.configured && status.state !== 'loading' && status.errorCode !== 'identity_configuration_required' ? <p role="status">安装包的登录配置不可用，请联系应用提供方。</p> : null}
         {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
         {status.errorCode && <p role="status" className="text-sm">{authFailureMessage(status.errorCode)}</p>}
         {status.state === 'signing_in' ? <>

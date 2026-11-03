@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { StoreProxyCheck } from '../../stores/StoreProxyCheck'
+import type { CheckScope, ProxyCheckPort } from '../../stores/proxyCheck'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ChevronDown, ChevronUp, FolderOpen, HelpCircle, Layers, ShieldCheck } from 'lucide-react'
 import { Button, Card, ConfirmModal, FormItem, Input, Modal, Select, Textarea, toast } from '../../../shared/components'
@@ -236,12 +238,15 @@ function resolvePoolProxySelection(
   return { mode: 'pool', proxyId: directProxy?.proxyId || '', proxyConfig: '' }
 }
 
+export type ManagedProxyCheck = { scope: CheckScope; port: ProxyCheckPort }
 export interface ManagedBrowserEditor {
   title: string
-  load: () => Promise<{ input: BrowserProfileInput; cores: BrowserCore[] }>
+  load: () => Promise<{ input: BrowserProfileInput; cores: BrowserCore[]; proxyCheck?: ManagedProxyCheck }>
   save: (input: BrowserProfileInput) => Promise<void>
   back: () => void
   onDirtyChange?: (dirty: boolean) => void
+  // Direct injection is retained for offline fixtures; production uses load().
+  proxyCheck?: ManagedProxyCheck
 }
 export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } = {}) {
   const { id } = useParams()
@@ -262,6 +267,14 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
     keywords: [],
     groupId: '',
   })
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [networkChoice, setNetworkChoice] = useState('current')
+  const [loadedProxyCheck,setLoadedProxyCheck] = useState<ManagedProxyCheck>()
+  const proxyCheck = loadedProxyCheck || managed?.proxyCheck
+  const savedStoreNetwork = useRef('')
+  const [optionsReady, setOptionsReady] = useState(!managed)
+  const optionsReadyRef = useRef(!managed)
+  const [optionsError, setOptionsError] = useState('')
   const [kernelBusy, setKernelBusy] = useState(false)
   const kernelBusyRef = useRef(false)
   const [proxies, setProxies] = useState<BrowserProxy[]>([])
@@ -271,7 +284,7 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
   const [saving, setSaving] = useState(false)
   const savingRef = useRef(false)
   const [proxyPickerOpen, setProxyPickerOpen] = useState(false)
-  const [proxyMode, setProxyMode] = useState<ProxySourceMode>('pool')
+  const [proxyMode, setProxyMode] = useState<ProxySourceMode>(managed ? 'local' : 'pool')
   const [isDirty, setIsDirty] = useState(false)
   const [leaveConfirm, setLeaveConfirm] = useState(false)
   const [saveError, setSaveError] = useState('')
@@ -309,10 +322,19 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
     let active = true
     const loadData = async () => {
       if (managed) {
+        optionsReadyRef.current = false
+        setOptionsReady(false)
+        setLoadedProxyCheck(undefined)
+        setOptionsError('')
         const result = await managed.load()
         if (!active) return
         setFormData({ ...result.input, userDataDir: '', launchArgs: [], tags: [], keywords: [], groupId: '', proxyId: '' })
+        setLoadedProxyCheck(result.proxyCheck)
+        savedStoreNetwork.current = result.input.proxyConfig || ''
+        setNetworkChoice('current')
         setProxyMode('local')
+        optionsReadyRef.current = true
+        setOptionsReady(true)
         return
       }
       const [proxyList, tagList, groupList, settings] = await Promise.all([
@@ -365,8 +387,8 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
       })
       setLaunchArgsText(currentLaunchArgs.join('\n'))
     }
-    void loadData().catch(error => { if (active) setSaveError(String(error)) })
-    return () => {active=false}
+    void loadData().catch(error => { if (active) { if (managed) setOptionsError('环境配置暂不可用。请返回店铺，核对权限和连接后重新进入；不会保存空配置。'); else setSaveError(String(error)) } })
+    return () => {active=false; if (managed) optionsReadyRef.current=false}
   }, [id, isCreate, managed])
 
   const fingerprintArgsKey = formData.fingerprintArgs.join('\n')
@@ -387,6 +409,7 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
   }, [id, isCreate, formData.coreId, fingerprintArgsKey, managed])
 
   const handleChange = (field: keyof BrowserProfileInput, value: string | string[] | number) => {
+    if (managed && (!optionsReadyRef.current || savingRef.current || saveBlocked)) return
     setIsDirty(true)
     setFormData(prev => {
       if (field === 'proxyId') {
@@ -394,6 +417,13 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
       }
       return { ...prev, [field]: value }
     })
+  }
+
+  const chooseStoreNetwork = (choice: string) => {
+    if (!managed || !optionsReadyRef.current || savingRef.current || saveBlocked || !['current','custom','direct'].includes(choice)) return
+    setNetworkChoice(choice)
+    if (choice === 'current') handleChange('proxyConfig', savedStoreNetwork.current)
+    if (choice === 'direct') handleChange('proxyConfig', '')
   }
 
   const handleProxyModeChange = (mode: ProxySourceMode) => {
@@ -414,10 +444,14 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
   }
 
   const handleSave = async () => {
-    if (savingRef.current || saveBlocked || kernelBusyRef.current) return
+    if (savingRef.current || saveBlocked || kernelBusyRef.current || (managed && !optionsReadyRef.current)) return
     if (!formData.coreId) { setSaveError('请选择平台发行的内核版本'); return }
     const resolvedProxyId = proxyMode === 'pool' ? (formData.proxyId || '').trim() : ''
     const resolvedProxyConfig = proxyMode === 'local' ? (formData.proxyConfig || '').trim() : ''
+    if (managed && networkChoice === 'custom' && !resolvedProxyConfig) {
+      setSaveError('请填写自有代理地址，或明确使用直连；不会自动改为直连。')
+      return
+    }
     if (!managed && proxyMode === 'local' && !resolvedProxyConfig) {
       setSaveError('请输入本地代理地址')
       return
@@ -480,6 +514,7 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
   }
 
   const handleBack = () => {
+    setLeaveTarget('')
     if (isDirty) { setLeaveConfirm(true) } else if (managed) { managed.back() } else { navigate('/browser/list') }
   }
 
@@ -591,15 +626,18 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
           <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">{managed?.title || (isCreate ? '新建配置' : '编辑配置')}</h1>
           <div className="flex flex-wrap gap-2 sm:justify-end">
             <Button variant="secondary" size="sm" onClick={handleBack}>{managed ? '返回店铺' : '返回列表'}</Button>
-            <Button size="sm" onClick={handleSave} loading={saving} disabled={saveBlocked || kernelBusy}>保存配置</Button>
+            <Button size="sm" onClick={handleSave} loading={saving} disabled={saveBlocked || kernelBusy || (!!managed && !optionsReady)}>保存配置</Button>
           </div>
         </div>
       </Card>
 
+      {managed && <p className="text-sm text-[var(--color-text-secondary)]">确认名称、内核版本和代理；保存后返回店铺，再点击“打开环境”。保存不会启动浏览器，也不会更改店铺授权。</p>}
+      {managed && !optionsReady && !optionsError && <p role="status">正在读取当前店铺配置…</p>}
+      {optionsError && <p role="alert" className="text-sm text-red-600">{optionsError}</p>}
       <Card title="基础配置">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormItem label="配置名称" required>
-            <Input aria-label="配置名称" value={formData.profileName} onChange={e => handleChange('profileName', e.target.value)} placeholder="请输入配置名称" />
+            <Input aria-label="配置名称" disabled={!!managed && (!optionsReady || saving || saveBlocked)} value={formData.profileName} onChange={e => handleChange('profileName', e.target.value)} placeholder="请输入配置名称" />
           </FormItem>
           {!managed && <FormItem label="用户数据目录（留空自动生成）">
             <div className="flex gap-2">
@@ -618,13 +656,14 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
             <KernelVersionPicker
               scopeKey={`${id || 'managed'}:${managed?.title || 'profile'}`}
               value={formData.coreId}
-              disabled={saving || saveBlocked}
+              disabled={saving || saveBlocked || (!!managed && !optionsReady)}
               onChange={releaseId => handleChange('coreId', releaseId)}
               onBusyChange={busy => { kernelBusyRef.current = busy; setKernelBusy(busy) }}
             />
           </FormItem>
-          <FormItem label="历史标签">
+          {(!managed || advancedOpen) && <><FormItem label="历史标签">
             <Select
+              disabled={!!managed && (!optionsReady || saving || saveBlocked)}
               aria-label="历史标签"
               value={formData.restoreLastSession || ''}
               onChange={e => handleChange('restoreLastSession', e.target.value)}
@@ -633,6 +672,7 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
           </FormItem>
           <FormItem label="最大内存 MB">
             <Input
+              disabled={!!managed && (!optionsReady || saving || saveBlocked)}
               aria-label="最大内存 MB"
               type="number"
               min="0"
@@ -642,6 +682,7 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
               placeholder="0 表示不限制"
             />
           </FormItem>
+          </>}
           {!managed && <FormItem label="标签">
             <TagInput
               value={formData.tags}
@@ -662,8 +703,16 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
         </div>
       </Card>
 
-      <Card title="代理与定位">
-        <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-4 items-start">
+      <Card title={managed ? '店铺网络' : '代理与定位'}>
+        {managed && <div className="mb-4 space-y-2">
+          <FormItem label="网络使用方式"><Select aria-label="网络使用方式" value={networkChoice} disabled={!optionsReady || saving || saveBlocked} onChange={e=>chooseStoreNetwork(e.target.value)} options={[
+            {value:'current',label:savedStoreNetwork.current ? '沿用当前店铺已保存代理' : '沿用当前店铺已保存直连'},
+            {value:'custom',label:'使用自有代理地址'},
+            {value:'direct',label:'明确使用直连（不使用代理）'},
+          ]}/></FormItem>
+          <p className="text-xs text-[var(--color-text-muted)]">仅支持当前店铺保存的网络或自有代理地址。不读取全局代理池，不采购网络；保存不代表连接检测通过。运行中的环境须先正常关闭再修改。</p>
+        </div>}
+        <div className={`grid grid-cols-1 ${managed ? '' : 'lg:grid-cols-[220px_minmax(0,1fr)]'} gap-4 items-start`}>
           {!managed && <FormItem label="代理来源">
             <Select
               value={proxyMode}
@@ -710,16 +759,18 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
               )}
             </FormItem>
           ) : (
-            <FormItem label="本地代理地址" hint={managed ? '留空为直连；仅保存到当前店铺环境，支持现有连接栈协议。' : '支持 http://、https://、socks5://'}>
+            <FormItem label="本地代理地址" hint={managed ? '自有代理地址不可留空；如需直连，请在网络使用方式中明确选择。仅保存到当前店铺环境。' : '支持 http://、https://、socks5://'}>
               <Input
+                disabled={!!managed && (!optionsReady || saving || saveBlocked)}
                 aria-label="本地代理地址"
                 value={formData.proxyConfig}
-                onChange={e => handleChange('proxyConfig', e.target.value)}
+                onChange={e => {if(managed&&(!optionsReadyRef.current||savingRef.current||saveBlocked))return;if(managed)setNetworkChoice('custom');handleChange('proxyConfig', e.target.value)}}
                 placeholder="http://127.0.0.1:7890"
               />
             </FormItem>
           )}
         </div>
+        {managed && proxyCheck && networkChoice !== 'direct' && (networkChoice === 'custom' || !!formData.proxyConfig?.trim()) && <StoreProxyCheck {...proxyCheck} proxyConfig={formData.proxyConfig || ''} disabled={!optionsReady || saving || saveBlocked} />}
         <p className="text-xs text-[var(--color-text-muted)] mt-2">
           {proxyMode === 'pool'
             ? `当前使用代理池节点${selectedPoolProxy?.proxyName ? `：${selectedPoolProxy.proxyName}` : '。'}`
@@ -736,6 +787,8 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
         onClose={() => setProxyPickerOpen(false)}
       />}
 
+      {managed && <Button variant="secondary" aria-expanded={advancedOpen} aria-controls="store-advanced-fingerprint" onClick={() => setAdvancedOpen(value => !value)}>高级设置</Button>}
+      {(!managed || advancedOpen) && <fieldset id={managed ? 'store-advanced-fingerprint' : undefined} disabled={!!managed && (!optionsReady || saving || saveBlocked)} className="min-w-0">
       <Card
         title="指纹配置"
         actions={!managed && (
@@ -777,6 +830,8 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
           onChange={args => handleChange('fingerprintArgs', args)}
         />
       </Card>
+
+      </fieldset>}
 
       {!managed && <Card padding="none">
         <button
@@ -865,7 +920,8 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
 
       <ConfirmModal
         open={leaveConfirm}
-        onClose={() => setLeaveConfirm(false)}
+        className={managed ? 'store-workbench-modal' : undefined}
+        onClose={() => {setLeaveConfirm(false);setLeaveTarget('')}}
         onConfirm={() => {setIsDirty(false);if(leaveTarget)navigate(leaveTarget);else if(managed)managed.back();else navigate('/browser/list')}}
         title="放弃未保存的更改？"
         content="当前页面有未保存的修改，离开后将丢失这些更改。"
@@ -938,6 +994,7 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
 
       <Modal
         open={!!saveError}
+        className={managed ? 'store-workbench-modal' : undefined}
         onClose={() => setSaveError('')}
         title="保存失败"
         width="420px"

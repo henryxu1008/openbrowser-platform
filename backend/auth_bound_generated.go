@@ -2346,6 +2346,26 @@ func (a *AuthBoundApp) StoreOperationGet(storeID string, key string, revision ui
 	return
 }
 
+func (a *AuthBoundApp) StoreProxyCheck(storeID string, expectedVersion string, raw string, revision uint64, generation uint64) (r0 string, r1 error) {
+	core, authErr := a.scopedStore(generation)
+	if authErr != nil {
+		r1 = authErr
+		return
+	}
+	r0, r1 = core.StoreProxyCheck(storeID, expectedVersion, raw, revision)
+	return
+}
+
+func (a *AuthBoundApp) StoreProxyCheckCancel(storeID string, requestID string, revision uint64, generation uint64) (r0 string, r1 error) {
+	core, authErr := a.scopedStore(generation)
+	if authErr != nil {
+		r1 = authErr
+		return
+	}
+	r0, r1 = core.StoreProxyCheckCancel(storeID, requestID, revision)
+	return
+}
+
 func (a *AuthBoundApp) StoreWorkbenchContext(generation uint64) (r0 string, r1 error) {
 	core, authErr := a.scopedStore(generation)
 	if authErr != nil {

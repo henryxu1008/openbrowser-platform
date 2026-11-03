@@ -1,0 +1,429 @@
+{
+  "events": {
+    "exceptions": 0,
+    "consoleErrors": 0,
+    "externalAttempts": 0
+  },
+  "text": "跳转到内容\n硕米\nSHUOMI\n请选择企业\n示例企业 1\n示例企业 2\n日常运营\n店铺工作台\n资源管理\n浏览器环境\n网络资源\n内核与扩展\n更多工具\n设置与备份\n离\n离线示例用户\n已登录\n收起侧边栏\nCtrl K\n2026-11-02\n本机时间\n返回店铺列表\n示例店铺\n\ntemu · US · active\n\n店铺环境\n操作记录\n只读刷新\n操作记录\n全部操作\n操作获准\n环境配置报告\n环境打开报告\n环境关闭报告\n店铺授权\n撤销授权\n全部结果\n已确认\n失败\n结果未知\n开始时间\n结束时间\n查询\n\n记录店铺授权、应用准入和客户端结果报告；不覆盖商家页面内的操作。默认最近 30 天，最多查询 90 天。\n\n服务器时间\n\t\n操作人\n\t\n操作\n\t\n结果\n\t\n来源\n\t\n详情\n\n2026/10/31 18:40:35\t示例成员\t环境打开报告\t失败\t客户端声明\t查看记录\n上一页\n下一页\n离线合成夹具 · /stores/fixture-store?tab=records\n操作记录详情\n操作编号\n10000000-0000-0000-0000-000000000099\n操作人\n示例成员\n成员引用\nfixture-member\n操作\n环境打开报告\n结果\n失败\n原因\nfixture_only\n事实来源\nclient_report\n服务器时间\n2026/10/31 18:40:35\n客户端声明时间\n2026/10/31 18:40:34\n本机绑定引用\nfixture-binding\n实例引用\nfixture-profile",
+  "route": "离线合成夹具 · /stores/fixture-store?tab=records",
+  "calls": [
+    {
+      "method": "GetAppConfig",
+      "args": [
+        1
+      ]
+    },
+    {
+      "method": "StoreWorkbenchContext",
+      "args": [
+        1
+      ]
+    },
+    {
+      "method": "AuthStatus",
+      "args": []
+    },
+    {
+      "method": "StoreWorkbenchGet",
+      "args": [
+        "fixture-store",
+        7,
+        1
+      ]
+    },
+    {
+      "method": "StoreEnvironmentGet",
+      "args": [
+        "fixture-store",
+        7,
+        1
+      ]
+    },
+    {
+      "method": "StoreAuditList",
+      "args": [
+        "fixture-store",
+        "{}",
+        7,
+        1
+      ]
+    },
+    {
+      "method": "AuthStatus",
+      "args": []
+    }
+  ],
+  "geometry": {
+    "width": 1280,
+    "scrollWidth": 1280
+  },
+  "filter": [],
+  "controls": [
+    {
+      "tag": "A",
+      "text": "跳转到内容",
+      "label": null,
+      "name": "",
+      "href": "#workspace-content"
+    },
+    {
+      "tag": "A",
+      "text": "硕米SHUOMI",
+      "label": "硕米指纹浏览器",
+      "name": "",
+      "href": "/stores"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "",
+      "label": "关闭导航",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "A",
+      "text": "店铺工作台",
+      "label": null,
+      "name": "",
+      "href": "/stores"
+    },
+    {
+      "tag": "SELECT",
+      "text": "请选择企业示例企业 1示例企业 2",
+      "label": "当前企业",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": "fixture-org-a"
+    },
+    {
+      "tag": "A",
+      "text": "选择企业",
+      "label": null,
+      "name": "",
+      "href": "/stores"
+    },
+    {
+      "tag": "A",
+      "text": "店铺工作台",
+      "label": null,
+      "name": "",
+      "href": "/stores"
+    },
+    {
+      "tag": "A",
+      "text": "浏览器环境",
+      "label": null,
+      "name": "",
+      "href": "/browser/list"
+    },
+    {
+      "tag": "A",
+      "text": "网络资源",
+      "label": null,
+      "name": "",
+      "href": "/browser/proxy-pool"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "内核与扩展",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "更多工具",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "设置与备份",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "text": "",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": "on"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "退出登录",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "A",
+      "text": "关于应用",
+      "label": null,
+      "name": "",
+      "href": "/profile"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "收起侧边栏",
+      "label": "收起侧边栏",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "",
+      "label": "打开导航",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "text": "",
+      "label": "全局搜索店铺",
+      "name": "",
+      "href": null,
+      "disabled": true,
+      "value": ""
+    },
+    {
+      "tag": "A",
+      "text": "",
+      "label": "通知中心",
+      "name": "",
+      "href": "/notifications"
+    },
+    {
+      "tag": "A",
+      "text": "",
+      "label": "帮助中心",
+      "name": "",
+      "href": "/system/docs"
+    },
+    {
+      "tag": "A",
+      "text": "2026-11-02本机时间",
+      "label": null,
+      "name": "",
+      "href": "/settings"
+    },
+    {
+      "tag": "A",
+      "text": "返回店铺列表",
+      "label": null,
+      "name": "",
+      "href": "/stores"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "店铺环境",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "操作记录",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "只读刷新",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "SELECT",
+      "text": "全部操作操作获准环境配置报告环境打开报告环境关闭报告店铺授权撤销授权",
+      "label": "操作类型",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "SELECT",
+      "text": "全部结果已确认失败结果未知",
+      "label": "结果",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "text": "",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "text": "",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "查询",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "查看记录",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "上一页",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": true,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "下一页",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": true,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "",
+      "label": "关闭对话框",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    }
+  ],
+  "dialog": [
+    {
+      "text": "操作记录详情\n操作编号\n10000000-0000-0000-0000-000000000099\n操作人\n示例成员\n成员引用\nfixture-member\n操作\n环境打开报告\n结果\n失败\n原因\nfixture_only\n事实来源\nclient_report\n服务器时间\n2026/10/31 18:40:35\n客户端声明时间\n2026/10/31 18:40:34\n本机绑定引用\nfixture-binding\n实例引用\nfixture-profile",
+      "background": "rgb(255, 255, 255)"
+    }
+  ],
+  "operations": {
+    "GetAppConfig": 1,
+    "StoreWorkbenchContext": 1,
+    "AuthStatus": 2,
+    "StoreWorkbenchGet": 1,
+    "StoreEnvironmentGet": 1,
+    "StoreAuditList": 1
+  },
+  "unexpected": [],
+  "shell": {
+    "organizationInSidebar": true,
+    "accountControlsInSidebar": true,
+    "backgroundInert": false,
+    "mainScrollWidth": 1040,
+    "mainWidth": 1040,
+    "rowActionRect": null
+  },
+  "keyboard": {
+    "closed": true,
+    "focusLabel": null,
+    "focusText": "查看记录",
+    "methods": [
+      "GetAppConfig",
+      "StoreWorkbenchContext",
+      "AuthStatus",
+      "StoreWorkbenchGet",
+      "StoreEnvironmentGet",
+      "StoreAuditList",
+      "AuthStatus",
+      "AuthStatus"
+    ],
+    "backgroundInert": false,
+    "tabTrapped": true,
+    "trace": [
+      {
+        "modifiers": 0,
+        "inside": true,
+        "tag": "BUTTON",
+        "label": "关闭对话框",
+        "text": ""
+      },
+      {
+        "modifiers": 0,
+        "inside": true,
+        "tag": "BUTTON",
+        "label": "关闭对话框",
+        "text": ""
+      },
+      {
+        "modifiers": 0,
+        "inside": true,
+        "tag": "BUTTON",
+        "label": "关闭对话框",
+        "text": ""
+      },
+      {
+        "modifiers": 8,
+        "inside": true,
+        "tag": "BUTTON",
+        "label": "关闭对话框",
+        "text": ""
+      },
+      {
+        "modifiers": 8,
+        "inside": true,
+        "tag": "BUTTON",
+        "label": "关闭对话框",
+        "text": ""
+      },
+      {
+        "modifiers": 8,
+        "inside": true,
+        "tag": "BUTTON",
+        "label": "关闭对话框",
+        "text": ""
+      }
+    ]
+  }
+}

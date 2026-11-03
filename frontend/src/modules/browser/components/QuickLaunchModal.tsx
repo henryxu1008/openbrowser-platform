@@ -483,7 +483,7 @@ export function QuickLaunchModal({ open, onClose }: QuickLaunchModalProps) {
             <Keyboard className="w-3.5 h-3.5" />
             <span>回车优先按输入 Code 启动；↑/↓ 按顺序切换卡片；Esc 关闭</span>
           </div>
-          <span>全局快捷键: Ctrl/Cmd + K</span>
+          <span>快捷键：Ctrl/Cmd + Shift + K；其他页面也可用 Ctrl/Cmd + K</span>
         </div>
       </div>
     </Modal>

@@ -1,0 +1,220 @@
+{
+  "events": {
+    "exceptions": 0,
+    "consoleErrors": 0,
+    "externalAttempts": 0
+  },
+  "text": "跳转到内容\n硕米\nSHUOMI\n请选择企业\n示例企业 1\n示例企业 2\n日常运营\n店铺工作台\n资源管理\n浏览器环境\n网络资源\n内核与扩展\n更多工具\n设置与备份\n离\n离线示例用户\n已登录\n收起侧边栏\nCtrl K\n2026-11-02\n本机时间\n\n请选择企业后查看获授权的店铺。\n\n离线合成夹具 · /stores",
+  "route": "离线合成夹具 · /stores",
+  "calls": [
+    {
+      "method": "GetAppConfig",
+      "args": [
+        1
+      ]
+    },
+    {
+      "method": "StoreWorkbenchContext",
+      "args": [
+        1
+      ]
+    },
+    {
+      "method": "AuthStatus",
+      "args": []
+    },
+    {
+      "method": "AuthStatus",
+      "args": []
+    }
+  ],
+  "geometry": {
+    "width": 1280,
+    "scrollWidth": 1280
+  },
+  "filter": [],
+  "controls": [
+    {
+      "tag": "A",
+      "text": "跳转到内容",
+      "label": null,
+      "name": "",
+      "href": "#workspace-content"
+    },
+    {
+      "tag": "A",
+      "text": "硕米SHUOMI",
+      "label": "硕米指纹浏览器",
+      "name": "",
+      "href": "/stores"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "",
+      "label": "关闭导航",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "A",
+      "text": "店铺工作台",
+      "label": null,
+      "name": "",
+      "href": "/stores"
+    },
+    {
+      "tag": "SELECT",
+      "text": "请选择企业示例企业 1示例企业 2",
+      "label": "当前企业",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "A",
+      "text": "选择企业",
+      "label": null,
+      "name": "",
+      "href": "/stores"
+    },
+    {
+      "tag": "A",
+      "text": "店铺工作台",
+      "label": null,
+      "name": "",
+      "href": "/stores"
+    },
+    {
+      "tag": "A",
+      "text": "浏览器环境",
+      "label": null,
+      "name": "",
+      "href": "/browser/list"
+    },
+    {
+      "tag": "A",
+      "text": "网络资源",
+      "label": null,
+      "name": "",
+      "href": "/browser/proxy-pool"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "内核与扩展",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "更多工具",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "设置与备份",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "text": "",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": "on"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "退出登录",
+      "label": null,
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "A",
+      "text": "关于应用",
+      "label": null,
+      "name": "",
+      "href": "/profile"
+    },
+    {
+      "tag": "BUTTON",
+      "text": "收起侧边栏",
+      "label": "收起侧边栏",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "BUTTON",
+      "text": "",
+      "label": "打开导航",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "text": "",
+      "label": "全局搜索店铺",
+      "name": "",
+      "href": null,
+      "disabled": false,
+      "value": ""
+    },
+    {
+      "tag": "A",
+      "text": "",
+      "label": "通知中心",
+      "name": "",
+      "href": "/notifications"
+    },
+    {
+      "tag": "A",
+      "text": "",
+      "label": "帮助中心",
+      "name": "",
+      "href": "/system/docs"
+    },
+    {
+      "tag": "A",
+      "text": "2026-11-02本机时间",
+      "label": null,
+      "name": "",
+      "href": "/settings"
+    }
+  ],
+  "dialog": [],
+  "operations": {
+    "GetAppConfig": 1,
+    "StoreWorkbenchContext": 1,
+    "AuthStatus": 2
+  },
+  "unexpected": [],
+  "shell": {
+    "organizationInSidebar": true,
+    "accountControlsInSidebar": true,
+    "backgroundInert": false,
+    "mainScrollWidth": 1040,
+    "mainWidth": 1040,
+    "rowActionRect": null
+  }
+}

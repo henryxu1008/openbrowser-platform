@@ -811,6 +811,14 @@
     "arguments": 4,
     "policy": "protected"
   },
+  "StoreProxyCheck": {
+    "arguments": 5,
+    "policy": "protected"
+  },
+  "StoreProxyCheckCancel": {
+    "arguments": 4,
+    "policy": "protected"
+  },
   "StoreWorkbenchContext": {
     "arguments": 1,
     "policy": "protected"

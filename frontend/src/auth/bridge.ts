@@ -199,6 +199,8 @@ export const StoreEnvironmentOpen = (...args: Args<typeof Native.StoreEnvironmen
 export const StoreEnvironmentOptions = (...args: Args<typeof Native.StoreEnvironmentOptions>): ReturnType<typeof Native.StoreEnvironmentOptions> => callBusiness(Native.StoreEnvironmentOptions, args) as ReturnType<typeof Native.StoreEnvironmentOptions>;
 export const StoreEnvironmentSave = (...args: Args<typeof Native.StoreEnvironmentSave>): ReturnType<typeof Native.StoreEnvironmentSave> => callBusiness(Native.StoreEnvironmentSave, args) as ReturnType<typeof Native.StoreEnvironmentSave>;
 export const StoreOperationGet = (...args: Args<typeof Native.StoreOperationGet>): ReturnType<typeof Native.StoreOperationGet> => callBusiness(Native.StoreOperationGet, args) as ReturnType<typeof Native.StoreOperationGet>;
+export const StoreProxyCheck = (...args: Args<typeof Native.StoreProxyCheck>): ReturnType<typeof Native.StoreProxyCheck> => callBusiness(Native.StoreProxyCheck, args) as ReturnType<typeof Native.StoreProxyCheck>;
+export const StoreProxyCheckCancel = (...args: Args<typeof Native.StoreProxyCheckCancel>): ReturnType<typeof Native.StoreProxyCheckCancel> => callBusiness(Native.StoreProxyCheckCancel, args) as ReturnType<typeof Native.StoreProxyCheckCancel>;
 export const StoreWorkbenchContext = (...args: Args<typeof Native.StoreWorkbenchContext>): ReturnType<typeof Native.StoreWorkbenchContext> => callBusiness(Native.StoreWorkbenchContext, args) as ReturnType<typeof Native.StoreWorkbenchContext>;
 export const StoreWorkbenchGet = (...args: Args<typeof Native.StoreWorkbenchGet>): ReturnType<typeof Native.StoreWorkbenchGet> => callBusiness(Native.StoreWorkbenchGet, args) as ReturnType<typeof Native.StoreWorkbenchGet>;
 export const StoreWorkbenchList = (...args: Args<typeof Native.StoreWorkbenchList>): ReturnType<typeof Native.StoreWorkbenchList> => callBusiness(Native.StoreWorkbenchList, args) as ReturnType<typeof Native.StoreWorkbenchList>;
@@ -408,6 +410,8 @@ const businessBindings = {
   StoreEnvironmentOptions,
   StoreEnvironmentSave,
   StoreOperationGet,
+  StoreProxyCheck,
+  StoreProxyCheckCancel,
   StoreWorkbenchContext,
   StoreWorkbenchGet,
   StoreWorkbenchList,

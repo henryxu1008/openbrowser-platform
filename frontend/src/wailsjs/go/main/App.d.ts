@@ -415,6 +415,8 @@ export function StoreWorkbenchList(search:string,platform:string,page:number,rev
 export function StoreWorkbenchGet(storeID:string,revision:number,generation:number):Promise<string>;
 export function StoreEnvironmentGet(storeID:string,revision:number,generation:number):Promise<string>;
 export function StoreEnvironmentOptions(storeID:string,revision:number,generation:number):Promise<string>;
+export function StoreProxyCheck(storeID:string,expectedVersion:string,raw:string,revision:number,generation:number):Promise<string>;
+export function StoreProxyCheckCancel(storeID:string,requestID:string,revision:number,generation:number):Promise<string>;
 export function StoreOperationGet(storeID:string,key:string,revision:number,generation:number):Promise<string>;
 export function StoreEnvironmentSave(storeID:string,expectedVersion:string,raw:string,revision:number,generation:number):Promise<string>;
 export function StoreEnvironmentOpen(storeID:string,expectedVersion:string,revision:number,generation:number):Promise<string>;

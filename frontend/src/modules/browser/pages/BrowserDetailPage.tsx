@@ -66,6 +66,9 @@ function ManagedEnvironmentOverview({ value }: { value: ManagedBrowserDetail }) 
     <Button disabled={value.pending || !value.known || !value.core || !value.canUse || value.running} onClick={value.onOpen}><Play className="w-4 h-4" />打开环境</Button>
     <Button variant="secondary" disabled={value.pending || !value.running} onClick={value.onClose}><Square className="w-4 h-4" />正常关闭</Button>
   </div>}>
+    {value.canUse && value.known && !value.pending && <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
+      {!value.core ? '先配置环境：确认名称、内核版本和代理，保存后再打开。' : value.running ? '环境正在运行。完成操作后点击“正常关闭”；关闭不会删除已保存的环境。' : '点击“打开环境”使用已保存的环境；再次打开沿用原配置，不创建新环境。'}
+    </p>}
     <dl className="grid grid-cols-2 gap-4 text-sm">
       <div><dt>配置名称</dt><dd>{value.name || '尚未配置'}</dd></div>
       <div><dt>本机运行状态</dt><dd><Badge variant={value.known ? value.running ? 'success' : 'default' : 'error'}>{value.known ? value.running ? '运行中' : '已停止' : '结果待核对'}</Badge></dd></div>

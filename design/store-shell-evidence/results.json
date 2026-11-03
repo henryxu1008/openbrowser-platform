@@ -1,0 +1,1450 @@
+{
+  "cases": [
+    {
+      "case": "shell-ready",
+      "route": "离线合成夹具 · /stores",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreWorkbenchList": 1,
+        "FrontendOperationLog": 1
+      },
+      "geometry": {
+        "width": 1280,
+        "scrollWidth": 1280
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 1040,
+        "mainWidth": 1040,
+        "rowActionRect": {
+          "x": 1005.140625,
+          "width": 100
+        }
+      },
+      "keyboard": null,
+      "accountKeyboard": null
+    },
+    {
+      "case": "shell-ready-1200",
+      "route": "离线合成夹具 · /stores",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreWorkbenchList": 1,
+        "FrontendOperationLog": 1
+      },
+      "geometry": {
+        "width": 1200,
+        "scrollWidth": 1200
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 960,
+        "mainWidth": 960,
+        "rowActionRect": {
+          "x": 945.6875,
+          "width": 100
+        }
+      },
+      "keyboard": null,
+      "accountKeyboard": null
+    },
+    {
+      "case": "shell-ready-1440",
+      "route": "离线合成夹具 · /stores",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreWorkbenchList": 1,
+        "FrontendOperationLog": 1
+      },
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 1200,
+        "mainWidth": 1200,
+        "rowActionRect": {
+          "x": 1124.078125,
+          "width": 100
+        }
+      },
+      "keyboard": null,
+      "accountKeyboard": null
+    },
+    {
+      "case": "shell-ready-390",
+      "route": "离线合成夹具 · /stores",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreWorkbenchList": 1,
+        "FrontendOperationLog": 1
+      },
+      "geometry": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 390,
+        "mainWidth": 390,
+        "rowActionRect": {
+          "x": 569.265625,
+          "width": 100
+        }
+      },
+      "keyboard": null,
+      "accountKeyboard": null
+    },
+    {
+      "case": "shell-navigation-390",
+      "route": "离线合成夹具 · /stores",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreWorkbenchList": 1,
+        "FrontendOperationLog": 1
+      },
+      "geometry": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": true,
+        "mainScrollWidth": 390,
+        "mainWidth": 390,
+        "rowActionRect": {
+          "x": 569.265625,
+          "width": 100
+        }
+      },
+      "keyboard": {
+        "closed": true,
+        "focusLabel": "打开导航",
+        "focusText": "",
+        "methods": [
+          "GetAppConfig",
+          "StoreWorkbenchContext",
+          "AuthStatus",
+          "StoreWorkbenchList",
+          "StoreWorkbenchList",
+          "FrontendOperationLog",
+          "AuthStatus",
+          "AuthStatus"
+        ],
+        "backgroundInert": false,
+        "tabTrapped": true,
+        "trace": [
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "SELECT",
+            "label": "当前企业",
+            "text": "请选择企业示例企业 1示例企业 2"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "A",
+            "label": null,
+            "text": "店铺工作台"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "A",
+            "label": null,
+            "text": "浏览器环境"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "A",
+            "label": null,
+            "text": "网络资源"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "内核与扩展"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "更多工具"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "设置与备份"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "SUMMARY",
+            "label": null,
+            "text": "离离线示例用户已登录"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "A",
+            "label": "硕米指纹浏览器",
+            "text": "硕米SHUOMI"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭导航",
+            "text": ""
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "SELECT",
+            "label": "当前企业",
+            "text": "请选择企业示例企业 1示例企业 2"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "A",
+            "label": null,
+            "text": "店铺工作台"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "A",
+            "label": null,
+            "text": "浏览器环境"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "A",
+            "label": null,
+            "text": "网络资源"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "内核与扩展"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "A",
+            "label": null,
+            "text": "网络资源"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "A",
+            "label": null,
+            "text": "浏览器环境"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "A",
+            "label": null,
+            "text": "店铺工作台"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "SELECT",
+            "label": "当前企业",
+            "text": "请选择企业示例企业 1示例企业 2"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭导航",
+            "text": ""
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "A",
+            "label": "硕米指纹浏览器",
+            "text": "硕米SHUOMI"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "SUMMARY",
+            "label": null,
+            "text": "离离线示例用户已登录"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "设置与备份"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "更多工具"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "内核与扩展"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "A",
+            "label": null,
+            "text": "网络资源"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "A",
+            "label": null,
+            "text": "浏览器环境"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "A",
+            "label": null,
+            "text": "店铺工作台"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "SELECT",
+            "label": "当前企业",
+            "text": "请选择企业示例企业 1示例企业 2"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭导航",
+            "text": ""
+          }
+        ]
+      },
+      "accountKeyboard": null
+    },
+    {
+      "case": "shell-account",
+      "route": "离线合成夹具 · /stores",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreWorkbenchList": 1,
+        "FrontendOperationLog": 1
+      },
+      "geometry": {
+        "width": 1280,
+        "scrollWidth": 1280
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 1040,
+        "mainWidth": 1040,
+        "rowActionRect": {
+          "x": 1005.140625,
+          "width": 100
+        }
+      },
+      "keyboard": null,
+      "accountKeyboard": {
+        "closed": true,
+        "focusReturned": true
+      }
+    },
+    {
+      "case": "shell-search",
+      "route": "离线合成夹具 · /stores?platform=temu&page=1&return=kept&q=fixture+query",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreWorkbenchList": 2,
+        "FrontendOperationLog": 2
+      },
+      "geometry": {
+        "width": 1280,
+        "scrollWidth": 1280
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 1040,
+        "mainWidth": 1040,
+        "rowActionRect": {
+          "x": 1005.140625,
+          "width": 100
+        }
+      },
+      "keyboard": null,
+      "accountKeyboard": null
+    },
+    {
+      "case": "shell-quick-launch",
+      "route": "离线合成夹具 · /stores",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreWorkbenchList": 1,
+        "FrontendOperationLog": 3,
+        "BrowserProfileList": 1,
+        "ListGroups": 1
+      },
+      "geometry": {
+        "width": 1280,
+        "scrollWidth": 1280
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 1040,
+        "mainWidth": 1040,
+        "rowActionRect": {
+          "x": 1005.140625,
+          "width": 100
+        }
+      },
+      "keyboard": {
+        "closed": true,
+        "focusLabel": null,
+        "focusText": "跳转到内容硕米SHUOMI店铺工作台请选择企业示例企业 1示例企业 2选择企业日常运营店铺工作台资源管理浏览器环境网络资源内核与扩展更多工具设置与备份离离线示例",
+        "methods": [
+          "GetAppConfig",
+          "StoreWorkbenchContext",
+          "AuthStatus",
+          "StoreWorkbenchList",
+          "StoreWorkbenchList",
+          "FrontendOperationLog",
+          "AuthStatus",
+          "BrowserProfileList",
+          "BrowserProfileList",
+          "FrontendOperationLog",
+          "ListGroups",
+          "ListGroups",
+          "FrontendOperationLog",
+          "AuthStatus"
+        ],
+        "backgroundInert": false,
+        "tabTrapped": true,
+        "trace": [
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "全部分组（0）"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "未分组（0）"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "INPUT",
+            "label": null,
+            "text": ""
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "全部分组（0）"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "未分组（0）"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "全部分组（0）"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "INPUT",
+            "label": null,
+            "text": ""
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "未分组（0）"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "全部分组（0）"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "INPUT",
+            "label": null,
+            "text": ""
+          }
+        ]
+      },
+      "accountKeyboard": null
+    },
+    {
+      "case": "shell-quick-launch-390",
+      "route": "离线合成夹具 · /stores",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreWorkbenchList": 1,
+        "FrontendOperationLog": 3,
+        "BrowserProfileList": 1,
+        "ListGroups": 1
+      },
+      "geometry": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 390,
+        "mainWidth": 390,
+        "rowActionRect": {
+          "x": 569.265625,
+          "width": 100
+        }
+      },
+      "keyboard": {
+        "closed": true,
+        "focusLabel": null,
+        "focusText": "跳转到内容硕米SHUOMI店铺工作台请选择企业示例企业 1示例企业 2选择企业日常运营店铺工作台资源管理浏览器环境网络资源内核与扩展更多工具设置与备份离离线示例",
+        "methods": [
+          "GetAppConfig",
+          "StoreWorkbenchContext",
+          "AuthStatus",
+          "StoreWorkbenchList",
+          "StoreWorkbenchList",
+          "FrontendOperationLog",
+          "AuthStatus",
+          "BrowserProfileList",
+          "BrowserProfileList",
+          "FrontendOperationLog",
+          "ListGroups",
+          "ListGroups",
+          "FrontendOperationLog",
+          "AuthStatus"
+        ],
+        "backgroundInert": false,
+        "tabTrapped": true,
+        "trace": [
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "全部分组（0）"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "未分组（0）"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "INPUT",
+            "label": null,
+            "text": ""
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "全部分组（0）"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "未分组（0）"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "全部分组（0）"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "INPUT",
+            "label": null,
+            "text": ""
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "未分组（0）"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "全部分组（0）"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "INPUT",
+            "label": null,
+            "text": ""
+          }
+        ]
+      },
+      "accountKeyboard": null
+    },
+    {
+      "case": "shell-all-tools",
+      "route": "离线合成夹具 · /stores",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreWorkbenchList": 1,
+        "FrontendOperationLog": 1
+      },
+      "geometry": {
+        "width": 1280,
+        "scrollWidth": 1280
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 1040,
+        "mainWidth": 1040,
+        "rowActionRect": {
+          "x": 1005.140625,
+          "width": 100
+        }
+      },
+      "keyboard": null,
+      "accountKeyboard": null
+    },
+    {
+      "case": "shell-row-action-390",
+      "route": "离线合成夹具 · /stores",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreWorkbenchList": 1,
+        "FrontendOperationLog": 1
+      },
+      "geometry": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 390,
+        "mainWidth": 390,
+        "rowActionRect": {
+          "x": 193.265625,
+          "width": 100
+        }
+      },
+      "keyboard": null,
+      "accountKeyboard": null
+    },
+    {
+      "case": "edit-light",
+      "route": "离线合成夹具 · /stores/fixture-store/environment/edit",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreEnvironmentOptions": 1,
+        "BrowserKernelCatalog": 2
+      },
+      "geometry": {
+        "width": 1280,
+        "scrollWidth": 1280
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 1034,
+        "mainWidth": 1034,
+        "rowActionRect": null
+      },
+      "keyboard": null,
+      "accountKeyboard": null
+    },
+    {
+      "case": "edit-light-390",
+      "route": "离线合成夹具 · /stores/fixture-store/environment/edit",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreEnvironmentOptions": 1,
+        "BrowserKernelCatalog": 2
+      },
+      "geometry": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 384,
+        "mainWidth": 384,
+        "rowActionRect": null
+      },
+      "keyboard": null,
+      "accountKeyboard": null
+    },
+    {
+      "case": "edit-dark-390",
+      "route": "离线合成夹具 · /stores/fixture-store/environment/edit",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreEnvironmentOptions": 1,
+        "BrowserKernelCatalog": 2
+      },
+      "geometry": {
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 384,
+        "mainWidth": 384,
+        "rowActionRect": null
+      },
+      "keyboard": null,
+      "accountKeyboard": null
+    },
+    {
+      "case": "dirty-modal",
+      "route": "离线合成夹具 · /stores/fixture-store/environment/edit",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreEnvironmentOptions": 1,
+        "BrowserKernelCatalog": 2
+      },
+      "geometry": {
+        "width": 1280,
+        "scrollWidth": 1280
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 1034,
+        "mainWidth": 1034,
+        "rowActionRect": null
+      },
+      "keyboard": {
+        "closed": true,
+        "focusLabel": "当前企业",
+        "focusText": "请选择企业示例企业 1示例企业 2",
+        "methods": [
+          "GetAppConfig",
+          "StoreWorkbenchContext",
+          "AuthStatus",
+          "StoreEnvironmentOptions",
+          "BrowserKernelCatalog",
+          "BrowserKernelCatalog",
+          "AuthStatus",
+          "AuthStatus"
+        ],
+        "backgroundInert": false,
+        "tabTrapped": true,
+        "trace": [
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "取消"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "确定"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "取消"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "确定"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "取消"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "确定"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "取消"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          }
+        ]
+      },
+      "accountKeyboard": null
+    },
+    {
+      "case": "dirty-dark",
+      "route": "离线合成夹具 · /stores/fixture-store/environment/edit",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreEnvironmentOptions": 1,
+        "BrowserKernelCatalog": 2
+      },
+      "geometry": {
+        "width": 1280,
+        "scrollWidth": 1280
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 1034,
+        "mainWidth": 1034,
+        "rowActionRect": null
+      },
+      "keyboard": {
+        "closed": true,
+        "focusLabel": "当前企业",
+        "focusText": "请选择企业示例企业 1示例企业 2",
+        "methods": [
+          "GetAppConfig",
+          "StoreWorkbenchContext",
+          "AuthStatus",
+          "StoreEnvironmentOptions",
+          "BrowserKernelCatalog",
+          "BrowserKernelCatalog",
+          "AuthStatus",
+          "AuthStatus"
+        ],
+        "backgroundInert": false,
+        "tabTrapped": true,
+        "trace": [
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "取消"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "确定"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "取消"
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "确定"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "取消"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "确定"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": null,
+            "text": "取消"
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          }
+        ]
+      },
+      "accountKeyboard": null
+    },
+    {
+      "case": "record-modal",
+      "route": "离线合成夹具 · /stores/fixture-store?tab=records",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreWorkbenchGet": 1,
+        "StoreEnvironmentGet": 1,
+        "StoreAuditList": 1
+      },
+      "geometry": {
+        "width": 1280,
+        "scrollWidth": 1280
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 1040,
+        "mainWidth": 1040,
+        "rowActionRect": null
+      },
+      "keyboard": {
+        "closed": true,
+        "focusLabel": null,
+        "focusText": "查看记录",
+        "methods": [
+          "GetAppConfig",
+          "StoreWorkbenchContext",
+          "AuthStatus",
+          "StoreWorkbenchGet",
+          "StoreEnvironmentGet",
+          "StoreAuditList",
+          "AuthStatus",
+          "AuthStatus"
+        ],
+        "backgroundInert": false,
+        "tabTrapped": true,
+        "trace": [
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          }
+        ]
+      },
+      "accountKeyboard": null
+    },
+    {
+      "case": "receipt-modal",
+      "route": "离线合成夹具 · /stores/fixture-store",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreWorkbenchGet": 1,
+        "StoreEnvironmentGet": 1,
+        "StoreOperationGet": 1
+      },
+      "geometry": {
+        "width": 1280,
+        "scrollWidth": 1280
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 1040,
+        "mainWidth": 1040,
+        "rowActionRect": null
+      },
+      "keyboard": {
+        "closed": true,
+        "focusLabel": null,
+        "focusText": "只读核对原操作",
+        "methods": [
+          "GetAppConfig",
+          "StoreWorkbenchContext",
+          "AuthStatus",
+          "StoreWorkbenchGet",
+          "StoreEnvironmentGet",
+          "AuthStatus",
+          "StoreOperationGet",
+          "AuthStatus"
+        ],
+        "backgroundInert": false,
+        "tabTrapped": true,
+        "trace": [
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          },
+          {
+            "modifiers": 0,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          },
+          {
+            "modifiers": 8,
+            "inside": true,
+            "tag": "BUTTON",
+            "label": "关闭对话框",
+            "text": ""
+          }
+        ]
+      },
+      "accountKeyboard": null
+    },
+    {
+      "case": "denied",
+      "route": "离线合成夹具 · /stores",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2
+      },
+      "geometry": {
+        "width": 1280,
+        "scrollWidth": 1280
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 1040,
+        "mainWidth": 1040,
+        "rowActionRect": null
+      },
+      "keyboard": null,
+      "accountKeyboard": null
+    },
+    {
+      "case": "root-select",
+      "route": "离线合成夹具 · /stores",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2
+      },
+      "geometry": {
+        "width": 1280,
+        "scrollWidth": 1280
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 1040,
+        "mainWidth": 1040,
+        "rowActionRect": null
+      },
+      "keyboard": null,
+      "accountKeyboard": null
+    },
+    {
+      "case": "kernel-missing",
+      "route": "离线合成夹具 · /stores/fixture-store/environment/edit",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 2,
+        "StoreEnvironmentOptions": 1,
+        "BrowserKernelCatalog": 1
+      },
+      "geometry": {
+        "width": 1280,
+        "scrollWidth": 1280
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 1034,
+        "mainWidth": 1034,
+        "rowActionRect": null
+      },
+      "keyboard": null,
+      "accountKeyboard": null
+    },
+    {
+      "case": "dirty-skip",
+      "route": "离线合成夹具 · /stores/fixture-store/environment/edit?return=kept",
+      "events": {
+        "exceptions": 0,
+        "consoleErrors": 0,
+        "externalAttempts": 0
+      },
+      "operations": {
+        "GetAppConfig": 1,
+        "StoreWorkbenchContext": 1,
+        "AuthStatus": 1,
+        "StoreEnvironmentOptions": 1,
+        "BrowserKernelCatalog": 2
+      },
+      "geometry": {
+        "width": 1280,
+        "scrollWidth": 1280
+      },
+      "shell": {
+        "organizationInSidebar": true,
+        "accountControlsInSidebar": true,
+        "backgroundInert": false,
+        "mainScrollWidth": 1034,
+        "mainWidth": 1034,
+        "rowActionRect": null
+      },
+      "skipEvidence": {
+        "mainFocused": true,
+        "noDialog": true,
+        "noHash": true,
+        "value": "kept-dirty-fixture",
+        "stillDirty": true
+      }
+    }
+  ],
+  "allPassed": true,
+  "screenshotsAreSynthetic": true,
+  "deviceScaleFactor": 1
+}

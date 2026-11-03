@@ -2,6 +2,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { BrowserRouter as Router } from "react-router-dom";
 import { ThemeProvider } from "./shared/theme";
 import { Layout } from "./shared/layout";
+import { ShellSlotsProvider } from './shared/layout/ShellSlots';
 import { MODAL_EXIT_DURATION_MS, ToastContainer, Modal, Button, Loading, toast } from "./shared/components";
 import { AlertCircle } from "lucide-react";
 import { AppRoutes } from "./routes/AppRoutes";
@@ -343,7 +344,7 @@ function CloseConfirmModal() {
   );
 }
 
-function BusinessShell() {
+export function BusinessShell() {
   useEffect(() => {
     installWailsOperationLogger();
   }, []);
@@ -358,7 +359,7 @@ function BusinessShell() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.isComposing) return;
+      if (event.defaultPrevented || event.isComposing) return;
       if (!(event.ctrlKey || event.metaKey)) return;
       if (event.key.toLowerCase() !== "k") return;
       event.preventDefault();
@@ -391,7 +392,7 @@ function BusinessShell() {
 }
 
 function App() {
-  return <ThemeProvider><Router><AuthGate><BusinessShell /></AuthGate><ToastContainer /><CloseConfirmModal /></Router></ThemeProvider>;
+  return <ThemeProvider><Router><ShellSlotsProvider><AuthGate><BusinessShell /></AuthGate></ShellSlotsProvider><ToastContainer /><CloseConfirmModal /></Router></ThemeProvider>;
 }
 
 export default App;

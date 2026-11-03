@@ -3,6 +3,7 @@ import { AuthCancel, AuthGrantAPI, AuthLogin, AuthLogout, AuthStatus as NativeAu
 import { Button, Loading } from '../shared/components';
 import { projectConfig } from '../config/projectBase.config';
 import { acceptAuth, authEpoch, authSnapshot, beginAuthAction, signedIn, subscribeAuth } from './session';
+import { ShellAccountControls } from '../shared/layout/ShellSlots';
 
 export const useAuthStatus = () => useSyncExternalStore(subscribeAuth, authSnapshot, authSnapshot);
 
@@ -62,7 +63,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   if (signedIn()) return (
     <div className="flex h-screen flex-col">
-      <div className="flex shrink-0 items-center justify-end gap-3 border-b border-[var(--color-border)] px-4 py-2 text-sm">
+      <ShellAccountControls>
+      <div className="shell-auth-controls flex shrink-0 items-center justify-end gap-3 border-b border-[var(--color-border)] px-4 py-2 text-sm">
         <span>{status.subject}</span>
         <label className="flex items-center gap-2">
           <input type="checkbox" checked={!!status.apiGranted} disabled={busy} onChange={async (event) => {
@@ -78,6 +80,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         </label>
         <Button variant="secondary" size="sm" onClick={() => { void action('logout'); }} disabled={busy}>退出登录</Button>
       </div>
+      </ShellAccountControls>
       {error && <p role="alert" className="px-4 py-2 text-red-600">{error}</p>}
       <div className="min-h-0 flex-1" key={`${status.generation}:${status.issuer}:${status.subject}`}>{children}</div>
     </div>

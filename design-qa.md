@@ -36,4 +36,10 @@
 - See [the bounded portal QA report](design/store-modal-qa.md) and its committed synthetic-data screenshots for measurements, keyboard results and limitations. Full-view and focused source/candidate comparisons were opened together.
 - This does not approve the entire Store workbench or native lifecycle. The supplied prototype has no exact counterparts for production audit/receipt/unsaved-change states; a one-to-one comparison of those states remains NOT_RUN. Keep the overall visual gate and PR draft until the broader gates are completed.
 
+## Local integrated v4 shell increment (2026-11-02)
+
+The local integration candidate now actually renders the approved v4 shell and reuses its original brand asset. The desktop filter wrapping, legacy shell/navigation placement, narrow content squeeze, closed-details focus ordering and global shortcut conflict were reproduced and fixed. See [the bounded shell QA report](design/store-shell-qa.md) for source provenance, full/focused same-density comparisons, 21 synthetic browser captures, eight composition regressions and explicit scope boundaries.
+
+The bounded shell/filter/navigation result passes. All old business destinations, authentication controls, Store permissions/CAS and explicit lifecycle callbacks are retained. This does not approve broader list/detail/other-business-page fidelity, raw receipt presentation or native customer acceptance. Those overall gates remain open; no existing PR was rewritten or published.
+
 final result: blocked

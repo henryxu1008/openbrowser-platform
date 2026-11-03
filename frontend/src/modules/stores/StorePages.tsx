@@ -1,4 +1,5 @@
 import './store-workbench.css'
+import { ShellOrganization } from '../../shared/layout/ShellSlots'
 import { authSnapshot } from '../../auth/session'
 import { storeProxyPort } from './proxyCheckPort'
 import type { CheckScope } from './proxyCheck'
@@ -52,9 +53,9 @@ export function StoreWorkspace() {
   }
   const scopeEpoch=requestEpoch.current
   return <div className="store-workbench space-y-4">
-    <Card padding="none"><div className="store-context p-4 flex items-center justify-between gap-4"><Link to="/stores" className="font-semibold">店铺工作台</Link>
+    <ShellOrganization><Card padding="none"><div className="store-context p-4 flex items-center justify-between gap-4"><Link to="/stores" className="font-semibold">店铺工作台</Link>
       <Select aria-label="当前企业" disabled={busy||!scope} value={scope?.context.effectiveOrganizationId||''} onChange={e=>{if(e.target.value===scope?.context.effectiveOrganizationId)return;if(dirty)setPendingOrg(e.target.value);else void select(e.target.value)}} options={[{value:'',label:busy?'加载中…':'请选择企业'},...(scope?.context.organizations||[]).map(org=>({value:org.id,label:org.name}))]} />
-    </div></Card>
+    </div></Card></ShellOrganization>
     <ErrorNotice message={error}/>
     {error&&<Button variant="secondary" onClick={()=>void load()}>只读核对企业上下文</Button>}
     {scope?.context.selectionRequired&&<p role="status">请选择企业后查看获授权的店铺。</p>}

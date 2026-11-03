@@ -1,5 +1,15 @@
 # 平台内核发行与桌面选择
 
+## 下载中断的有界接续（Issue #23）
+
+同一次准备内，公共制品在已收到部分字节后遇到 EOF、UnexpectedEOF 或网络读取错误，可以接续一次；最多两个内容请求，传输共用一个 15 分钟期限并服从更短的调用方期限。不会重新调用准备、保存或启动命令。初始请求仍使用既有来源白名单、最多三次跳转及无 API 凭据/cookie 的直连 transport。
+
+只有初次最终响应带合法且单值的强 ETag，才会向同一已批准最终 URL 发送 `Range` 和 `If-Range`。续请求不跟随重定向，响应须为 206，强 ETag、单值 Content-Range 和总大小必须完全匹配；有 Content-Length 时必须等于剩余字节，无声明时仍限长读取且必须恰好补齐。只接受未自动解码的 identity 内容，重复/混合编码失败关闭。协议依据为 [RFC 9110 的 If-Range 与部分内容合并](https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.7.3)；[Go Client.Timeout](https://pkg.go.dev/net/http#Client) 本身按每个请求计时，因此额外共享一个原生 context deadline。
+
+取消、身份撤销、HTTP 错误、磁盘/关闭错误、缺失或弱 ETag、错误范围及再次中断均结束本次准备。完整包仍须通过原有大小、SHA256、归档检查及 WithIdentity 原子发布。最终 URL、签名 query 和 ETag 只留在本次原生调用内，不进 renderer、日志或安装回执；失败仍清理独占暂存目录，不保存跨准备/重启的残片。
+
+本地验证仅使用内存 HTTP RoundTripper、合成 ZIP 和任务临时目录，不访问实际发行目标或执行包内占位文件；不改变 v4 界面、登录、Store 权限/CAS、绑定、代理栈或现有试用数据。
+
 用户授权范围：源码、必要离线回归及 Draft PR。此实现没有部署、实际发行制品、从 CDN 下载真实内核、修改现有权限或配置，也没有操作保留应用、实例或店铺环境。
 
 ## 用户结果

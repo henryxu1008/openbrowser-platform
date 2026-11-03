@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { StoreProxyCheck } from '../../stores/StoreProxyCheck'
+import { StoreProxyDraft } from '../../stores/StoreProxyDraft'
 import type { CheckScope, ProxyCheckPort } from '../../stores/proxyCheck'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ChevronDown, ChevronUp, FolderOpen, HelpCircle, Layers, ShieldCheck } from 'lucide-react'
@@ -763,6 +764,8 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
               <Input
                 disabled={!!managed && (!optionsReady || saving || saveBlocked)}
                 aria-label="本地代理地址"
+                type={managed ? 'password' : 'text'}
+                autoComplete="off"
                 value={formData.proxyConfig}
                 onChange={e => {if(managed&&(!optionsReadyRef.current||savingRef.current||saveBlocked))return;if(managed)setNetworkChoice('custom');handleChange('proxyConfig', e.target.value)}}
                 placeholder="http://127.0.0.1:7890"
@@ -770,6 +773,10 @@ export function BrowserEditPage({ managed }: { managed?: ManagedBrowserEditor } 
             </FormItem>
           )}
         </div>
+        {managed && <StoreProxyDraft context={managed} proxyConfig={formData.proxyConfig || ''} disabled={!optionsReady || saving || saveBlocked} onApply={proxyConfig => {
+          if (!optionsReadyRef.current || savingRef.current || saveBlocked) return false
+          setNetworkChoice('custom'); handleChange('proxyConfig', proxyConfig); return true
+        }} />}
         {managed && proxyCheck && networkChoice !== 'direct' && (networkChoice === 'custom' || !!formData.proxyConfig?.trim()) && <StoreProxyCheck {...proxyCheck} proxyConfig={formData.proxyConfig || ''} disabled={!optionsReady || saving || saveBlocked} />}
         <p className="text-xs text-[var(--color-text-muted)] mt-2">
           {proxyMode === 'pool'

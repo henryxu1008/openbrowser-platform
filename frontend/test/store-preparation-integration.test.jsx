@@ -210,3 +210,100 @@ it.each(['record','receipt'])('keeps the read-only %s dialog in the Store portal
  if(kind==='receipt')expect(native.StoreOperationGet).toHaveBeenCalledExactlyOnceWith('shop-a','op-a',7,generation)
  expect(native.StoreEnvironmentSave).not.toHaveBeenCalled();expect(native.StoreEnvironmentOpen).not.toHaveBeenCalled();expect(native.StoreEnvironmentClose).not.toHaveBeenCalled()
 })
+
+const parameterForm = () => tree.root.findByProps({'aria-label':'自有代理参数'})
+const fillParameters = (values={}) => {
+  act(()=>button('填写代理参数').props.onClick())
+  for (const [label,value] of Object.entries({'代理协议':'http','代理地址':'proxy.example.invalid','代理端口':'8080','代理账号':'fixture-user','代理密码':'fixture-secret',...values})) {
+    act(()=>field(label).props.onChange({target:{value}}))
+  }
+}
+const submitParameters = () => parameterForm().props.onSubmit({preventDefault(){}})
+const expectNoProxyEffects = () => {
+  for(const method of ['StoreEnvironmentSave','StoreEnvironmentOpen','StoreEnvironmentClose','StoreProxyCheck','BrowserKernelPrepare']) if(native[method]) expect(native[method]).not.toHaveBeenCalled()
+}
+it('applies encoded parameters once to the masked Store draft, with no save/start/probe/pool effects',async()=>{
+  withProxyOptions();await mount()
+  act(()=>button('填写代理参数').props.onClick())
+  for(const [label,value] of Object.entries({'代理协议':'socks5','代理地址':'::1','代理端口':'1080','代理账号':'合成 user:@%','代理密码':' p:@%/?# 合成 '}))act(()=>field(label).props.onChange({target:{value}}))
+  expect(field('代理密码').props.type).toBe('password')
+  const apply=parameterForm().props.onSubmit
+  act(()=>{apply({preventDefault(){}});apply({preventDefault(){}})})
+  const raw=field('本地代理地址'),url=new URL(raw.props.value)
+  expect(raw.props.type).toBe('password');expect(url.hostname).toBe('[::1]')
+  expect(decodeURIComponent(url.username)).toBe('合成 user:@%');expect(decodeURIComponent(url.password)).toBe(' p:@%/?# 合成 ')
+  expect(field('网络使用方式').props.value).toBe('custom')
+  expect(text(tree.root)).toContain('尚未保存或检测');expect(text(tree.root)).not.toContain('p:@%/?#')
+  expect(tree.root.findAllByProps({'aria-label':'自有代理参数'})).toHaveLength(0)
+  expectNoProxyEffects()
+  act(()=>button('返回店铺').props.onClick());expect(text(tree.root)).toContain('放弃未保存的更改')
+})
+it('keeps explicit save on the existing Store CAS and identity adapter after applying parameters',async()=>{
+  withProxyOptions();await mount();fillParameters()
+  act(()=>submitParameters());expectNoProxyEffects()
+  await act(async()=>choose());await act(async()=>button('保存配置').props.onClick())
+  expect(native.StoreEnvironmentSave).toHaveBeenCalledTimes(1)
+  const [id,version,raw,revision,epoch]=native.StoreEnvironmentSave.mock.calls[0]
+  expect([id,version,revision,epoch]).toEqual(['shop-a','4',7,generation])
+  expect(JSON.parse(raw)).toMatchObject({proxyId:'',proxyConfig:'http://fixture-user:fixture-secret@proxy.example.invalid:8080'})
+  expect(native.StoreProxyCheck).not.toHaveBeenCalled();expect(native.StoreEnvironmentOpen).not.toHaveBeenCalled()
+})
+it('cancels parameter entry without touching the saved network or dirty state and clears credentials on reopening',async()=>{
+  await mount();fillParameters();act(()=>button('取消').props.onClick())
+  expect(field('本地代理地址').props.value).toBe(input.proxyConfig)
+  act(()=>button('填写代理参数').props.onClick());expect(field('代理账号').props.value).toBe('');expect(field('代理密码').props.value).toBe('')
+  act(()=>button('取消').props.onClick());act(()=>button('返回店铺').props.onClick())
+  expect(location.pathname).toBe('/stores/shop-a');expectNoProxyEffects()
+})
+it('shows a fixed error for invalid parameters and preserves the existing draft',async()=>{
+  await mount();fillParameters({'代理地址':'fixture-user:fixture-secret@proxy.example.invalid'});act(()=>submitParameters())
+  expect(text(tree.root)).toContain('代理地址只填写域名或 IP');expect(text(tree.root)).not.toContain('fixture-secret')
+  expect(field('本地代理地址').props.value).toBe(input.proxyConfig);expectNoProxyEffects()
+})
+it('invalidates captured parameter callbacks when the underlying URI is edited',async()=>{
+  await mount();fillParameters();const apply=parameterForm().props.onSubmit
+  act(()=>field('本地代理地址').props.onChange({target:{value:'https://new.example.invalid:8443'}}))
+  act(()=>apply({preventDefault(){}}));expect(field('本地代理地址').props.value).toBe('https://new.example.invalid:8443')
+  act(()=>button('填写代理参数').props.onClick());expect(field('代理密码').props.value).toBe('');expectNoProxyEffects()
+})
+it('discards the old Store parameter form and ignores its callback after navigation',async()=>{
+  native.StoreEnvironmentOptions.mockImplementation(id=>Promise.resolve(JSON.stringify({input:{...input,profileName:id,proxyConfig:id==='shop-a'?input.proxyConfig:'http://other.example.invalid:2080'},cores:[],binding:{...state.binding,bindingVersion:id==='shop-a'?'4':'19'}})))
+  await mount();fillParameters();const apply=parameterForm().props.onSubmit
+  await act(async()=>navigate('/stores/shop-b/environment/edit'))
+  act(()=>apply({preventDefault(){}}));expect(field('本地代理地址').props.value).toBe('http://other.example.invalid:2080')
+  act(()=>button('填写代理参数').props.onClick());expect(field('代理账号').props.value).toBe('');expect(field('代理密码').props.value).toBe('')
+  act(()=>button('取消').props.onClick());expectNoProxyEffects()
+  await act(async()=>choose());await act(async()=>button('保存配置').props.onClick())
+  expect(native.StoreEnvironmentSave.mock.calls[0][0]).toBe('shop-b');expect(native.StoreEnvironmentSave.mock.calls[0][1]).toBe('19')
+})
+it('clears unapplied credentials on enterprise switch and keeps the new revision',async()=>{
+  const orgB={id:'org-b',name:'Org B',permissions:['workbench.store.browser.use']}
+  native.StoreWorkbenchContext.mockResolvedValue(JSON.stringify({...context,context:{...context.context,organizations:[...context.context.organizations,orgB]}}))
+  native.StoreWorkbenchSelectOrganization=vi.fn().mockResolvedValue(JSON.stringify({...context,revision:8,context:{...context.context,effectiveOrganizationId:'org-b',organizations:[orgB]}}))
+  await mount();fillParameters();const apply=parameterForm().props.onSubmit
+  await act(async()=>field('当前企业').props.onChange({target:{value:'org-b'}}))
+  act(()=>apply({preventDefault(){}}));expect(location.pathname).toBe('/stores');expectNoProxyEffects()
+  await act(async()=>navigate('/stores/shop-a/environment/edit'))
+  act(()=>button('填写代理参数').props.onClick());expect(field('代理密码').props.value).toBe('')
+  expect(native.StoreEnvironmentOptions.mock.calls.at(-1)).toEqual(['shop-a',8,generation])
+})
+it('drops credentials immediately on authentication replacement and ignores its captured submit',async()=>{
+  await mount();fillParameters();const apply=parameterForm().props.onSubmit
+  act(()=>{acceptAuth({generation:generation+1,state:'signed_in',configured:true,subject:'replacement',expiresAt:new Date(Date.now()+60000).toISOString()},beginAuthAction());apply({preventDefault(){}})})
+  expect(tree.root.findAllByProps({'aria-label':'自有代理参数'})).toHaveLength(0)
+  expect(field('本地代理地址').props.value).toBe(input.proxyConfig);expectNoProxyEffects()
+})
+it('keeps parameter entry disabled if Store options are unauthorized or unavailable',async()=>{
+  native.StoreEnvironmentOptions.mockRejectedValue(new Error('PERMISSION_DENIED'))
+  await mount();expect(button('填写代理参数').props.disabled).toBe(true)
+  act(()=>button('填写代理参数').props.onClick());expect(tree.root.findAllByProps({'aria-label':'自有代理参数'})).toHaveLength(0)
+  expectNoProxyEffects()
+})
+it('does not apply a captured parameter form during an explicit save or after unmount',async()=>{
+  const pending=deferred();native.StoreEnvironmentSave.mockReturnValue(pending.promise)
+  await mount();await act(async()=>choose());fillParameters();const apply=parameterForm().props.onSubmit
+  await act(async()=>{button('保存配置').props.onClick();apply({preventDefault(){}})})
+  expect(field('本地代理地址').props.value).toBe(input.proxyConfig);expect(native.StoreEnvironmentSave).toHaveBeenCalledTimes(1)
+  act(()=>{tree.unmount();tree=null;apply({preventDefault(){}})});await act(async()=>pending.resolve(JSON.stringify(state)))
+  expect(native.StoreEnvironmentSave).toHaveBeenCalledTimes(1);expect(native.StoreEnvironmentOpen).not.toHaveBeenCalled()
+})
